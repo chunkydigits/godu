@@ -1,0 +1,25 @@
+.step-nav {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+.step-nav__dot {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--steps-border);
+  background: var(--steps-surface-elevated);
+  color: var(--steps-text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.step-nav__dot--active {
+  background: var(--steps-accent);
+  border-color: var(--steps-accent);
+  color: #0b0d10;
+}

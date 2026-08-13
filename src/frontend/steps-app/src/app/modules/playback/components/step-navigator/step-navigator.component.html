@@ -1,0 +1,14 @@
+<nav class="step-nav" aria-label="Steps">
+  @for (step of steps; track step.id; let i = $index) {
+    <button
+      type="button"
+      class="step-nav__dot"
+      [class.step-nav__dot--active]="i === selectedIndex"
+      (click)="select(i)"
+      [attr.aria-current]="i === selectedIndex ? 'step' : null"
+      [attr.aria-label]="'Step ' + step.order + ': ' + step.title"
+    >
+      {{ step.order }}
+    </button>
+  }
+</nav>

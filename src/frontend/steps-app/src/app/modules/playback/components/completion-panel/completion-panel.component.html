@@ -1,0 +1,26 @@
+<section class="completion" aria-live="polite">
+  <h2 class="completion__title">Session complete</h2>
+  <p class="completion__summary">
+    You finished
+    <strong>{{ stepsItem.title }}</strong>
+    @if (stepsItem.creatorDisplayName) {
+      <span> from {{ stepsItem.creatorDisplayName }}</span>
+    }
+    — {{ stepsItem.steps.length }} steps.
+  </p>
+
+  <div class="completion__actions">
+    <a mat-flat-button color="primary" routerLink="/">Home</a>
+    <button mat-stroked-button type="button" (click)="replay.emit()">
+      Replay this Steps
+    </button>
+    <a
+      mat-button
+      [href]="stepsItem.video.sourceUrl"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Open original video
+    </a>
+  </div>
+</section>
