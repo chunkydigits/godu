@@ -12,6 +12,7 @@ import {
 } from 'rxjs';
 import { StepDefinition } from '../models/step-definition.model';
 import { StepsItem } from '../models/steps-item.model';
+import { isContinuousSoundtrackEnabled } from '../models/continuous-soundtrack.feature';
 import { ControllableVideoPlayer } from '../models/video-player.interface';
 
 export type PlaybackPhase = 'idle' | 'ready' | 'playing' | 'paused' | 'completed';
@@ -23,6 +24,8 @@ export interface PlaybackState {
   phase: PlaybackPhase;
   remainingSeconds: number | null;
   isTimedStep: boolean;
+  userMuted: boolean;
+  continuousSoundtrackActive: boolean;
 }
 
 const initialState: PlaybackState = {
@@ -32,13 +35,17 @@ const initialState: PlaybackState = {
   phase: 'idle',
   remainingSeconds: null,
   isTimedStep: false,
+  userMuted: false,
+  continuousSoundtrackActive: false,
 };
 
 @Injectable()
 export class StepPlaybackService implements OnDestroy {
   private player: ControllableVideoPlayer | null = null;
+  private soundtrackPlayer: ControllableVideoPlayer | null = null;
   private readonly stateSubject = new BehaviorSubject<PlaybackState>(initialState);
   private playerSub: Subscription | null = null;
+  private soundtrackSub: Subscription | null = null;
   private timerSub: Subscription | null = null;
   private loopArmed = false;
 
@@ -53,7 +60,7 @@ export class StepPlaybackService implements OnDestroy {
   }
 
   async attachPlayer(player: ControllableVideoPlayer): Promise<void> {
-    await this.detachPlayer();
+    await this.detachVisualPlayer();
     this.player = player;
     await player.initialise();
 
@@ -63,7 +70,25 @@ export class StepPlaybackService implements OnDestroy {
         take(1),
         switchMap(() => player.timeUpdates),
       )
-      .subscribe((update) => this.onPlayerTime(update.currentTime));
+      .subscribe((update) => this.onVisualTime(update.currentTime));
+
+    this.applyAudioRouting();
+  }
+
+  async attachSoundtrackPlayer(player: ControllableVideoPlayer): Promise<void> {
+    await this.detachSoundtrackPlayer();
+    this.soundtrackPlayer = player;
+    await player.initialise();
+
+    this.soundtrackSub = player.ready
+      .pipe(
+        filter((ready) => ready),
+        take(1),
+        switchMap(() => player.timeUpdates),
+      )
+      .subscribe((update) => this.onSoundtrackTime(update.currentTime, update.duration));
+
+    this.applyAudioRouting();
   }
 
   async load(stepsItem: StepsItem): Promise<void> {
@@ -76,6 +101,7 @@ export class StepPlaybackService implements OnDestroy {
       phase: 'idle',
       remainingSeconds: null,
       isTimedStep: false,
+      continuousSoundtrackActive: false,
     });
 
     if (stepsItem.steps.length > 0) {
@@ -83,9 +109,18 @@ export class StepPlaybackService implements OnDestroy {
     }
   }
 
+  setUserMuted(muted: boolean): void {
+    this.patch({ userMuted: muted });
+    this.applyAudioRouting();
+  }
+
+  toggleUserMuted(): void {
+    this.setUserMuted(!this.snapshot.userMuted);
+  }
+
   /**
    * User gesture: start video playback and activity timer together.
-   * Video kickstart must run before any await so the click unlocks the embed.
+   * Kickstarts must run before any await so the click unlocks embeds.
    */
   async start(): Promise<void> {
     const { stepsItem, selectedIndex, phase } = this.snapshot;
@@ -102,8 +137,21 @@ export class StepPlaybackService implements OnDestroy {
       return;
     }
 
-    // Synchronous — preserve user activation for TikTok autoplay unlock
-    this.player?.kickstartFromUserGesture(step.startSeconds);
+    const timed = step.durationSeconds != null && step.durationSeconds > 0;
+    const useSoundtrack = isContinuousSoundtrackEnabled(stepsItem) && timed;
+
+    // Synchronous kickstarts — preserve user activation
+    if (useSoundtrack) {
+      this.soundtrackPlayer?.kickstartFromUserGesture(0, {
+        muted: this.snapshot.userMuted,
+      });
+      this.player?.kickstartFromUserGesture(step.startSeconds, { muted: true });
+    } else {
+      this.soundtrackPlayer?.pause();
+      this.player?.kickstartFromUserGesture(step.startSeconds, {
+        muted: this.snapshot.userMuted,
+      });
+    }
 
     await this.selectStep(index, { activate: true, mediaAlreadyKickstarted: true });
   }
@@ -125,6 +173,8 @@ export class StepPlaybackService implements OnDestroy {
 
     const step = stepsItem.steps[index];
     const isTimed = step.durationSeconds != null && step.durationSeconds > 0;
+    const continuousSoundtrackActive =
+      isContinuousSoundtrackEnabled(stepsItem) && isTimed && activate;
 
     if (!activate) {
       this.patch({
@@ -133,11 +183,15 @@ export class StepPlaybackService implements OnDestroy {
         phase: 'ready',
         isTimedStep: isTimed,
         remainingSeconds: isTimed ? step.durationSeconds! : null,
+        continuousSoundtrackActive: false,
       });
 
       if (this.player) {
         await this.player.pause();
         await this.player.seek(step.startSeconds);
+      }
+      if (this.soundtrackPlayer) {
+        await this.soundtrackPlayer.pause();
       }
       return;
     }
@@ -149,12 +203,30 @@ export class StepPlaybackService implements OnDestroy {
       phase: 'playing',
       isTimedStep: isTimed,
       remainingSeconds: isTimed ? step.durationSeconds! : null,
+      continuousSoundtrackActive,
     });
 
-    if (this.player && !options.mediaAlreadyKickstarted) {
-      await this.player.seek(step.startSeconds);
-      await this.player.play();
+    if (!options.mediaAlreadyKickstarted) {
+      if (continuousSoundtrackActive) {
+        if (this.soundtrackPlayer) {
+          await this.soundtrackPlayer.play();
+        }
+        if (this.player) {
+          await this.player.seek(step.startSeconds);
+          await this.player.play();
+        }
+      } else {
+        if (this.soundtrackPlayer) {
+          await this.soundtrackPlayer.pause();
+        }
+        if (this.player) {
+          await this.player.seek(step.startSeconds);
+          await this.player.play();
+        }
+      }
     }
+
+    this.applyAudioRouting();
 
     if (isTimed) {
       this.startTimer(step.durationSeconds!);
@@ -196,6 +268,9 @@ export class StepPlaybackService implements OnDestroy {
     if (this.player) {
       await this.player.pause();
     }
+    if (this.soundtrackPlayer) {
+      await this.soundtrackPlayer.pause();
+    }
     this.patch({ phase: 'paused' });
   }
 
@@ -204,17 +279,34 @@ export class StepPlaybackService implements OnDestroy {
       return;
     }
 
-    const { selectedStep, remainingSeconds, isTimedStep } = this.snapshot;
-    if (!selectedStep) {
+    const { selectedStep, remainingSeconds, isTimedStep, stepsItem } = this.snapshot;
+    if (!selectedStep || !stepsItem) {
       return;
     }
 
-    if (this.player) {
-      await this.player.play();
+    const continuousSoundtrackActive =
+      isContinuousSoundtrackEnabled(stepsItem) && isTimedStep;
+
+    this.patch({ phase: 'playing', continuousSoundtrackActive });
+    this.loopArmed = true;
+
+    if (continuousSoundtrackActive) {
+      if (this.soundtrackPlayer) {
+        await this.soundtrackPlayer.play();
+      }
+      if (this.player) {
+        await this.player.play();
+      }
+    } else {
+      if (this.soundtrackPlayer) {
+        await this.soundtrackPlayer.pause();
+      }
+      if (this.player) {
+        await this.player.play();
+      }
     }
 
-    this.patch({ phase: 'playing' });
-    this.loopArmed = true;
+    this.applyAudioRouting();
 
     if (isTimedStep && remainingSeconds != null && remainingSeconds > 0) {
       this.startTimer(remainingSeconds);
@@ -235,34 +327,100 @@ export class StepPlaybackService implements OnDestroy {
     if (this.player) {
       await this.player.pause();
     }
+    if (this.soundtrackPlayer) {
+      await this.soundtrackPlayer.pause();
+    }
     this.patch({
       phase: 'completed',
       remainingSeconds: 0,
+      continuousSoundtrackActive: false,
     });
   }
 
   async destroy(): Promise<void> {
     this.stopTimer();
+    await this.detachPlayerKeepSession();
+    this.stateSubject.next({ ...initialState, userMuted: this.snapshot.userMuted });
+  }
+
+  async detachPlayerKeepSession(): Promise<void> {
+    await this.detachVisualPlayer();
+    await this.detachSoundtrackPlayer();
+  }
+
+  /**
+   * Hide video guidance: pause the visual embed but leave timers / step state alone.
+   */
+  async suspendVisualKeepSession(): Promise<void> {
+    this.loopArmed = false;
+    if (this.player) {
+      await this.player.pause();
+    }
+  }
+
+  /**
+   * Show video guidance again from a user gesture without resetting the activity timer.
+   */
+  resumeVisualKeepSessionFromUserGesture(): void {
+    const { selectedStep, phase, userMuted, continuousSoundtrackActive } = this.snapshot;
+    if (!selectedStep || !this.player) {
+      return;
+    }
+
+    if (phase === 'playing') {
+      this.loopArmed = true;
+      this.player.kickstartFromUserGesture(selectedStep.startSeconds, {
+        muted: continuousSoundtrackActive ? true : userMuted,
+      });
+      this.applyAudioRouting();
+      return;
+    }
+
+    if (phase === 'ready' || phase === 'paused') {
+      void this.player.seek(selectedStep.startSeconds);
+      void this.player.pause();
+      this.applyAudioRouting();
+    }
+  }
+
+  /** @deprecated Prefer suspendVisualKeepSession — keeps the player instance. */
+  async detachVisualKeepSession(): Promise<void> {
+    await this.suspendVisualKeepSession();
+    await this.detachVisualPlayer();
+  }
+
+  private async detachVisualPlayer(): Promise<void> {
     this.playerSub?.unsubscribe();
     this.playerSub = null;
     if (this.player) {
       await this.player.destroy();
       this.player = null;
     }
-    this.stateSubject.next(initialState);
   }
 
-  private async detachPlayer(): Promise<void> {
-    this.stopTimer();
-    this.playerSub?.unsubscribe();
-    this.playerSub = null;
-    if (this.player) {
-      await this.player.destroy();
-      this.player = null;
+  private async detachSoundtrackPlayer(): Promise<void> {
+    this.soundtrackSub?.unsubscribe();
+    this.soundtrackSub = null;
+    if (this.soundtrackPlayer) {
+      await this.soundtrackPlayer.destroy();
+      this.soundtrackPlayer = null;
     }
   }
 
-  private onPlayerTime(currentTime: number): void {
+  private applyAudioRouting(): void {
+    const { userMuted, continuousSoundtrackActive } = this.snapshot;
+
+    if (continuousSoundtrackActive) {
+      this.player?.setMuted(true);
+      this.soundtrackPlayer?.setMuted(userMuted);
+      return;
+    }
+
+    this.player?.setMuted(userMuted);
+    this.soundtrackPlayer?.setMuted(true);
+  }
+
+  private onVisualTime(currentTime: number): void {
     const { selectedStep, phase } = this.snapshot;
     if (!selectedStep || phase !== 'playing' || !this.loopArmed || !this.player) {
       return;
@@ -270,6 +428,18 @@ export class StepPlaybackService implements OnDestroy {
 
     if (currentTime >= selectedStep.endSeconds) {
       void this.player.seek(selectedStep.startSeconds);
+    }
+  }
+
+  private onSoundtrackTime(currentTime: number, duration: number): void {
+    if (!this.snapshot.continuousSoundtrackActive || !this.soundtrackPlayer) {
+      return;
+    }
+    if (this.snapshot.phase !== 'playing') {
+      return;
+    }
+    if (duration > 0 && currentTime >= duration - 0.35) {
+      void this.soundtrackPlayer.seek(0);
     }
   }
 
@@ -323,9 +493,13 @@ export class StepPlaybackService implements OnDestroy {
     if (this.player) {
       await this.player.pause();
     }
+    if (this.soundtrackPlayer) {
+      await this.soundtrackPlayer.pause();
+    }
     this.patch({
       phase: 'paused',
       remainingSeconds: 0,
+      continuousSoundtrackActive: false,
     });
   }
 

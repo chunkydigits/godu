@@ -14,6 +14,11 @@ export interface VideoPlayerTimeUpdate {
   duration: number;
 }
 
+export interface KickstartOptions {
+  /** Prefer muted media unlock (visual clips under continuous soundtrack). */
+  muted?: boolean;
+}
+
 export interface ControllableVideoPlayer extends VideoPlayer {
   readonly timeUpdates: Observable<VideoPlayerTimeUpdate>;
   readonly ready: Observable<boolean>;
@@ -22,5 +27,8 @@ export interface ControllableVideoPlayer extends VideoPlayer {
    * Begin media from a user gesture. Must run synchronously in the click stack
    * (no await before calling) so the browser/embed can unlock playback.
    */
-  kickstartFromUserGesture(startSeconds: number): void;
+  kickstartFromUserGesture(startSeconds: number, options?: KickstartOptions): void;
+
+  /** Mute or unmute the embed. */
+  setMuted(muted: boolean): void;
 }

@@ -6,7 +6,11 @@
     </div>
   } @else if (item$ | async; as item) {
     @if (state$ | async; as state) {
-      <div class="viewer">
+      <div
+        class="viewer"
+        [class.viewer--video-off]="(showVideo$ | async) === false"
+        [class.viewer--complete]="state.phase === 'completed'"
+      >
         <header class="viewer__header">
           <a mat-icon-button routerLink="/" aria-label="Back home">
             <mat-icon>arrow_back</mat-icon>
@@ -15,20 +19,64 @@
             <p class="viewer__creator">{{ item.creatorDisplayName }}</p>
             <h1 class="viewer__title">{{ item.title }}</h1>
           </div>
+
+          @if (state.phase !== 'completed') {
+            <button
+              mat-icon-button
+              type="button"
+              class="viewer__mute"
+              (click)="toggleMute()"
+              [attr.aria-label]="state.userMuted ? 'Unmute' : 'Mute'"
+            >
+              <mat-icon>{{ state.userMuted ? 'volume_off' : 'volume_up' }}</mat-icon>
+            </button>
+
+            <mat-slide-toggle
+              class="viewer__video-toggle"
+              [checked]="(showVideo$ | async) ?? true"
+              (change)="onShowVideoChange($event.checked)"
+              aria-label="Show video"
+            >
+              Video
+            </mat-slide-toggle>
+          }
         </header>
 
-        <div class="viewer__video">
-          <app-video-host
-            [provider]="item.video.provider"
-            [externalVideoId]="item.video.externalVideoId"
-            (playerReady)="onPlayerReady($event)"
-          />
-        </div>
+        @if (state.phase !== 'completed') {
+          <div
+            class="viewer__video"
+            [class.viewer__video--hidden]="(showVideo$ | async) === false"
+          >
+            <app-video-host
+              [provider]="item.video.provider"
+              [externalVideoId]="item.video.externalVideoId"
+              (playerReady)="onPlayerReady($event)"
+            />
+          </div>
+
+          @if ((showVideo$ | async) === false) {
+            <div class="viewer__video-off" aria-live="polite">
+              <mat-icon>videocam_off</mat-icon>
+              <p>Video guidance off — timers and step text only.</p>
+            </div>
+          }
+        }
+
+        @if (usesContinuousSoundtrack(item) && state.phase !== 'completed') {
+          <div class="viewer__soundtrack" aria-hidden="true">
+            <app-video-host
+              [provider]="item.video.provider"
+              [externalVideoId]="item.video.externalVideoId"
+              (playerReady)="onSoundtrackReady($event)"
+            />
+          </div>
+        }
 
         @if (state.phase === 'completed') {
           <app-completion-panel
             [stepsItem]="item"
             [completedStep]="state.selectedStep"
+            [relatedSteps]="(related$ | async) ?? []"
             (replay)="replay()"
           />
         } @else {
@@ -36,6 +84,9 @@
             <p class="viewer__step-count">
               @if (state.selectedStep) {
                 Step {{ state.selectedStep.order }} of {{ item.steps.length }}
+                @if (state.continuousSoundtrackActive) {
+                  <span class="viewer__soundtrack-badge"> · Soundtrack</span>
+                }
               } @else {
                 Loading step…
               }
@@ -72,7 +123,15 @@
                   Start Steps
                 </button>
                 <p class="viewer__start-hint">
-                  Starts the video and step timer together.
+                  @if (showVideo$ | async) {
+                    @if (usesContinuousSoundtrack(item)) {
+                      Starts muted step clips with a continuous soundtrack.
+                    } @else {
+                      Starts the video and step timer together.
+                    }
+                  } @else {
+                    Starts the step timer (video is off).
+                  }
                 </p>
               </div>
             } @else {

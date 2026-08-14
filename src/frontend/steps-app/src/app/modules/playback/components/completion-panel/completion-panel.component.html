@@ -9,18 +9,55 @@
     — {{ stepsItem.steps.length }} steps.
   </p>
 
-  <div class="completion__actions">
-    <a mat-flat-button color="primary" routerLink="/">Home</a>
-    <button mat-stroked-button type="button" (click)="replay.emit()">
-      Replay this Steps
-    </button>
+  <div class="completion__icon-actions" role="group" aria-label="Session actions">
     <a
-      mat-button
+      mat-icon-button
+      class="completion__icon-btn"
+      routerLink="/"
+      aria-label="Home"
+    >
+      <mat-icon>home</mat-icon>
+    </a>
+
+    <button
+      mat-icon-button
+      class="completion__icon-btn"
+      type="button"
+      (click)="replay.emit()"
+      aria-label="Replay"
+    >
+      <mat-icon>replay</mat-icon>
+    </button>
+
+    <a
+      mat-icon-button
+      class="completion__icon-btn completion__icon-btn--platform"
       [href]="stepsItem.video.sourceUrl"
       target="_blank"
       rel="noopener noreferrer"
+      [attr.aria-label]="'Open original on ' + stepsItem.video.provider"
     >
-      Open original video
+      <app-platform-mark [provider]="stepsItem.video.provider" />
     </a>
   </div>
+
+  @if (relatedSteps.length > 0) {
+    <div class="completion__related">
+      <h3 class="completion__related-title">
+        More from {{ stepsItem.creatorDisplayName || 'this creator' }}
+      </h3>
+      <ul class="completion__related-list">
+        @for (related of relatedSteps; track related.id) {
+          <li>
+            <a class="completion__related-link" [routerLink]="['/play', related.id]">
+              <span class="completion__related-name">{{ related.title }}</span>
+              <span class="completion__related-meta">
+                {{ related.steps.length }} steps
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+  }
 </section>

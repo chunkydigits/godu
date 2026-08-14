@@ -75,3 +75,33 @@ Place under post-MVP / platform expansions. Revisit after core web MVP and creat
 - Link to canonical public URLs `/{provider}/{username}/{slug}`
 
 **Depends on:** persistence + public creator catalogue (Phase 8+). Can stub in Phase 1 demos with hard-coded related IDs if useful for UX spike.
+
+---
+
+## 5. Continuous soundtrack — known limitation (nice-to-have polish)
+
+**Status:** Spec’d and partially implemented; **video stability is deferred**. Not a blocker for MVP.
+
+**What works today:** With `continuousSoundtrack`, audio from the full-video soundtrack plays smoothly without the jump/cut that comes from looping step segments with sound.
+
+**Problem (observed 2026-08-13):** The **visual** clip player is slow to get going and then **skips / jumps** heavily while the soundtrack runs. Reproduced on:
+
+- iPhone 15 (Safari)
+- Desktop Cursor browser
+
+Likely cause: dual TikTok embeds (muted visual seek/loop + separate soundtrack embed) fighting for decode/bandwidth, plus aggressive segment seek/loop on the visual player.
+
+**Product stance:**
+
+- Keep `continuousSoundtrack` as a creator option in the domain/spec
+- Runtime gated by `environment.features.continuousSoundtrack` — **false** in development and production until polished
+- Treat smooth dual-embed visual sync as a **nice-to-have** — revisit later if time allows
+- Acceptable interim: feature code remains; flag off so users get normal single-embed playback
+- Do not prioritise over core create/library/auth/publish work
+
+**Later investigation ideas (not committed):**
+
+- Softer visual loop (less frequent seeks; tolerate drift)
+- Single-embed strategies if TikTok APIs allow
+- Pause visual when off-screen / lower visual quality
+- Platform-specific fallbacks (e.g. soundtrack-only when dual embed is unstable)

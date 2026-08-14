@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { BehaviorSubject, Subject } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 import { StepsItem } from '../models/steps-item.model';
 import { StepsItemStatus } from '../models/steps-item-status.enum';
 import { StepsVisibility } from '../models/steps-visibility.enum';
@@ -10,7 +11,7 @@ import {
 } from '../models/video-player.interface';
 import { StepPlaybackService } from './step-playback.service';
 
-function createDemoItem(): StepsItem {
+function createDemoItem(overrides: Partial<StepsItem> = {}): StepsItem {
   return {
     id: 'steps_test',
     createdByUserId: 'usr_test',
@@ -43,6 +44,7 @@ function createDemoItem(): StepsItem {
       },
     ],
     createdUtc: '2026-08-13T08:00:00Z',
+    ...overrides,
   };
 }
 
@@ -51,19 +53,22 @@ function createMockPlayer() {
   const timeUpdates = new Subject<VideoPlayerTimeUpdate>();
   const seek = vi.fn().mockResolvedValue(undefined);
   const play = vi.fn().mockResolvedValue(undefined);
+  const pause = vi.fn().mockResolvedValue(undefined);
   const kickstartFromUserGesture = vi.fn();
+  const setMuted = vi.fn();
   const player: ControllableVideoPlayer = {
     ready: ready.asObservable(),
     timeUpdates: timeUpdates.asObservable(),
     initialise: vi.fn().mockResolvedValue(undefined),
     play,
-    pause: vi.fn().mockResolvedValue(undefined),
+    pause,
     seek,
     getCurrentTime: vi.fn().mockResolvedValue(0),
     destroy: vi.fn().mockResolvedValue(undefined),
     kickstartFromUserGesture,
+    setMuted,
   };
-  return { player, timeUpdates, seek, play, kickstartFromUserGesture };
+  return { player, timeUpdates, seek, play, pause, kickstartFromUserGesture, setMuted };
 }
 
 describe('StepPlaybackService', () => {
@@ -97,11 +102,87 @@ describe('StepPlaybackService', () => {
     await service.load(createDemoItem());
     await service.start();
 
-    expect(kickstartFromUserGesture).toHaveBeenCalledWith(0);
+    expect(kickstartFromUserGesture).toHaveBeenCalledWith(0, { muted: false });
     expect(service.snapshot.phase).toBe('playing');
-    // Initial start uses kickstart; play() is for later step changes / resume
     expect(play).not.toHaveBeenCalled();
     expect(service.snapshot.isTimedStep).toBe(true);
+  });
+
+  it('continuousSoundtrack mutes visual and kickstarts soundtrack for timed steps', async () => {
+    environment.features.continuousSoundtrack = true;
+    try {
+      const visual = createMockPlayer();
+      const soundtrack = createMockPlayer();
+      await service.attachPlayer(visual.player);
+      await service.attachSoundtrackPlayer(soundtrack.player);
+      await service.load(createDemoItem({ continuousSoundtrack: true }));
+      await service.start();
+
+      expect(soundtrack.kickstartFromUserGesture).toHaveBeenCalledWith(0, {
+        muted: false,
+      });
+      expect(visual.kickstartFromUserGesture).toHaveBeenCalledWith(0, {
+        muted: true,
+      });
+      expect(service.snapshot.continuousSoundtrackActive).toBe(true);
+      expect(visual.setMuted).toHaveBeenCalledWith(true);
+    } finally {
+      environment.features.continuousSoundtrack = false;
+    }
+  });
+
+  it('continuousSoundtrack does not stay active on untimed steps', async () => {
+    environment.features.continuousSoundtrack = true;
+    try {
+      const visual = createMockPlayer();
+      const soundtrack = createMockPlayer();
+      await service.attachPlayer(visual.player);
+      await service.attachSoundtrackPlayer(soundtrack.player);
+      await service.load(createDemoItem({ continuousSoundtrack: true }));
+      await service.start();
+      await service.selectStep(1);
+
+      expect(service.snapshot.continuousSoundtrackActive).toBe(false);
+      expect(service.snapshot.isTimedStep).toBe(false);
+      expect(soundtrack.pause).toHaveBeenCalled();
+    } finally {
+      environment.features.continuousSoundtrack = false;
+    }
+  });
+
+  it('user mute is applied to soundtrack when continuous', async () => {
+    environment.features.continuousSoundtrack = true;
+    try {
+      const visual = createMockPlayer();
+      const soundtrack = createMockPlayer();
+      await service.attachPlayer(visual.player);
+      await service.attachSoundtrackPlayer(soundtrack.player);
+      await service.load(createDemoItem({ continuousSoundtrack: true }));
+      await service.start();
+      soundtrack.setMuted.mockClear();
+
+      service.setUserMuted(true);
+      expect(soundtrack.setMuted).toHaveBeenCalledWith(true);
+      expect(visual.setMuted).toHaveBeenCalledWith(true);
+    } finally {
+      environment.features.continuousSoundtrack = false;
+    }
+  });
+
+  it('ignores item continuousSoundtrack when environment feature is off', async () => {
+    environment.features.continuousSoundtrack = false;
+    const visual = createMockPlayer();
+    const soundtrack = createMockPlayer();
+    await service.attachPlayer(visual.player);
+    await service.attachSoundtrackPlayer(soundtrack.player);
+    await service.load(createDemoItem({ continuousSoundtrack: true }));
+    await service.start();
+
+    expect(service.snapshot.continuousSoundtrackActive).toBe(false);
+    expect(visual.kickstartFromUserGesture).toHaveBeenCalledWith(0, {
+      muted: false,
+    });
+    expect(soundtrack.kickstartFromUserGesture).not.toHaveBeenCalled();
   });
 
   it('selectStep while ready only previews without playing', async () => {
@@ -187,5 +268,30 @@ describe('StepPlaybackService', () => {
     await service.resume();
     expect(service.snapshot.phase).toBe('playing');
     expect(player.play).toHaveBeenCalled();
+  });
+
+  it('suspend/resume visual keeps the activity timer running', async () => {
+    const { player, kickstartFromUserGesture, pause } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+    await service.start();
+
+    await vi.advanceTimersByTimeAsync(800);
+    const remainingBefore = service.snapshot.remainingSeconds;
+
+    await service.suspendVisualKeepSession();
+    expect(pause).toHaveBeenCalled();
+    expect(service.snapshot.phase).toBe('playing');
+
+    await vi.advanceTimersByTimeAsync(500);
+    expect(service.snapshot.remainingSeconds).toBeLessThan(remainingBefore!);
+
+    const remainingBeforeResume = service.snapshot.remainingSeconds;
+    kickstartFromUserGesture.mockClear();
+    service.resumeVisualKeepSessionFromUserGesture();
+
+    expect(kickstartFromUserGesture).toHaveBeenCalled();
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.remainingSeconds).toBe(remainingBeforeResume);
   });
 });

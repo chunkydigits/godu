@@ -1,6 +1,7 @@
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import {
   ControllableVideoPlayer,
+  KickstartOptions,
   VideoPlayerTimeUpdate,
 } from '../../../models/video-player.interface';
 
@@ -12,15 +13,12 @@ interface TikTokPlayerMessage<T = unknown> {
 
 interface EmbedOptions {
   autoplay: boolean;
+  muted: boolean;
 }
 
 /**
  * TikTok Embed Player adapter.
  * Isolates all TikTok postMessage / iframe details behind VideoPlayer.
- *
- * Note: postMessage `play` alone often fails until the embed has unlocked
- * media. `kickstartFromUserGesture` remounts with autoplay=1 inside the
- * user-click stack, which is the reliable Start path.
  */
 export class TikTokVideoPlayer implements ControllableVideoPlayer {
   private iframe: HTMLIFrameElement | null = null;
@@ -29,6 +27,7 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
   private destroyed = false;
   private pendingSeekSeconds: number | null = null;
   private wantPlaying = false;
+  private muted = false;
 
   private readonly readySubject = new BehaviorSubject<boolean>(false);
   private readonly timeUpdatesSubject = new Subject<VideoPlayerTimeUpdate>();
@@ -50,29 +49,34 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     }
 
     window.addEventListener('message', this.onMessage);
-    this.mountIframe({ autoplay: false });
+    this.mountIframe({ autoplay: false, muted: this.muted });
   }
 
-  /**
-   * Call synchronously from a click handler. Remounts the embed with autoplay
-   * so TikTok actually starts without requiring the in-iframe play button.
-   */
-  kickstartFromUserGesture(startSeconds: number): void {
+  kickstartFromUserGesture(startSeconds: number, options?: KickstartOptions): void {
     if (this.destroyed) {
       return;
+    }
+
+    if (options?.muted != null) {
+      this.muted = options.muted;
     }
 
     this.wantPlaying = true;
     this.pendingSeekSeconds = startSeconds;
     this.currentTimeSeconds = startSeconds;
-    this.mountIframe({ autoplay: true });
+    this.mountIframe({ autoplay: true, muted: this.muted });
     this.postControlCommands(startSeconds);
+  }
+
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+    this.post(muted ? 'mute' : 'unMute');
   }
 
   async play(): Promise<void> {
     this.wantPlaying = true;
-    this.post('unMute');
     this.post('play');
+    this.applyMuteState();
   }
 
   async pause(): Promise<void> {
@@ -108,7 +112,6 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     const iframe = document.createElement('iframe');
     iframe.src = this.buildEmbedUrl(options);
     iframe.title = 'TikTok video';
-    // autoplay feature policy is required for programmatic / URL autoplay
     iframe.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
     iframe.setAttribute('allowfullscreen', 'true');
     iframe.referrerPolicy = 'strict-origin-when-cross-origin';
@@ -123,7 +126,6 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
 
   private buildEmbedUrl(options: EmbedOptions): string {
     const params = new URLSearchParams({
-      // Hide TikTok chrome — we own Start / Pause UI
       controls: '0',
       progress_bar: '0',
       play_button: '0',
@@ -132,14 +134,18 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
       timestamp: '0',
       loop: '0',
       autoplay: options.autoplay ? '1' : '0',
-      // Muted autoplay is what browsers allow from an embed remount;
-      // we unMute via postMessage as soon as the player is ready.
-      muted: options.autoplay ? '1' : '0',
+      muted: options.muted || options.autoplay ? '1' : '0',
       music_info: '0',
       description: '0',
       rel: '0',
       closed_caption: '0',
     });
+
+    // If we intend unmuted playback after unlock, still start muted for autoplay
+    // policy then unMute via postMessage when ready (unless muted stays true).
+    if (options.autoplay && !options.muted) {
+      params.set('muted', '1');
+    }
 
     return `https://www.tiktok.com/player/v1/${this.externalVideoId}?${params.toString()}`;
   }
@@ -147,7 +153,11 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
   private postControlCommands(startSeconds: number): void {
     this.post('seekTo', startSeconds);
     this.post('play');
-    this.post('unMute');
+    this.applyMuteState();
+  }
+
+  private applyMuteState(): void {
+    this.post(this.muted ? 'mute' : 'unMute');
   }
 
   private post(type: string, value?: unknown): void {
@@ -160,7 +170,6 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
         ? { 'x-tiktok-player': true, type }
         : { 'x-tiktok-player': true, type, value };
 
-    // Official TikTok embed examples use '*'.
     this.iframe.contentWindow.postMessage(message, '*');
   }
 
@@ -184,18 +193,17 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
         break;
       case 'onStateChange': {
         const state = data.value as number | undefined;
-        // 2 = paused, 1 = playing. If we want playing but got paused after ready, nudge again.
         if (this.wantPlaying && state === 2) {
           this.post('play');
+          this.applyMuteState();
         }
         break;
       }
       case 'onPlayerError': {
         const error = data.value as { errorCode?: number; errorType?: string } | undefined;
         if (error?.errorType === 'AUTOPLAY_ERROR' || error?.errorCode === 3002) {
-          // Last resort inside already-unlocked session: try play again unmuted.
-          this.post('unMute');
           this.post('play');
+          this.applyMuteState();
         }
         break;
       }

@@ -15,6 +15,11 @@ export interface StepsItem {
   creatorDisplayName?: string;
   video: VideoReference;
   steps: StepDefinition[];
+  /**
+   * When true, timed steps use a continuous full-video soundtrack (looped)
+   * while visual clips play muted. Untimed steps keep normal segment audio.
+   */
+  continuousSoundtrack?: boolean;
   createdUtc: string;
   updatedUtc?: string;
   publishedUtc?: string;

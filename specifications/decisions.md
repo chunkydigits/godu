@@ -162,6 +162,28 @@ Pause: pause **both** video segment playback and activity timer together; resume
 
 ---
 
+## 9b2. Continuous soundtrack (creator config)
+
+| Decision | Choice |
+| --- | --- |
+| Field | `StepsItem.continuousSoundtrack` (boolean, creator-set) |
+| Meaning | Soundtrack does **not** belong to individual step clips |
+| Timed steps | Visual clips play **muted** and loop per step; a separate full-video soundtrack plays (and loops) with audio |
+| Untimed steps | **Not affected** — normal segment audio on the visual player; soundtrack paused |
+| User mute | Mutes soundtrack (and any unmuted visual audio) |
+| Priority | **Nice-to-have / deferred.** Gated by `environment.features.continuousSoundtrack` (false in development and production). Audio continuity worked; visual dual-embed was jumpy. See `field-feedback.md` §5 |
+
+---
+
+## 9b3. Completion chrome
+
+| Decision | Choice |
+| --- | --- |
+| Video | Hidden on completion |
+| Actions | Icon-only: Home (house), Replay, Open original (platform mark — leaving Steps) |
+
+---
+
 ## 9c. Related creator Steps (field feedback)
 
 | Decision | Choice |

@@ -192,6 +192,8 @@ Priority follow-ups before deepening product features:
 - **Video on/off** viewer preference so timers + step text work without the embed (`field-feedback.md` §2)
 - Optional: hard-coded “More from this creator” stubs on demo completion to prove the UX (full data in Phase 8)
 
+**Deferred nice-to-have:** smooth `continuousSoundtrack` **visual** playback (dual TikTok embed currently jumpy/slow; audio side is acceptable). See `field-feedback.md` §5 — revisit only if schedule allows.
+
 ### Phase 2 — Browser validation polish
 
 Fix Safari / mobile quirks for embed seek/loop/timer/wake-lock. Do not deepen product features until this is solid.
