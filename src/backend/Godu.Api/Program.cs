@@ -1,4 +1,3 @@
-using Azure.Identity;
 using Godu.Api.Configuration;
 using Godu.Api.Middleware;
 using Godu.Model.Configuration;
@@ -11,7 +10,19 @@ var builder = WebApplication.CreateBuilder(args);
 var keyVaultUri = builder.Configuration[$"{KeyVaultOptions.SectionName}:VaultUri"];
 if (!string.IsNullOrWhiteSpace(keyVaultUri))
 {
-    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
+    try
+    {
+        var credential = AzureCredential.Create(builder.Environment);
+        builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), credential);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(
+            $"GODU: Failed to load Key Vault '{keyVaultUri}'. " +
+            "On App Service, enable a system-assigned managed identity and grant it Key Vault Secrets User on this vault. " +
+            $"Details: {ex}");
+        throw;
+    }
 }
 
 builder.Services.AddDataProtection();
@@ -71,13 +82,14 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseCors("GoduSpa");
 app.UseAuthentication();
 app.UseMiddleware<CurrentUserMiddleware>();
 app.UseAuthorization();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapControllers();
 
 app.Run();

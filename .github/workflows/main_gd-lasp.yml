@@ -27,7 +27,7 @@ jobs:
         run: dotnet test src/backend/Godu.sln --configuration Release
 
       - name: Publish API
-        run: dotnet publish src/backend/Godu.Api/Godu.Api.csproj -c Release -r linux-x64 --self-contained false -o "${{ github.workspace }}/publish"
+        run: dotnet publish src/backend/Godu.Api/Godu.Api.csproj -c Release -o "${{ github.workspace }}/publish"
 
       - name: Verify publish output
         run: |
