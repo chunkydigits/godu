@@ -1,4 +1,4 @@
-# Steps MVP — Build Specification
+# Godu MVP — Build Specification
 
 Companion to:
 
@@ -14,7 +14,7 @@ This document is the **implementation contract**: what to build, in what order, 
 
 Prove that instructional videos (starting with TikTok) can become interactive step experiences in a mobile-first **web** app, then grow into personal libraries and verified creator publishing — without over-engineering.
 
-Temporary product name: **Steps**. Do not hard-code a commercial brand into domain models.
+Commercial product name: **Godu**. Keep feature domain names (`StepsItem`, etc.) in models/code; brand the UI and solution as Godu. Auth0 tenant: **`godu.uk.auth0.com`**.
 
 ---
 
@@ -25,7 +25,7 @@ Angular (latest stable, standalone) + Angular Material + Capacitor (web-first)
         ↓
 ASP.NET Core modular monolith (Api / Service / Repository / Model / Utility)
         ↓
-Azure Cosmos DB + Auth0 (after local spike)
+Cosmos DB Emulator (local now) / Azure Cosmos later + Auth0 (godu.uk.auth0.com)
 ```
 
 Core equation:
@@ -41,23 +41,23 @@ TikTok is the first `VideoProvider` only.
 ## 2. Solution layout (ROE)
 
 ```text
-Steps/
+Godu/
 ├── src/
 │   ├── backend/
-│   │   ├── Steps.Api/
-│   │   ├── Steps.Service/
-│   │   ├── Steps.Repository/
-│   │   ├── Steps.Model/
-│   │   └── Steps.Utility/
+│   │   ├── Godu.Api/
+│   │   ├── Godu.Service/
+│   │   ├── Godu.Repository/
+│   │   ├── Godu.Model/
+│   │   └── Godu.Utility/
 │   └── frontend/
-│       └── steps-app/          # Angular + Capacitor
+│       └── steps-app/          # Angular + Capacitor (folder name kept for now)
 ├── tests/
-│   ├── Steps.Service.Tests/    # primary business-logic tests
-│   └── Steps.Api.Tests/        # optional integration
+│   ├── Godu.Service.Tests/     # primary business-logic tests
+│   └── Godu.Api.Tests/         # optional integration
 ├── specifications/
 ├── rulesets/
 ├── docs/
-└── Steps.sln
+└── Godu.sln
 ```
 
 Frontend folder layout follows UI ROE (`modules/`, `core/`, `page-template`, Material module surface).
@@ -180,7 +180,7 @@ Build:
 - Explicit **Start Steps** (no auto-start); video + timers begin together on user gesture
 - Unit tests for `StepPlaybackService` / step validation logic where pure
 
-Do **not** build yet: Auth0, Cosmos, ASP.NET, creator accounts, analytics.
+Phase 1 scope excluded Auth0 / Cosmos / ASP.NET (those land in Phases 3–4).
 
 **Exit criteria:** Acceptable playback + step UX in desktop Chrome and mobile Safari (iPhone). Capacitor WebView nice-to-have same session, not a blocker if browser works.
 
@@ -200,11 +200,13 @@ Fix Safari / mobile quirks for embed seek/loop/timer/wake-lock. Do not deepen pr
 
 ### Phase 3 — Backend & persistence
 
-ASP.NET solution per ROE; Cosmos `StepsItems`; public read + private CRUD/archive.
+ASP.NET `Godu.*` solution per ROE; local Cosmos emulator (or in-memory Development fallback) with `Users` / `ExternalIdentities` / `StepsItems`; public read stub + private CRUD/archive (`/api/me/steps`).
 
 ### Phase 4 — Auth0 & internal identity
 
-JWT validation → `ExternalIdentity` → `User` provisioning → `ICurrentUser`.
+JWT validation against `godu.uk.auth0.com` → `ExternalIdentity` → `User` provisioning → `ICurrentUser`. Angular Auth0 SPA SDK + Bearer interceptor; thin authenticated My Steps list.
+
+Azure cloud Cosmos / Key Vault / hosting remain deferred until deploy.
 
 ### Phase 5 — Personal library
 

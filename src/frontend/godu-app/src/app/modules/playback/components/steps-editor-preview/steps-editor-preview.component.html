@@ -1,0 +1,31 @@
+<div class="preview">
+  @if (videoId) {
+    <div class="preview__player">
+      <app-video-host
+        [provider]="provider"
+        [externalVideoId]="videoId"
+        (playerReady)="onPlayerReady($event)"
+      />
+    </div>
+    <div class="preview__bar">
+      @if (clock$ | async; as clock) {
+        <span class="preview__clock">{{ clock.current }} / {{ clock.duration }}</span>
+      }
+      <div class="preview__controls">
+        <button mat-stroked-button type="button" (click)="seekBack()">-1s</button>
+        <button mat-icon-button type="button" (click)="play()" aria-label="Play">
+          <mat-icon>play_arrow</mat-icon>
+        </button>
+        <button mat-icon-button type="button" (click)="pause()" aria-label="Pause">
+          <mat-icon>pause</mat-icon>
+        </button>
+        <button mat-stroked-button type="button" (click)="seekForward()">+1s</button>
+      </div>
+    </div>
+  } @else {
+    <div class="preview__empty">
+      <mat-icon>smart_display</mat-icon>
+      <p>Paste a TikTok URL to preview the video while you set timestamps.</p>
+    </div>
+  }
+</div>

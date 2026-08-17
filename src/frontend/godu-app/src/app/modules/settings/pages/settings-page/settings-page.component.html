@@ -1,0 +1,102 @@
+<app-page-template
+  title="Settings"
+  subtitle="Sign-in is separate from creator accounts."
+>
+  @if (notice$ | async; as notice) {
+    @if (notice.linked === 'tiktok') {
+      <p class="banner notice">TikTok account connected and verified.</p>
+    }
+    @if (notice.error) {
+      <p class="banner error">{{ notice.error }}</p>
+    }
+  }
+
+  <section class="panel">
+    <h2>Sign in</h2>
+    <p class="panel__copy">
+      You sign in to Godu with Auth0. Linking TikTok does not change how you log in.
+    </p>
+    @if (user$ | async; as user) {
+      <dl class="identity">
+        <div>
+          <dt>Name</dt>
+          <dd>{{ user.name || 'Godu user' }}</dd>
+        </div>
+        @if (user.email) {
+          <div>
+            <dt>Email</dt>
+            <dd>{{ user.email }}</dd>
+          </div>
+        }
+      </dl>
+    } @else {
+      <p class="empty">Log in from the menu to see your Godu sign-in details.</p>
+    }
+  </section>
+
+  <section class="panel">
+    <h2>Creator accounts</h2>
+    <p class="panel__copy">
+      Connect TikTok to prove you own that account. You will need a verified link before
+      publishing public Steps.
+    </p>
+
+    @if (view$ | async; as view) {
+      @if (view.loading || view.connecting) {
+        <div class="status-row">
+          <mat-progress-bar mode="indeterminate" />
+        </div>
+      }
+      @if (view.error) {
+        <p class="error">{{ view.error }}</p>
+      }
+      @if (view.actionMessage) {
+        <p class="notice">{{ view.actionMessage }}</p>
+      }
+
+      @if (!view.loading) {
+        <div class="action-bar">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="view.connecting"
+            (click)="connectTikTok()"
+          >
+            Connect TikTok
+          </button>
+        </div>
+      }
+
+      @if (view.accounts.length === 0 && !view.loading && !view.error) {
+        <p class="empty">No creator accounts linked yet.</p>
+      } @else if (view.accounts.length > 0) {
+        <ul class="account-list">
+          @for (account of view.accounts; track account.id) {
+            <li class="account">
+              <div class="account__body">
+                <h3>@{{ account.username }}</h3>
+                <p>
+                  TikTok
+                  @if (account.isVerified) {
+                    · Verified
+                  }
+                  @if (account.displayName) {
+                    · {{ account.displayName }}
+                  }
+                </p>
+              </div>
+              <button
+                mat-button
+                type="button"
+                (click)="confirmDisconnect(account)"
+              >
+                Disconnect
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    }
+  </section>
+</app-page-template>

@@ -1,0 +1,73 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Build
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+publish/
+
+# NuGet
+**/packages/*
+!**/packages/build/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+
+# Tests
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Local Azure / Cosmos emulator data
+azurite/
+
+# Secrets / local overrides (keep appsettings.Development.json)
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+*.pfx
+*.pem
+*.key
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+coverage/
+.sass-cache/
+.out-tsc/
+tmp/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+
+# Capacitor native build output (when ios/android platforms are added)
+ios/App/Pods/
+ios/App/build/
+android/.gradle/
+android/app/build/
+android/local.properties
+*.jks
+*.keystore
+
+# Logs
+*.log
+
+# OS / editors
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.history/

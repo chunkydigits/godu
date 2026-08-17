@@ -1,0 +1,63 @@
+<app-page-template
+  [title]="isEditMode ? 'Edit Steps' : 'Create Steps'"
+  subtitle="Set timestamps while watching the TikTok preview."
+  [lockContentScroll]="true"
+>
+  <div class="editor-page">
+    <div class="toolbar">
+      <a mat-button routerLink="/my-steps">Back to My Steps</a>
+      <button
+        mat-stroked-button
+        type="button"
+        class="toolbar__swap"
+        (click)="toggleLayout()"
+      >
+        Swap layout
+      </button>
+    </div>
+
+    @if (loadState$ | async; as loadState) {
+      @if (loadState.loading) {
+        <div class="status-row">
+          <mat-progress-bar mode="indeterminate" />
+        </div>
+      } @else if (loadState.error) {
+        <p class="error">{{ loadState.error }}</p>
+      } @else {
+        <form
+          class="editor-shell"
+          [class.editor-shell--video-end]="videoOnEnd()"
+          [formGroup]="form"
+          (ngSubmit)="submit()"
+        >
+          <aside class="editor-shell__preview">
+            <app-steps-editor-preview [externalVideoId]="previewVideoId()" />
+          </aside>
+
+          <div class="editor-shell__form">
+            <app-steps-editor-form
+              [form]="form"
+              [continuousSoundtrackEnabled]="continuousSoundtrackEnabled"
+              (addStep)="addStep()"
+              (removeStep)="removeStep($event)"
+            />
+
+            @if (saveState$ | async; as saveState) {
+              @if (saveState.error) {
+                <p class="error">{{ saveState.error }}</p>
+              }
+              @if (saveState.saving) {
+                <mat-progress-bar mode="indeterminate" />
+              }
+            }
+
+            <div class="actions">
+              <button mat-flat-button color="primary" type="submit">Save</button>
+              <a mat-button routerLink="/my-steps">Cancel</a>
+            </div>
+          </div>
+        </form>
+      }
+    }
+  </div>
+</app-page-template>

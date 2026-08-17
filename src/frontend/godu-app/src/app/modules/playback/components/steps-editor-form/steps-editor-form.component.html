@@ -1,0 +1,81 @@
+<div class="fields" [formGroup]="form">
+  <mat-form-field appearance="outline" class="full">
+    <mat-label>TikTok video URL or ID</mat-label>
+    <input
+      matInput
+      formControlName="videoInput"
+      required
+      placeholder="https://www.tiktok.com/@user/video/…"
+    />
+    <mat-hint>Paste a link to autofill creator, title, and description (TikTok oEmbed).</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full">
+    <mat-label>Title</mat-label>
+    <input matInput formControlName="title" required />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full">
+    <mat-label>Description</mat-label>
+    <textarea matInput rows="5" formControlName="description"></textarea>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full">
+    <mat-label>Creator display name</mat-label>
+    <input matInput formControlName="creatorDisplayName" placeholder="@username" />
+  </mat-form-field>
+
+  @if (continuousSoundtrackEnabled) {
+    <mat-checkbox formControlName="continuousSoundtrack">Continuous soundtrack</mat-checkbox>
+  }
+
+  <div class="steps-header">
+    <h2>Steps</h2>
+    <button mat-stroked-button type="button" (click)="addStep.emit()">Add step</button>
+  </div>
+
+  <div formArrayName="steps" class="steps">
+    @for (step of steps.controls; track $index; let i = $index) {
+      <div class="step" [formGroupName]="i">
+        <div class="step__title-row">
+          <h3>Step {{ i + 1 }}</h3>
+          <button
+            mat-button
+            type="button"
+            [disabled]="steps.length <= 1"
+            (click)="removeStep.emit(i)"
+          >
+            Remove
+          </button>
+        </div>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Title</mat-label>
+          <input matInput formControlName="title" required />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Description</mat-label>
+          <input matInput formControlName="description" />
+        </mat-form-field>
+
+        <div class="step__nums">
+          <mat-form-field appearance="outline">
+            <mat-label>Start (s)</mat-label>
+            <input matInput type="number" formControlName="startSeconds" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>End (s)</mat-label>
+            <input matInput type="number" formControlName="endSeconds" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Duration (s)</mat-label>
+            <input matInput type="number" formControlName="durationSeconds" />
+          </mat-form-field>
+        </div>
+
+        <mat-checkbox formControlName="autoAdvance">Auto-advance</mat-checkbox>
+      </div>
+    }
+  </div>
+</div>

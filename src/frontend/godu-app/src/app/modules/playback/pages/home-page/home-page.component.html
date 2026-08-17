@@ -1,0 +1,19 @@
+<app-page-template
+  subtitle="Interactive steps from instructional videos — demos work without login."
+>
+  @if (demos$ | async; as demos) {
+    <div class="demo-list">
+      @for (item of demos; track item.id) {
+        <a class="demo-card" [routerLink]="['/play', item.id]">
+          <div class="demo-card__meta">
+            <span class="demo-card__provider">TikTok</span>
+            <span class="demo-card__creator">{{ item.creatorDisplayName }}</span>
+          </div>
+          <h2 class="demo-card__title">{{ item.title }}</h2>
+          <p class="demo-card__description">{{ item.description }}</p>
+          <span class="demo-card__cta">Open viewer</span>
+        </a>
+      }
+    </div>
+  }
+</app-page-template>

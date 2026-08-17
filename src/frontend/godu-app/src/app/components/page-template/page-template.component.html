@@ -1,0 +1,77 @@
+<div class="page">
+  @if (showHeader) {
+    <header class="page__header">
+      <div class="page__top">
+        <button
+          mat-icon-button
+          type="button"
+          class="page__menu-btn"
+          [matMenuTriggerFor]="navMenu"
+          aria-label="Open menu"
+        >
+          <mat-icon>menu</mat-icon>
+        </button>
+
+        <a routerLink="/" class="page__brand" aria-label="Godu home">
+          <img
+            class="page__logo page__logo--full"
+            src="images/logo-on-dark.png"
+            alt="Godu"
+            width="220"
+            height="64"
+          />
+          <img
+            class="page__logo page__logo--mark"
+            src="images/g-play-icon.png"
+            alt="Godu"
+            width="40"
+            height="40"
+          />
+        </a>
+
+        <span class="page__top-balance" aria-hidden="true"></span>
+      </div>
+
+      @if (title) {
+        <h1 class="page__title">{{ title }}</h1>
+      }
+      @if (subtitle) {
+        <p class="page__subtitle">{{ subtitle }}</p>
+      }
+    </header>
+
+    <mat-menu #navMenu="matMenu" xPosition="after">
+      <a mat-menu-item routerLink="/">
+        <mat-icon>home</mat-icon>
+        <span>Home</span>
+      </a>
+      <a mat-menu-item routerLink="/my-steps">
+        <mat-icon>playlist_play</mat-icon>
+        <span>My Steps</span>
+      </a>
+      @if (isAuthenticated$ | async) {
+        <a mat-menu-item routerLink="/my-steps/new">
+          <mat-icon>add_circle</mat-icon>
+          <span>Create Steps</span>
+        </a>
+        <a mat-menu-item routerLink="/settings">
+          <mat-icon>settings</mat-icon>
+          <span>Settings</span>
+        </a>
+        <button mat-menu-item type="button" (click)="logout()">
+          <mat-icon>logout</mat-icon>
+          <span>Log out</span>
+        </button>
+      } @else {
+        <button mat-menu-item type="button" (click)="login()">
+          <mat-icon>login</mat-icon>
+          <span>Log in</span>
+        </button>
+      }
+    </mat-menu>
+  }
+
+  <main class="page__content" [class.page__content--locked]="lockContentScroll">
+    <ng-content />
+  </main>
+</div>

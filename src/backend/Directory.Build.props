@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Cosmos still needs Newtonsoft at runtime (added on Godu.Api). This only suppresses the SDK's build-time package check. -->
+    <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+  </PropertyGroup>
+</Project>

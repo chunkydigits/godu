@@ -1,5 +1,7 @@
 # Specifications
 
+Commercial product name: **Godu** (Auth0: `godu.uk.auth0.com`). Feature domain terms remain `StepsItem` / etc.
+
 | Document | Role |
 | --- | --- |
 | [initial specification.md](./initial%20specification.md) | Original product & architecture narrative |

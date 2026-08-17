@@ -1,8 +1,20 @@
-# Steps MVP — Locked Decisions
+# Godu MVP — Locked Decisions
 
-Status: agreed 2026-08-13.  
+Status: agreed 2026-08-13; product naming and Phase 3–4 auth/data updated 2026-08-14.  
 Supersedes conflicting guidance in `initial specification.md` where noted.  
 Where this file and the API/UI ROEs conflict on identity, **this file wins**. Where this file and the initial repo layout conflict, **API ROE wins**.
+
+---
+
+## 0. Product naming
+
+| Layer | Name |
+| --- | --- |
+| Commercial product | **Godu** |
+| Auth0 tenant domain | **`godu.uk.auth0.com`** |
+| .NET solution / projects | `Godu.sln`, `Godu.Api`, `Godu.Service`, `Godu.Repository`, `Godu.Model`, `Godu.Utility` |
+| Domain model terms | Keep feature names (`StepsItem`, `StepDefinition`, etc.) — instructional-step concept, not brand |
+| Frontend folder | `steps-app` path for now; surface **Godu** in titles / UI copy |
 
 ---
 
@@ -45,19 +57,21 @@ Exact step timestamps for the spike may be chosen during Phase 1 implementation;
 | Decision | Choice |
 | --- | --- |
 | API | ASP.NET Core Web API (C#) |
-| Project layout | **API ROE wins**: `Steps.Api`, `Steps.Service`, `Steps.Repository`, `Steps.Model`, `Steps.Utility` |
+| Project layout | **API ROE wins**: `Godu.Api`, `Godu.Service`, `Godu.Repository`, `Godu.Model`, `Godu.Utility` |
 | Do not use | Initial-spec names `Steps.Domain` / `Steps.Infrastructure` / `Steps.Contracts` as primary layout |
-| Database | Azure Cosmos DB (NoSQL) — deferred until local app exists |
-| Auth broker | Auth0 — deferred until local app exists |
-| Hosting / domain / CORS | Deferred until local app exists |
+| Database (now) | **Cosmos DB Emulator** locally (or in-memory repos when `Cosmos:UseInMemory=true`) |
+| Database (later) | Azure Cosmos DB account when deploying to cloud |
+| Auth broker | **Auth0** at `godu.uk.auth0.com` (API audience e.g. `https://api.godu.uk`) |
+| Hosting / CORS (now) | Local `dotnet run` + `ng serve`; CORS allow `http://localhost:4200` |
+| Hosting (later) | App Service / Container Apps / Static Web Apps (or similar); Key Vault for secrets |
 
 Identity rule (overrides generic API ROE “Auth0 user ID in product data”):
 
 ```text
-JWT sub → ExternalIdentity → Steps UserId
+JWT sub → ExternalIdentity → internal UserId (usr_…)
 ```
 
-Product documents store only the internal Steps `UserId` (e.g. `usr_…`). Auth0 IDs must not appear as domain foreign keys.
+Product documents store only the internal Godu `UserId` (e.g. `usr_…`). Auth0 IDs must not appear as domain foreign keys.
 
 ---
 
@@ -234,6 +248,7 @@ See `field-feedback.md` §3.
 
 1. **API project names** follow API ROE (`Service` / `Repository` / `Model` / `Utility`), not the initial spec’s `Domain` / `Infrastructure` / `Contracts`.
 2. **UI ROE** applies fully (Material, `page-template`, folder layout, no timing hacks).
-3. **Identity**: Steps `ExternalIdentity` → internal `UserId` overrides any generic ROE wording that stores Auth0 IDs on product documents.
+3. **Identity**: Godu `ExternalIdentity` → internal `UserId` overrides any generic ROE wording that stores Auth0 IDs on product documents.
+4. **Product name**: Commercial brand is **Godu**; domain models keep Steps* feature names.
 4. Initial specification remains the narrative source for product rules not restated here.
 5. Field feedback in `field-feedback.md` extends product requirements; conflict order unchanged (`decisions.md` still wins).
