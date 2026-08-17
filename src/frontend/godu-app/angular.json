@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "steps-app": {
+    "godu": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -68,10 +68,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "steps-app:build:production"
+              "buildTarget": "godu:build:production"
             },
             "development": {
-              "buildTarget": "steps-app:build:development"
+              "buildTarget": "godu:build:development"
             }
           },
           "defaultConfiguration": "development"

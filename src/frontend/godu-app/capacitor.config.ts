@@ -1,9 +1,9 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.steps.app',
-  appName: 'Steps',
-  webDir: 'dist/steps-app/browser'
+  appId: 'it.godu.app',
+  appName: 'Godu',
+  webDir: 'dist/godu/browser'
 };
 
 export default config;

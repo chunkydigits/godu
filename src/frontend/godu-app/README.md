@@ -1,11 +1,11 @@
-# Steps frontend (Phase 1)
+# Godu frontend
 
-Angular 22 + Capacitor + Material dark UI. Playback spike only.
+Angular 22 + Capacitor + Material dark UI.
 
 ## Run locally
 
 ```bash
-cd src/frontend/steps-app
+cd src/frontend/godu-app
 npm start
 ```
 
@@ -14,7 +14,7 @@ Open http://localhost:4200/
 ## Test
 
 ```bash
-cd src/frontend/steps-app
+cd src/frontend/godu-app
 npx ng test --watch=false
 ```
 
