@@ -19,13 +19,13 @@ public static class ServiceConfiguration
         {
             client.BaseAddress = new Uri("https://open.tiktokapis.com/");
             client.Timeout = TimeSpan.FromSeconds(15);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Godu/1.0 (+https://godu.uk)");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Godu/1.0 (+https://godu.it)");
         });
         services.AddHttpClient<ITikTokOEmbedService, TikTokOEmbedService>(client =>
         {
             client.BaseAddress = new Uri("https://www.tiktok.com/");
             client.Timeout = TimeSpan.FromSeconds(10);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Godu/1.0 (+https://godu.uk)");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Godu/1.0 (+https://godu.it)");
         });
         return services;
     }
