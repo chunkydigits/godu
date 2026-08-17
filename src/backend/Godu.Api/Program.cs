@@ -28,12 +28,19 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 
+var corsOrigins = builder.Configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>()?.AllowedOrigins
+    ?? [];
+if (corsOrigins.Length == 0)
+{
+    throw new InvalidOperationException("Cors:AllowedOrigins is required.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(
         "GoduSpa",
         policy => policy
-            .WithOrigins("http://localhost:4200")
+            .SetIsOriginAllowed(origin => IsAllowedCorsOrigin(origin, corsOrigins))
             .AllowAnyHeader()
             .AllowAnyMethod());
 });
@@ -74,3 +81,15 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static bool IsAllowedCorsOrigin(string origin, string[] allowedOrigins)
+{
+    if (allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    return Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+        && uri.Scheme == Uri.UriSchemeHttps
+        && uri.Host.EndsWith(".azurestaticapps.net", StringComparison.OrdinalIgnoreCase);
+}
