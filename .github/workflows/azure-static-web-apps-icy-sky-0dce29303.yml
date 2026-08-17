@@ -4,10 +4,16 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "src/frontend/**"
+      - ".github/workflows/azure-static-web-apps-icy-sky-0dce29303.yml"
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
+    paths:
+      - "src/frontend/**"
+      - ".github/workflows/azure-static-web-apps-icy-sky-0dce29303.yml"
 
 jobs:
   build_and_deploy_job:
