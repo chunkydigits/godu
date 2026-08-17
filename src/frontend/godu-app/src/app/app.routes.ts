@@ -5,6 +5,27 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () =>
+      import('./modules/site/pages/landing-page/landing-page.component').then(
+        (m) => m.LandingPageComponent,
+      ),
+  },
+  {
+    path: 'terms',
+    loadComponent: () =>
+      import('./modules/site/pages/terms-page/terms-page.component').then(
+        (m) => m.TermsPageComponent,
+      ),
+  },
+  {
+    path: 'privacy',
+    loadComponent: () =>
+      import('./modules/site/pages/privacy-page/privacy-page.component').then(
+        (m) => m.PrivacyPageComponent,
+      ),
+  },
+  {
+    path: 'demos',
+    loadComponent: () =>
       import('./modules/playback/pages/home-page/home-page.component').then(
         (m) => m.HomePageComponent,
       ),

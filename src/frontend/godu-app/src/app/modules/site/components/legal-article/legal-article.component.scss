@@ -1,0 +1,41 @@
+app-legal-article {
+  display: block;
+}
+
+.legal {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 0 1.25rem 2.5rem;
+}
+
+.legal__updated {
+  margin: 0 0 1.25rem;
+  color: var(--steps-text-muted);
+  font-size: 0.85rem;
+}
+
+.legal h2 {
+  margin: 1.75rem 0 0.55rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.legal p,
+.legal li {
+  color: var(--steps-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.legal p {
+  margin: 0 0 0.85rem;
+}
+
+.legal ul {
+  margin: 0 0 0.85rem;
+  padding-left: 1.2rem;
+}
+
+.legal a {
+  color: var(--steps-accent);
+}

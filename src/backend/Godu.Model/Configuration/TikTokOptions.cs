@@ -4,8 +4,10 @@ public sealed class TikTokOptions
 {
     public const string SectionName = "TikTok";
 
+    /// <summary>Loaded from Key Vault as TikTok:ClientKey (secret name TikTok--ClientKey).</summary>
     public string ClientKey { get; set; } = string.Empty;
 
+    /// <summary>Loaded from Key Vault as TikTok:ClientSecret (secret name TikTok--ClientSecret).</summary>
     public string ClientSecret { get; set; } = string.Empty;
 
     /// <summary>Registered TikTok redirect — the API OAuth callback.</summary>

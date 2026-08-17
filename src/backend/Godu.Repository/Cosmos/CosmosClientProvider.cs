@@ -20,30 +20,14 @@ public sealed class CosmosClientProvider : IAsyncDisposable
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(settings.ConnectionString))
+        if (!settings.HasAccountKey)
         {
-            throw new InvalidOperationException("Cosmos connection string is required when UseInMemory is false.");
+            throw new InvalidOperationException(
+                "Cosmos AccountEndpoint and PrimaryKey (or ConnectionString) are required when UseInMemory is false.");
         }
 
-        _client = new CosmosClient(
-            settings.ConnectionString,
-            new CosmosClientOptions
-            {
-                SerializerOptions = new CosmosSerializationOptions
-                {
-                    PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
-                },
-                ConnectionMode = ConnectionMode.Gateway,
-                HttpClientFactory = () =>
-                {
-                    var handler = new HttpClientHandler
-                    {
-                        ServerCertificateCustomValidationCallback =
-                            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
-                    };
-                    return new HttpClient(handler);
-                },
-            });
+        var clientOptions = CreateClientOptions(settings.IsEmulator);
+        _client = CreateClient(settings, clientOptions);
 
         _database = _client
             .CreateDatabaseIfNotExistsAsync(settings.DatabaseName)
@@ -81,6 +65,44 @@ public sealed class CosmosClientProvider : IAsyncDisposable
         }
 
         return _database.GetContainer(name);
+    }
+
+    private static CosmosClient CreateClient(CosmosOptions settings, CosmosClientOptions clientOptions)
+    {
+        if (!string.IsNullOrWhiteSpace(settings.ConnectionString))
+        {
+            return new CosmosClient(settings.ConnectionString, clientOptions);
+        }
+
+        return new CosmosClient(settings.AccountEndpoint, settings.PrimaryKey, clientOptions);
+    }
+
+    private static CosmosClientOptions CreateClientOptions(bool emulator)
+    {
+        var options = new CosmosClientOptions
+        {
+            SerializerOptions = new CosmosSerializationOptions
+            {
+                PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
+            },
+            // Gateway works from local machines and App Service. Direct needs extra TCP ports.
+            ConnectionMode = ConnectionMode.Gateway,
+        };
+
+        if (emulator)
+        {
+            options.HttpClientFactory = () =>
+            {
+                var handler = new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback =
+                        HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+                };
+                return new HttpClient(handler);
+            };
+        }
+
+        return options;
     }
 
     private static void EnsureContainer(Database database, string name, string partitionKeyPath)

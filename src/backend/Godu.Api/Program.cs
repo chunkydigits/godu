@@ -1,11 +1,18 @@
-using System.Text.Json.Serialization;
+using Azure.Identity;
 using Godu.Api.Configuration;
 using Godu.Api.Middleware;
 using Godu.Model.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var keyVaultUri = builder.Configuration[$"{KeyVaultOptions.SectionName}:VaultUri"];
+if (!string.IsNullOrWhiteSpace(keyVaultUri))
+{
+    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
+}
 
 builder.Services.AddDataProtection();
 builder.Services.Configure<Auth0Options>(builder.Configuration.GetSection(Auth0Options.SectionName));
