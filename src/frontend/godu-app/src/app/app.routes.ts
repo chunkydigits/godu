@@ -68,5 +68,12 @@ export const routes: Routes = [
         (m) => m.SettingsPageComponent,
       ),
   },
+  {
+    path: 'tiktok/callback',
+    loadComponent: () =>
+      import('./modules/settings/pages/tiktok-oauth-callback/tiktok-oauth-callback.component').then(
+        (m) => m.TikTokOAuthCallbackComponent,
+      ),
+  },
   { path: '**', redirectTo: '' },
 ];
