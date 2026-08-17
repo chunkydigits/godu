@@ -18,10 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.x"
+      - name: Show .NET SDK
+        run: dotnet --list-sdks
 
       - name: Test
         run: dotnet test src/backend/Godu.sln --configuration Release
