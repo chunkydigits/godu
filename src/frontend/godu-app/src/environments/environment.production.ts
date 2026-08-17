@@ -1,10 +1,10 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://api.godu.uk',
+  apiBaseUrl: 'https://api.godu.it',
   auth0: {
     domain: 'godu.uk.auth0.com',
     clientId: '7LwaVrb1418enC9cZE2e2fWXA9lCTyiF', // set at deploy time
-    audience: 'https://api.godu.uk',
+    audience: 'https://api.godu.it',
   },
   features: {
     /**
