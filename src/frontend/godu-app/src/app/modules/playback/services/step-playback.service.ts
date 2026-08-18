@@ -28,6 +28,7 @@ export interface PlaybackState {
   remainingSeconds: number | null;
   isTimedStep: boolean;
   userMuted: boolean;
+  voiceCuesEnabled: boolean;
   continuousSoundtrackActive: boolean;
   /** True while a between-step gap is running or paused mid-gap. */
   gapActive: boolean;
@@ -41,6 +42,7 @@ const initialState: PlaybackState = {
   remainingSeconds: null,
   isTimedStep: false,
   userMuted: false,
+  voiceCuesEnabled: false,
   continuousSoundtrackActive: false,
   gapActive: false,
 };
@@ -117,6 +119,17 @@ export class StepPlaybackService implements OnDestroy {
     this.applyAudioRouting();
   }
 
+  setVoiceCuesEnabled(enabled: boolean): void {
+    this.voiceCues.enabled = enabled;
+    this.patch({ voiceCuesEnabled: enabled });
+    if (enabled) {
+      this.voiceCues.unlockFromUserGesture();
+    } else {
+      this.voiceCues.cancel();
+    }
+    this.applyAudioRouting();
+  }
+
   toggleUserMuted(): void {
     this.setUserMuted(!this.snapshot.userMuted);
   }
@@ -149,13 +162,13 @@ export class StepPlaybackService implements OnDestroy {
     if (!this.visualSuspended) {
       if (useSoundtrack) {
         this.soundtrackPlayer?.kickstartFromUserGesture(0, {
-          muted: this.snapshot.userMuted,
+          muted: this.clipAudioMuted(),
         });
         this.player?.kickstartFromUserGesture(step.startSeconds, { muted: true });
       } else {
         this.soundtrackPlayer?.pause();
         this.player?.kickstartFromUserGesture(step.startSeconds, {
-          muted: this.snapshot.userMuted,
+          muted: this.clipAudioMuted(),
         });
       }
     }
@@ -419,7 +432,11 @@ export class StepPlaybackService implements OnDestroy {
     this.setLoopArmed(false);
     this.voiceCues.cancel();
     await this.detachPlayerKeepSession();
-    this.stateSubject.next({ ...initialState, userMuted: this.snapshot.userMuted });
+    this.stateSubject.next({
+      ...initialState,
+      userMuted: this.snapshot.userMuted,
+      voiceCuesEnabled: this.snapshot.voiceCuesEnabled,
+    });
   }
 
   async detachPlayerKeepSession(): Promise<void> {
@@ -443,7 +460,7 @@ export class StepPlaybackService implements OnDestroy {
    */
   resumeVisualKeepSessionFromUserGesture(): void {
     this.visualSuspended = false;
-    const { selectedStep, phase, userMuted, continuousSoundtrackActive } = this.snapshot;
+    const { selectedStep, phase, continuousSoundtrackActive } = this.snapshot;
     if (!selectedStep || !this.player) {
       return;
     }
@@ -451,7 +468,7 @@ export class StepPlaybackService implements OnDestroy {
     if (phase === 'playing') {
       this.setLoopArmed(true);
       this.player.kickstartFromUserGesture(selectedStep.startSeconds, {
-        muted: continuousSoundtrackActive ? true : userMuted,
+        muted: continuousSoundtrackActive ? true : this.clipAudioMuted(),
       });
       this.applyAudioRouting();
       return;
@@ -578,7 +595,7 @@ export class StepPlaybackService implements OnDestroy {
 
     await this.player.seek(step.startSeconds);
     await this.player.play();
-    this.player.setMuted(this.snapshot.userMuted);
+    this.applyAudioRouting();
     this.setLoopArmed(true);
   }
 
@@ -604,16 +621,22 @@ export class StepPlaybackService implements OnDestroy {
     }
   }
 
+  private clipAudioMuted(): boolean {
+    const { userMuted, voiceCuesEnabled } = this.snapshot;
+    return userMuted || voiceCuesEnabled;
+  }
+
   private applyAudioRouting(): void {
-    const { userMuted, continuousSoundtrackActive } = this.snapshot;
+    const { continuousSoundtrackActive } = this.snapshot;
+    const muted = this.clipAudioMuted();
 
     if (continuousSoundtrackActive) {
       this.player?.setMuted(true);
-      this.soundtrackPlayer?.setMuted(userMuted);
+      this.soundtrackPlayer?.setMuted(muted);
       return;
     }
 
-    this.player?.setMuted(userMuted);
+    this.player?.setMuted(muted);
     this.soundtrackPlayer?.setMuted(true);
   }
 

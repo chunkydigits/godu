@@ -29,6 +29,7 @@ import {
   StepPlaybackService,
 } from '../../services/step-playback.service';
 import { ViewerPreferencesService } from '../../services/viewer-preferences.service';
+import { UserSettingsService } from '../../../settings/services/user-settings.service';
 
 @Component({
   selector: 'app-viewer-page',
@@ -51,6 +52,7 @@ export class ViewerPageComponent implements OnDestroy {
   private readonly myStepsApi = inject(MyStepsApiService);
   private readonly playback = inject(StepPlaybackService);
   private readonly preferences = inject(ViewerPreferencesService);
+  private readonly userSettings = inject(UserSettingsService);
   private readonly wakeLock = inject(ScreenWakeLockService);
   private readonly destroy$ = new Subject<void>();
 
@@ -92,6 +94,12 @@ export class ViewerPageComponent implements OnDestroy {
   );
 
   constructor() {
+    this.playback.setVoiceCuesEnabled(this.userSettings.voiceCues);
+    this.preferences.voiceCues$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((enabled) => this.playback.setVoiceCuesEnabled(enabled));
+    this.userSettings.hydrate().pipe(takeUntil(this.destroy$)).subscribe();
+
     this.playback.state$
       .pipe(
         map((s) => s.phase === 'playing' || s.phase === 'gap'),
@@ -138,6 +146,10 @@ export class ViewerPageComponent implements OnDestroy {
     } else {
       void this.playback.suspendVisualKeepSession();
     }
+  }
+
+  onVoiceCuesChange(enabled: boolean): void {
+    this.userSettings.setUseVoiceCuesByDefault(enabled);
   }
 
   toggleMute(): void {

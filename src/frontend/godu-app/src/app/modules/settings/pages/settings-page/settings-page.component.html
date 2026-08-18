@@ -35,6 +35,21 @@
   </section>
 
   <section class="panel">
+    <h2>Playback</h2>
+    <p class="panel__copy">
+      Voice cues read each step title and duration, with a beep when the timer starts.
+      Clip audio stays muted while they are on.
+    </p>
+    <mat-slide-toggle
+      class="setting-toggle"
+      [checked]="(voiceCues$ | async) ?? false"
+      (change)="onVoiceCuesDefaultChange($event.checked)"
+    >
+      Use voice cues by default
+    </mat-slide-toggle>
+  </section>
+
+  <section class="panel">
     <h2>Creator accounts</h2>
     <p class="panel__copy">
       Connect TikTok to prove you own that account. You will need a verified link before

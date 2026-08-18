@@ -18,6 +18,7 @@ import { PageTemplateComponent } from '../../../../components/page-template/page
 import { MaterialModule } from '../../../../core/material.module';
 import { LinkedPlatformAccount } from '../../models/linked-platform-account.model';
 import { PlatformAccountsApiService } from '../../services/platform-accounts-api.service';
+import { UserSettingsService } from '../../services/user-settings.service';
 
 interface SettingsView {
   loading: boolean;
@@ -37,11 +38,13 @@ export class SettingsPageComponent {
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly platformAccounts = inject(PlatformAccountsApiService);
+  private readonly userSettings = inject(UserSettingsService);
 
   private readonly connect$ = new Subject<void>();
   private readonly disconnectId$ = new Subject<string>();
 
   readonly user$ = this.auth.user$;
+  readonly voiceCues$ = this.userSettings.voiceCues$;
 
   readonly notice$ = this.route.queryParamMap.pipe(
     map((params) => ({
@@ -49,6 +52,10 @@ export class SettingsPageComponent {
       error: mapConnectError(params.get('error')),
     })),
   );
+
+  constructor() {
+    this.userSettings.hydrate().subscribe();
+  }
 
   readonly view$: Observable<SettingsView> = merge(
     this.loadView(),
@@ -99,6 +106,10 @@ export class SettingsPageComponent {
 
   connectTikTok(): void {
     this.connect$.next();
+  }
+
+  onVoiceCuesDefaultChange(enabled: boolean): void {
+    this.userSettings.setUseVoiceCuesByDefault(enabled);
   }
 
   confirmDisconnect(account: LinkedPlatformAccount): void {

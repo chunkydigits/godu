@@ -26,19 +26,32 @@
               type="button"
               class="viewer__mute"
               (click)="toggleMute()"
-              [attr.aria-label]="state.userMuted ? 'Unmute' : 'Mute'"
+              [disabled]="state.voiceCuesEnabled"
+              [attr.aria-label]="state.userMuted || state.voiceCuesEnabled ? 'Unmute' : 'Mute'"
             >
-              <mat-icon>{{ state.userMuted ? 'volume_off' : 'volume_up' }}</mat-icon>
+              <mat-icon>{{
+                state.userMuted || state.voiceCuesEnabled ? 'volume_off' : 'volume_up'
+              }}</mat-icon>
             </button>
 
-            <mat-slide-toggle
-              class="viewer__video-toggle"
-              [checked]="(showVideo$ | async) ?? true"
-              (change)="onShowVideoChange($event.checked)"
-              aria-label="Show video"
-            >
-              Video
-            </mat-slide-toggle>
+            <div class="viewer__toggles">
+              <mat-slide-toggle
+                class="viewer__video-toggle"
+                [checked]="(showVideo$ | async) ?? true"
+                (change)="onShowVideoChange($event.checked)"
+                aria-label="Show video"
+              >
+                Video
+              </mat-slide-toggle>
+              <mat-slide-toggle
+                class="viewer__voice-toggle"
+                [checked]="state.voiceCuesEnabled"
+                (change)="onVoiceCuesChange($event.checked)"
+                aria-label="Voice cues"
+              >
+                Voice cues
+              </mat-slide-toggle>
+            </div>
           }
         </header>
       }
@@ -139,7 +152,9 @@
                 </button>
                 <p class="viewer__start-hint">
                   @if (showVideo$ | async) {
-                    @if (usesContinuousSoundtrack(item)) {
+                    @if (state.voiceCuesEnabled) {
+                      Starts the video muted, with spoken step names and beeps.
+                    } @else if (usesContinuousSoundtrack(item)) {
                       Starts muted step clips with a continuous soundtrack.
                     } @else {
                       Starts the video and step timer together.

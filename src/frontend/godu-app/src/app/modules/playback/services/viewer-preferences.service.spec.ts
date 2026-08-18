@@ -14,6 +14,7 @@ describe('ViewerPreferencesService', () => {
     const service = new ViewerPreferencesService();
     expect(service.showVideo).toBe(true);
     expect(service.muted).toBe(false);
+    expect(service.voiceCues).toBe(false);
   });
 
   it('persists video off preference', () => {
@@ -32,6 +33,15 @@ describe('ViewerPreferencesService', () => {
 
     const again = new ViewerPreferencesService();
     expect(again.muted).toBe(true);
+  });
+
+  it('persists voice cues preference', () => {
+    const service = new ViewerPreferencesService();
+    service.setVoiceCues(true);
+    expect(localStorage.getItem('steps.viewer.voiceCues')).toBe('1');
+
+    const again = new ViewerPreferencesService();
+    expect(again.voiceCues).toBe(true);
   });
 
   it('toggles show video', () => {

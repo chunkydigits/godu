@@ -34,4 +34,16 @@ public sealed class CosmosUserRepository : IUserRepository
             .ConfigureAwait(false);
         return response.Resource;
     }
+
+    public async Task<UserDocument> UpdateAsync(UserDocument user, CancellationToken cancellationToken = default)
+    {
+        var response = await _container
+            .ReplaceItemAsync(
+                user,
+                user.Id,
+                new PartitionKey(user.Id),
+                cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        return response.Resource;
+    }
 }

@@ -7,4 +7,6 @@ public interface IUserRepository
     Task<UserDocument?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
 
     Task<UserDocument> CreateAsync(UserDocument user, CancellationToken cancellationToken = default);
+
+    Task<UserDocument> UpdateAsync(UserDocument user, CancellationToken cancellationToken = default);
 }

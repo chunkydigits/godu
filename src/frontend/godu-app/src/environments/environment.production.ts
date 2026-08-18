@@ -25,10 +25,6 @@ export const environment = {
      */
     gapPrerollLeadSeconds: 10,
     /**
-     * Spoken cues and beeps over the video (Web Speech + a start beep).
-     */
-    voiceCues: true,
-    /**
      * Between-step gaps shorter than this only say “Go” when the step timer starts.
      * Longer gaps say “{title} for {n} seconds, Go”, timed to land on the timer start.
      */

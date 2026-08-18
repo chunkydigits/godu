@@ -3,10 +3,6 @@ import { environment } from '../../../../environments/environment';
 /** ~160 words/minute, used to start long “Go” phrases so they land at timer start. */
 const WORDS_PER_SECOND = 2.6;
 
-export function voiceCuesEnabled(): boolean {
-  return environment.playback.voiceCues !== false;
-}
-
 export function gapGoCueMaxSeconds(): number {
   const value = environment.playback.gapGoCueMaxSeconds;
   if (!Number.isFinite(value) || value < 0) {
@@ -65,11 +61,12 @@ export function estimateSpeechSeconds(text: string): number {
  * Unlock from a user gesture (Start) so browsers allow sound.
  */
 export class PlaybackVoiceCues {
+  enabled = false;
   private audioContext: AudioContext | null = null;
   private timedGoStarted = false;
 
   unlockFromUserGesture(): void {
-    if (!voiceCuesEnabled() || typeof window === 'undefined') {
+    if (!this.enabled || typeof window === 'undefined') {
       return;
     }
     const context = this.ensureAudioContext();
@@ -86,7 +83,7 @@ export class PlaybackVoiceCues {
   }
 
   announceGapStart(title: string, durationSeconds: number | null | undefined): void {
-    if (!voiceCuesEnabled()) {
+    if (!this.enabled) {
       return;
     }
     this.timedGoStarted = false;
@@ -102,7 +99,7 @@ export class PlaybackVoiceCues {
     remainingSeconds: number,
     gapTotalSeconds: number,
   ): void {
-    if (!voiceCuesEnabled() || this.timedGoStarted) {
+    if (!this.enabled || this.timedGoStarted) {
       return;
     }
     if (gapTotalSeconds < gapGoCueMaxSeconds()) {
@@ -120,7 +117,7 @@ export class PlaybackVoiceCues {
     durationSeconds: number | null | undefined,
     fromGapSeconds: number | null,
   ): void {
-    if (!voiceCuesEnabled()) {
+    if (!this.enabled) {
       return;
     }
     this.beep();

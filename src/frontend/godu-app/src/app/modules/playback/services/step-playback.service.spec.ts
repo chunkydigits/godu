@@ -196,6 +196,18 @@ describe('StepPlaybackService', () => {
     expect(soundtrack.kickstartFromUserGesture).not.toHaveBeenCalled();
   });
 
+  it('mutes clip audio when voice cues are enabled', async () => {
+    const { player, kickstartFromUserGesture, setMuted } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+    service.setVoiceCuesEnabled(true);
+    await service.start();
+
+    expect(kickstartFromUserGesture).toHaveBeenCalledWith(0, { muted: true });
+    expect(setMuted).toHaveBeenCalledWith(true);
+    expect(service.snapshot.voiceCuesEnabled).toBe(true);
+  });
+
   it('selectStep while ready only previews without playing', async () => {
     const { player, play } = createMockPlayer();
     await service.attachPlayer(player);

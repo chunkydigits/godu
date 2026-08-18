@@ -6,6 +6,9 @@ public sealed class UserDocument
 
     public required string DisplayName { get; set; }
 
+    /// <summary>When true, Steps playback starts with spoken cues and muted clip audio.</summary>
+    public bool UseVoiceCuesByDefault { get; set; }
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; set; }

@@ -13,6 +13,7 @@ public static class ServiceConfiguration
         services.AddScoped<ILinkedPlatformAccountService, LinkedPlatformAccountService>();
         services.AddScoped<IStepsItemService, StepsItemService>();
         services.AddScoped<IUserProvisioningService, UserProvisioningService>();
+        services.AddScoped<IUserSettingsService, UserSettingsService>();
         services.AddSingleton<IPlatformOAuthStateStore, InMemoryPlatformOAuthStateStore>();
         services.AddSingleton<IPlatformTokenProtector, DataProtectionPlatformTokenProtector>();
         services.AddHttpClient<ITikTokOAuthClient, TikTokOAuthClient>(client =>
