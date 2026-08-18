@@ -17,6 +17,7 @@ export function mapApiStepsItem(api: ApiStepsItem): StepsItem {
     title: api.title,
     description: api.description ?? undefined,
     creatorDisplayName: api.creatorDisplayName ?? undefined,
+    creatorSocials: api.creatorSocials?.filter((s) => s.profileUrl) ?? undefined,
     continuousSoundtrack: api.continuousSoundtrack,
     gapSeconds: api.gapSeconds ?? null,
     gapMessage: api.gapMessage ?? undefined,

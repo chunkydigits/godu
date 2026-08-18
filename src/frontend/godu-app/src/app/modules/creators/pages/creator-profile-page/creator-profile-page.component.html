@@ -1,0 +1,30 @@
+<app-page-template title="Creator">
+  @if (view$ | async; as view) {
+    @if (view.loading) {
+      <p class="status">Loading…</p>
+    } @else if (view.error) {
+      <p class="status error">{{ view.error }}</p>
+      <a mat-button routerLink="/demos">Back to demos</a>
+    } @else if (view.profile; as profile) {
+      <section class="profile">
+        <h2 class="profile__name">{{ profile.displayName }}</h2>
+        <p class="profile__copy">Find them on these platforms.</p>
+        <ul class="socials">
+          @for (social of profile.socials; track social.provider + social.username) {
+            <li>
+              <a
+                class="social"
+                [href]="social.profileUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span class="social__provider">{{ platformName(social.provider) }}</span>
+                <span class="social__handle">@{{ social.username }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</app-page-template>

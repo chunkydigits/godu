@@ -20,6 +20,8 @@ public sealed class StepsItemResponse
 
     public string? CreatorDisplayName { get; init; }
 
+    public IReadOnlyList<CreatorSocialResponse> CreatorSocials { get; init; } = [];
+
     public required VideoReferenceResponse Video { get; init; }
 
     public required IReadOnlyList<StepDefinitionResponse> Steps { get; init; }

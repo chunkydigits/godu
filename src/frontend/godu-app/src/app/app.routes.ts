@@ -62,6 +62,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'u/:userId',
+    loadComponent: () =>
+      import('./modules/creators/pages/creator-profile-page/creator-profile-page.component').then(
+        (m) => m.CreatorProfilePageComponent,
+      ),
+  },
+  {
     path: 'settings',
     canActivate: [authGuardFn],
     loadComponent: () =>

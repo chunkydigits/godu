@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Godu.Model.Documents;
 using Godu.Model.Requests;
+using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
 using Godu.Service.Identity;
 using Godu.Service.StepsItems;
@@ -11,12 +12,16 @@ namespace Godu.Service.Tests.StepsItems;
 public sealed class StepsItemServiceTests
 {
     private readonly Mock<IStepsItemRepository> _repository = new();
+    private readonly Mock<ILinkedPlatformAccountRepository> _accounts = new();
     private readonly CurrentUser _currentUser = new();
     private readonly StepsItemService _sut;
 
     public StepsItemServiceTests()
     {
-        _sut = new StepsItemService(_repository.Object, _currentUser);
+        _accounts
+            .Setup(r => r.ListByUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        _sut = new StepsItemService(_repository.Object, _accounts.Object, _currentUser);
     }
 
     [Fact]
@@ -35,6 +40,8 @@ public sealed class StepsItemServiceTests
         var result = await _sut.CreateMineAsync(ValidCreateRequest());
 
         result.CreatedByUserId.Should().Be("usr_owner");
+        result.CreatorSocials.Should().ContainSingle(s =>
+            s.Provider == "tiktok" && s.Username == "x");
         saved.Should().NotBeNull();
         saved!.CreatedByUserId.Should().Be("usr_owner");
         saved.Status.Should().Be("published");

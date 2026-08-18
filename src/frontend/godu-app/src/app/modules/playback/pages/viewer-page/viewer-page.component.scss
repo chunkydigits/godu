@@ -29,9 +29,23 @@
 }
 
 .viewer__creator {
+  display: inline-block;
   margin: 0;
   color: var(--steps-text-muted);
   font-size: 0.85rem;
+}
+
+.viewer__creator--link {
+  color: var(--steps-text-muted);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.viewer__creator--link:hover,
+.viewer__creator--link:focus-visible {
+  color: var(--steps-text);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .viewer__title {
@@ -142,6 +156,73 @@
 .viewer--complete .viewer__controls,
 .viewer--video-off .viewer__controls {
   flex: 1 1 auto;
+}
+
+.viewer--video-off .viewer__video-off {
+  display: none;
+}
+
+.viewer--video-off .viewer__controls {
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1.1rem 1.15rem 0.85rem;
+}
+
+.viewer--video-off .viewer__step-count {
+  font-size: 1.05rem;
+}
+
+.viewer--video-off .viewer__step-title {
+  font-size: clamp(1.7rem, 4.8vw, 2.35rem);
+}
+
+.viewer--video-off .viewer__step-description {
+  font-size: 1.15rem;
+}
+
+.viewer--video-off .viewer__timer {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.4rem 0;
+  font-size: clamp(4.4rem, 18vh, 8.5rem);
+}
+
+.viewer--video-off .viewer__timer--untimed {
+  font-size: clamp(1.6rem, 5vh, 2.4rem);
+}
+
+.viewer--video-off .viewer__gap-message {
+  font-size: 1.25rem;
+}
+
+.viewer--video-off .viewer__gap-countdown {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.4rem 0;
+  font-size: clamp(1.8rem, 6.5vh, 2.8rem);
+}
+
+.viewer--video-off .viewer__start {
+  margin: 0.4rem 0 0.5rem;
+  gap: 0.55rem;
+}
+
+.viewer--video-off .viewer__start-button,
+.viewer--video-off .viewer__actions button {
+  min-height: 3.75rem;
+  font-size: 1.15rem;
+}
+
+.viewer--video-off .viewer__start-hint {
+  font-size: 0.95rem;
+}
+
+.viewer--video-off .viewer__actions {
+  margin: 0.35rem 0 0.45rem;
 }
 
 .viewer__soundtrack-badge {

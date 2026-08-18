@@ -1,0 +1,12 @@
+@if (label) {
+  @if (href) {
+    <a
+      class="creator-name"
+      [href]="href"
+      target="_blank"
+      rel="noopener noreferrer"
+    >{{ label }}</a>
+  } @else {
+    <span class="creator-name creator-name--static">{{ label }}</span>
+  }
+}

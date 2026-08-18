@@ -28,6 +28,11 @@ import { CompletionPanelComponent } from '../../components/completion-panel/comp
 import { StepNavigatorComponent } from '../../components/step-navigator/step-navigator.component';
 import { VideoHostComponent } from '../../components/video-host/video-host.component';
 import { StepsItem } from '../../models/steps-item.model';
+import {
+  TikTokCreatorLink,
+  creatorLabel,
+  tiktokCreatorLink,
+} from '../../models/creator-link';
 import { isContinuousSoundtrackEnabled } from '../../models/continuous-soundtrack.feature';
 import { ControllableVideoPlayer } from '../../models/video-player.interface';
 import { DemoStepsService } from '../../services/demo-steps.service';
@@ -174,6 +179,14 @@ export class ViewerPageComponent implements OnDestroy {
     return isContinuousSoundtrackEnabled(item);
   }
 
+  creatorLink(item: StepsItem): TikTokCreatorLink | null {
+    return tiktokCreatorLink(item);
+  }
+
+  creatorLabel(item: StepsItem): string {
+    return creatorLabel(item);
+  }
+
   async onPlayerReady(player: ControllableVideoPlayer): Promise<void> {
     await this.playback.attachPlayer(player);
     if (!this.preferences.showVideo) {
@@ -195,6 +208,7 @@ export class ViewerPageComponent implements OnDestroy {
       void this.playback.suspendVisualKeepSession();
     }
     this.onSettingsActivity();
+    setTimeout(() => this.measureDescriptionMarquee());
   }
 
   onVoiceCuesChange(enabled: boolean): void {

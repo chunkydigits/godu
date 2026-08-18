@@ -29,6 +29,12 @@ export interface ApiStepsItem {
   title: string;
   description?: string | null;
   creatorDisplayName?: string | null;
+  creatorSocials?: Array<{
+    provider: string;
+    username: string;
+    profileUrl: string;
+    displayName?: string | null;
+  }> | null;
   continuousSoundtrack: boolean;
   gapSeconds?: number | null;
   gapMessage?: string | null;

@@ -2,6 +2,7 @@ using Godu.Model.Documents;
 using Godu.Model.Enums;
 using Godu.Model.Requests;
 using Godu.Model.Responses;
+using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
 using Godu.Service.Identity;
 using Godu.Service.Mapping;
@@ -13,11 +14,16 @@ namespace Godu.Service.StepsItems;
 public sealed class StepsItemService : IStepsItemService
 {
     private readonly IStepsItemRepository _repository;
+    private readonly ILinkedPlatformAccountRepository _platformAccounts;
     private readonly ICurrentUser _currentUser;
 
-    public StepsItemService(IStepsItemRepository repository, ICurrentUser currentUser)
+    public StepsItemService(
+        IStepsItemRepository repository,
+        ILinkedPlatformAccountRepository platformAccounts,
+        ICurrentUser currentUser)
     {
         _repository = repository;
+        _platformAccounts = platformAccounts;
         _currentUser = currentUser;
     }
 
@@ -29,7 +35,10 @@ public sealed class StepsItemService : IStepsItemService
         var items = await _repository
             .ListByUserAsync(userId, includeArchived, cancellationToken)
             .ConfigureAwait(false);
-        return items.Select(StepsItemMapper.ToResponse).ToList();
+        var accounts = await _platformAccounts
+            .ListByUserAsync(userId, cancellationToken)
+            .ConfigureAwait(false);
+        return items.Select(item => ToResponse(item, accounts)).ToList();
     }
 
     public async Task<StepsItemResponse> GetMineAsync(string id, CancellationToken cancellationToken = default)
@@ -41,7 +50,7 @@ public sealed class StepsItemService : IStepsItemService
             throw new KeyNotFoundException("Steps item not found.");
         }
 
-        return StepsItemMapper.ToResponse(item);
+        return await ToResponseAsync(item, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<StepsItemResponse> CreateMineAsync(
@@ -80,7 +89,7 @@ public sealed class StepsItemService : IStepsItemService
         };
 
         var created = await _repository.CreateAsync(document, cancellationToken).ConfigureAwait(false);
-        return StepsItemMapper.ToResponse(created);
+        return await ToResponseAsync(created, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<StepsItemResponse> UpdateMineAsync(
@@ -116,7 +125,7 @@ public sealed class StepsItemService : IStepsItemService
         existing.UpdatedUtc = DateTime.UtcNow;
 
         var updated = await _repository.UpdateAsync(existing, cancellationToken).ConfigureAwait(false);
-        return StepsItemMapper.ToResponse(updated);
+        return await ToResponseAsync(updated, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<StepsItemResponse> ArchiveMineAsync(string id, CancellationToken cancellationToken = default)
@@ -132,7 +141,7 @@ public sealed class StepsItemService : IStepsItemService
         existing.UpdatedUtc = DateTime.UtcNow;
 
         var updated = await _repository.UpdateAsync(existing, cancellationToken).ConfigureAwait(false);
-        return StepsItemMapper.ToResponse(updated);
+        return await ToResponseAsync(updated, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<StepsItemResponse?> GetPublicAsync(
@@ -157,7 +166,28 @@ public sealed class StepsItemService : IStepsItemService
             .GetPublicBySlugAsync(provider, username, canonicalSlug, cancellationToken)
             .ConfigureAwait(false);
 
-        return item is null ? null : StepsItemMapper.ToResponse(item);
+        return item is null
+            ? null
+            : await ToResponseAsync(item, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<StepsItemResponse> ToResponseAsync(
+        StepsItemDocument document,
+        CancellationToken cancellationToken)
+    {
+        var accounts = await _platformAccounts
+            .ListByUserAsync(document.CreatedByUserId, cancellationToken)
+            .ConfigureAwait(false);
+        return ToResponse(document, accounts);
+    }
+
+    private static StepsItemResponse ToResponse(
+        StepsItemDocument document,
+        IReadOnlyList<LinkedPlatformAccountDocument> accounts)
+    {
+        return StepsItemMapper.ToResponse(
+            document,
+            CreatorSocialMapper.Combine(accounts, document.Video));
     }
 
     private string RequireUserId()

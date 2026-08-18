@@ -3,11 +3,12 @@ import { RouterLink } from '@angular/router';
 import { MaterialModule } from '../../../../core/material.module';
 import { StepsItem } from '../../models/steps-item.model';
 import { StepDefinition } from '../../models/step-definition.model';
+import { CreatorNameComponent } from '../creator-name/creator-name.component';
 import { PlatformMarkComponent } from '../platform-mark/platform-mark.component';
 
 @Component({
   selector: 'app-completion-panel',
-  imports: [MaterialModule, RouterLink, PlatformMarkComponent],
+  imports: [MaterialModule, RouterLink, PlatformMarkComponent, CreatorNameComponent],
   templateUrl: './completion-panel.component.html',
   styleUrl: './completion-panel.component.scss',
 })

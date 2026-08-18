@@ -1,0 +1,19 @@
+:host {
+  display: inline;
+  min-width: 0;
+}
+
+.creator-name {
+  color: var(--steps-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.creator-name:hover,
+.creator-name:focus-visible {
+  text-decoration: underline;
+}
+
+.creator-name--static {
+  color: var(--steps-text-muted);
+}

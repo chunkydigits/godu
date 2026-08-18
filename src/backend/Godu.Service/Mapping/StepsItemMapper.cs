@@ -8,7 +8,9 @@ namespace Godu.Service.Mapping;
 
 public static class StepsItemMapper
 {
-    public static StepsItemResponse ToResponse(StepsItemDocument document)
+    public static StepsItemResponse ToResponse(
+        StepsItemDocument document,
+        IReadOnlyList<CreatorSocialResponse>? creatorSocials = null)
     {
         return new StepsItemResponse
         {
@@ -21,6 +23,7 @@ public static class StepsItemMapper
             Title = document.Title,
             Description = document.Description,
             CreatorDisplayName = document.CreatorDisplayName,
+            CreatorSocials = creatorSocials ?? [],
             ContinuousSoundtrack = document.ContinuousSoundtrack,
             GapSeconds = document.GapSeconds,
             GapMessage = document.GapMessage,

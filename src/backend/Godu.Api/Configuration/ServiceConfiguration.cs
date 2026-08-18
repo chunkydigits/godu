@@ -1,3 +1,4 @@
+using Godu.Service.Creators;
 using Godu.Service.Identity;
 using Godu.Service.PlatformAccounts;
 using Godu.Service.StepsItems;
@@ -12,6 +13,7 @@ public static class ServiceConfiguration
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<ILinkedPlatformAccountService, LinkedPlatformAccountService>();
         services.AddScoped<IStepsItemService, StepsItemService>();
+        services.AddScoped<ICreatorProfileService, CreatorProfileService>();
         services.AddScoped<IUserProvisioningService, UserProvisioningService>();
         services.AddScoped<IUserSettingsService, UserSettingsService>();
         services.AddSingleton<IPlatformOAuthStateStore, InMemoryPlatformOAuthStateStore>();

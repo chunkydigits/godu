@@ -16,7 +16,17 @@
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div class="viewer__heading">
-            <p class="viewer__creator">{{ item.creatorDisplayName }}</p>
+            @if (creatorLink(item); as creator) {
+              <a
+                class="viewer__creator viewer__creator--link"
+                [href]="creator.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                [attr.aria-label]="'Open ' + creatorLabel(item) + ' on TikTok'"
+              >{{ creatorLabel(item) }}</a>
+            } @else if (item.creatorDisplayName) {
+              <p class="viewer__creator">{{ item.creatorDisplayName }}</p>
+            }
             <h1 class="viewer__title">{{ item.title }}</h1>
           </div>
 
