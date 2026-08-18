@@ -14,6 +14,15 @@ import {
 import { environment } from '../../../../environments/environment';
 import { StepDefinition } from '../models/step-definition.model';
 import { StepsItem } from '../models/steps-item.model';
+import {
+  activityCount,
+  activityIndexAtOrAfter,
+  activityIndexToEntryIndex,
+  activityNumberAt,
+  firstActivityIndex,
+  previousActivityIndex,
+} from '../models/step-entry';
+import { StepTransition, resolveStepTransition } from '../models/step-transition';
 import { isContinuousSoundtrackEnabled } from '../models/continuous-soundtrack.feature';
 import { ControllableVideoPlayer } from '../models/video-player.interface';
 import { PlaybackVoiceCues } from './playback-voice-cues';
@@ -23,7 +32,12 @@ export type PlaybackPhase = 'idle' | 'ready' | 'playing' | 'paused' | 'gap' | 'c
 export interface PlaybackState {
   stepsItem: StepsItem | null;
   selectedStep: StepDefinition | null;
+  /** Index into `stepsItem.steps`, which may also contain gap entries. */
   selectedIndex: number;
+  /** 1-based position of the selected step among activity steps, ignoring gaps. */
+  stepNumber: number | null;
+  /** Number of activity steps, ignoring gaps. */
+  stepCount: number;
   phase: PlaybackPhase;
   remainingSeconds: number | null;
   isTimedStep: boolean;
@@ -32,12 +46,16 @@ export interface PlaybackState {
   continuousSoundtrackActive: boolean;
   /** True while a between-step gap is running or paused mid-gap. */
   gapActive: boolean;
+  /** Copy to show during the running gap, from the gap entry or the item default. */
+  gapMessage: string | null;
 }
 
 const initialState: PlaybackState = {
   stepsItem: null,
   selectedStep: null,
   selectedIndex: -1,
+  stepNumber: null,
+  stepCount: 0,
   phase: 'idle',
   remainingSeconds: null,
   isTimedStep: false,
@@ -45,6 +63,7 @@ const initialState: PlaybackState = {
   voiceCuesEnabled: false,
   continuousSoundtrackActive: false,
   gapActive: false,
+  gapMessage: null,
 };
 
 const MEDIA_POLL_MS = 500;
@@ -107,10 +126,12 @@ export class StepPlaybackService implements OnDestroy {
       isTimedStep: false,
       continuousSoundtrackActive: false,
       gapActive: false,
+      gapMessage: null,
     });
 
-    if (stepsItem.steps.length > 0) {
-      await this.selectStep(0, { activate: false });
+    const first = firstActivityIndex(stepsItem.steps);
+    if (first != null) {
+      await this.selectStep(first, { activate: false });
     }
   }
 
@@ -149,7 +170,8 @@ export class StepPlaybackService implements OnDestroy {
 
     this.voiceCues.unlockFromUserGesture();
 
-    const index = selectedIndex >= 0 ? selectedIndex : 0;
+    const index =
+      selectedIndex >= 0 ? selectedIndex : (firstActivityIndex(stepsItem.steps) ?? -1);
     const step = stepsItem.steps[index];
     if (!step) {
       return;
@@ -176,6 +198,16 @@ export class StepPlaybackService implements OnDestroy {
     await this.selectStep(index, { activate: true, mediaAlreadyKickstarted: true });
   }
 
+  /** Selects by position among activity steps, as listed in the step navigator. */
+  async selectActivityStep(activityIndex: number): Promise<void> {
+    const steps = this.snapshot.stepsItem?.steps ?? [];
+    const index = activityIndexToEntryIndex(steps, activityIndex);
+    if (index == null) {
+      return;
+    }
+    await this.selectStep(index);
+  }
+
   async selectStep(
     index: number,
     options: {
@@ -188,6 +220,13 @@ export class StepPlaybackService implements OnDestroy {
     if (!stepsItem || index < 0 || index >= stepsItem.steps.length) {
       return;
     }
+
+    // Gaps are not selectable destinations; land on the step they precede.
+    const target = activityIndexAtOrAfter(stepsItem.steps, index);
+    if (target == null) {
+      return;
+    }
+    index = target;
 
     const activate =
       options.activate ?? (phase === 'playing' || phase === 'paused' || phase === 'gap');
@@ -211,6 +250,7 @@ export class StepPlaybackService implements OnDestroy {
         remainingSeconds: isTimed ? step.durationSeconds! : null,
         continuousSoundtrackActive: false,
         gapActive: false,
+        gapMessage: null,
       });
 
       if (this.player) {
@@ -231,6 +271,7 @@ export class StepPlaybackService implements OnDestroy {
       remainingSeconds: isTimed ? step.durationSeconds! : null,
       continuousSoundtrackActive,
       gapActive: false,
+      gapMessage: null,
     });
 
     if (!options.mediaAlreadyKickstarted) {
@@ -289,8 +330,8 @@ export class StepPlaybackService implements OnDestroy {
       return;
     }
 
-    const nextIndex = selectedIndex + 1;
-    if (nextIndex >= stepsItem.steps.length) {
+    const transition = resolveStepTransition(stepsItem, selectedIndex);
+    if (transition.nextIndex == null) {
       if (phase === 'ready') {
         return;
       }
@@ -298,20 +339,21 @@ export class StepPlaybackService implements OnDestroy {
       return;
     }
 
-    if (this.shouldInsertGap(phase)) {
-      await this.beginGap(nextIndex);
+    if (transition.gapSeconds > 0 && (phase === 'playing' || phase === 'paused')) {
+      await this.beginGap(transition);
       return;
     }
 
-    await this.selectStep(nextIndex);
+    await this.selectStep(transition.nextIndex);
   }
 
   async previous(): Promise<void> {
-    const { selectedIndex } = this.snapshot;
-    if (selectedIndex <= 0) {
+    const { stepsItem, selectedIndex } = this.snapshot;
+    const previous = previousActivityIndex(stepsItem?.steps ?? [], selectedIndex);
+    if (previous == null) {
       return;
     }
-    await this.selectStep(selectedIndex - 1);
+    await this.selectStep(previous);
   }
 
   async pause(): Promise<void> {
@@ -423,6 +465,7 @@ export class StepPlaybackService implements OnDestroy {
       remainingSeconds: 0,
       continuousSoundtrackActive: false,
       gapActive: false,
+      gapMessage: null,
     });
   }
 
@@ -500,12 +543,15 @@ export class StepPlaybackService implements OnDestroy {
     await this.detachVisualPlayer();
   }
 
-  private async beginGap(nextIndex: number): Promise<void> {
+  private async beginGap(transition: StepTransition): Promise<void> {
     const { stepsItem } = this.snapshot;
-    const nextStep = stepsItem?.steps[nextIndex];
-    const gapSeconds = resolveGapSeconds(stepsItem);
-    if (!stepsItem || !nextStep || gapSeconds <= 0) {
-      await this.selectStep(nextIndex);
+    const nextIndex = transition.nextIndex;
+    const nextStep = nextIndex == null ? undefined : stepsItem?.steps[nextIndex];
+    const gapSeconds = transition.gapSeconds;
+    if (!stepsItem || nextIndex == null || !nextStep || gapSeconds <= 0) {
+      if (nextIndex != null) {
+        await this.selectStep(nextIndex);
+      }
       return;
     }
 
@@ -533,6 +579,7 @@ export class StepPlaybackService implements OnDestroy {
       remainingSeconds: gapSeconds,
       continuousSoundtrackActive: false,
       gapActive: true,
+      gapMessage: transition.gapMessage,
     });
 
     if (gapSeconds <= gapPrerollImmediateMaxSeconds()) {
@@ -557,13 +604,6 @@ export class StepPlaybackService implements OnDestroy {
       mediaAlreadyKickstarted: prerolled,
       fromGapSeconds: gapSeconds,
     });
-  }
-
-  private shouldInsertGap(phase: PlaybackPhase): boolean {
-    if (phase !== 'playing' && phase !== 'paused') {
-      return false;
-    }
-    return resolveGapSeconds(this.snapshot.stepsItem) > 0;
   }
 
   private shouldPrerollGapMedia(remaining: number | null): boolean {
@@ -803,17 +843,14 @@ export class StepPlaybackService implements OnDestroy {
   }
 
   private async onTimerElapsed(): Promise<void> {
-    const { selectedStep, selectedIndex, stepsItem } = this.snapshot;
+    const { selectedStep, stepsItem } = this.snapshot;
     if (!selectedStep || !stepsItem) {
       return;
     }
 
     if (selectedStep.autoAdvance) {
-      if (selectedIndex >= stepsItem.steps.length - 1) {
-        await this.complete();
-      } else {
-        await this.next();
-      }
+      // next() completes the run when nothing follows the current step.
+      await this.next();
       return;
     }
 
@@ -838,19 +875,14 @@ export class StepPlaybackService implements OnDestroy {
   }
 
   private patch(partial: Partial<PlaybackState>): void {
+    const next = { ...this.stateSubject.value, ...partial };
+    const steps = next.stepsItem?.steps ?? [];
     this.stateSubject.next({
-      ...this.stateSubject.value,
-      ...partial,
+      ...next,
+      stepCount: activityCount(steps),
+      stepNumber: activityNumberAt(steps, next.selectedIndex),
     });
   }
-}
-
-function resolveGapSeconds(item: StepsItem | null | undefined): number {
-  const value = item?.gapSeconds;
-  if (value == null || !Number.isFinite(value) || value <= 0) {
-    return 0;
-  }
-  return Math.min(600, Math.floor(value));
 }
 
 function gapPrerollImmediateMaxSeconds(): number {

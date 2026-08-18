@@ -498,6 +498,162 @@ describe('StepPlaybackService', () => {
     expect(service.snapshot.phase).toBe('gap');
   });
 
+  it('runs a gap entry with its own length and message', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        gapSeconds: 30,
+        gapMessage: 'Item default',
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            kind: 'step',
+            title: 'One',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+          {
+            id: 'g1',
+            order: 2,
+            kind: 'gap',
+            title: '',
+            startSeconds: 0,
+            endSeconds: 0,
+            durationSeconds: 2,
+            autoAdvance: true,
+            message: 'Shake it out',
+          },
+          {
+            id: 's2',
+            order: 3,
+            kind: 'step',
+            title: 'Two',
+            startSeconds: 5,
+            endSeconds: 10,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+        ],
+      }),
+    );
+    await service.start();
+
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(service.snapshot.phase).toBe('gap');
+    expect(service.snapshot.remainingSeconds).toBe(2);
+    expect(service.snapshot.gapMessage).toBe('Shake it out');
+    expect(service.snapshot.selectedStep?.title).toBe('Two');
+    expect(service.snapshot.stepNumber).toBe(2);
+    expect(service.snapshot.stepCount).toBe(2);
+
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.selectedIndex).toBe(2);
+    expect(service.snapshot.gapMessage).toBeNull();
+  });
+
+  it('completes when only a trailing gap follows the last step', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            kind: 'step',
+            title: 'One',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+          {
+            id: 'g1',
+            order: 2,
+            kind: 'gap',
+            title: '',
+            startSeconds: 0,
+            endSeconds: 0,
+            durationSeconds: 10,
+            autoAdvance: true,
+          },
+        ],
+      }),
+    );
+    await service.start();
+
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(service.snapshot.phase).toBe('completed');
+  });
+
+  it('selects by navigator position, skipping gap entries', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 'g0',
+            order: 1,
+            kind: 'gap',
+            title: '',
+            startSeconds: 0,
+            endSeconds: 0,
+            durationSeconds: 5,
+            autoAdvance: true,
+          },
+          {
+            id: 's1',
+            order: 2,
+            kind: 'step',
+            title: 'One',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 2,
+            autoAdvance: true,
+          },
+          {
+            id: 'g1',
+            order: 3,
+            kind: 'gap',
+            title: '',
+            startSeconds: 0,
+            endSeconds: 0,
+            durationSeconds: 5,
+            autoAdvance: true,
+          },
+          {
+            id: 's2',
+            order: 4,
+            kind: 'step',
+            title: 'Two',
+            startSeconds: 5,
+            endSeconds: 10,
+            durationSeconds: 2,
+            autoAdvance: true,
+          },
+        ],
+      }),
+    );
+
+    // A leading gap is skipped when preparing the first step.
+    expect(service.snapshot.selectedIndex).toBe(1);
+    expect(service.snapshot.stepNumber).toBe(1);
+    expect(service.snapshot.stepCount).toBe(2);
+
+    await service.selectActivityStep(1);
+    expect(service.snapshot.selectedIndex).toBe(3);
+    expect(service.snapshot.stepNumber).toBe(2);
+
+    await service.previous();
+    expect(service.snapshot.selectedIndex).toBe(1);
+  });
+
   it('can pause and resume a between-step gap', async () => {
     const { player } = createMockPlayer();
     await service.attachPlayer(player);

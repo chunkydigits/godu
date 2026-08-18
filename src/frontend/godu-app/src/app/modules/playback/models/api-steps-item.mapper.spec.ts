@@ -57,4 +57,51 @@ describe('mapApiStepsItem', () => {
     expect(item.gapSeconds).toBe(15);
     expect(item.gapMessage).toBe('Active recovery — keep moving');
   });
+
+  it('maps gap entries and defaults a missing kind to step', () => {
+    const api: ApiStepsItem = {
+      id: 'steps_2',
+      createdByUserId: 'usr_1',
+      visibility: 'private',
+      status: 'published',
+      title: 'Circuit',
+      continuousSoundtrack: false,
+      createdUtc: '2026-08-18T08:00:00Z',
+      updatedUtc: '2026-08-18T08:00:00Z',
+      video: {
+        provider: 'tiktok',
+        externalVideoId: '1234567890',
+        sourceUrl: 'https://www.tiktok.com/@coach/video/1234567890',
+      },
+      steps: [
+        {
+          id: 'step_1',
+          order: 1,
+          title: 'Squats',
+          startSeconds: 0,
+          endSeconds: 5,
+          durationSeconds: 30,
+          autoAdvance: true,
+        },
+        {
+          id: 'step_2',
+          order: 2,
+          kind: 'gap',
+          title: '',
+          startSeconds: 0,
+          endSeconds: 0,
+          durationSeconds: 20,
+          autoAdvance: true,
+          message: 'Water break',
+        },
+      ],
+    };
+
+    const item = mapApiStepsItem(api);
+
+    expect(item.steps[0].kind).toBe('step');
+    expect(item.steps[1].kind).toBe('gap');
+    expect(item.steps[1].durationSeconds).toBe(20);
+    expect(item.steps[1].message).toBe('Water break');
+  });
 });

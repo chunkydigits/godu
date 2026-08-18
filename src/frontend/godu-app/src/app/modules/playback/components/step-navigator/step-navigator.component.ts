@@ -15,10 +15,7 @@ export class StepNavigatorComponent {
 
   @Output() readonly stepSelected = new EventEmitter<number>();
 
-  readonly displayLabel = (value: number): string => {
-    const step = this.steps[value];
-    return step ? String(step.order) : String(value + 1);
-  };
+  readonly displayLabel = (value: number): string => String(value + 1);
 
   get maxIndex(): number {
     return Math.max(0, this.steps.length - 1);

@@ -33,7 +33,7 @@
     <mat-form-field appearance="outline">
       <mat-label>Between-step gap (seconds)</mat-label>
       <input matInput type="number" formControlName="gapSeconds" min="1" max="600" />
-      <mat-hint>Optional rest after each step, before the next one starts.</mat-hint>
+      <mat-hint>Default rest between steps. A gap entry replaces it at that point.</mat-hint>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full">
@@ -51,50 +51,144 @@
 
   <div class="steps-header">
     <h2>Steps</h2>
-    <button mat-stroked-button type="button" (click)="addStep.emit()">Add step</button>
+    <div class="steps-header__add" role="group" aria-label="Add an entry">
+      <button
+        mat-stroked-button
+        type="button"
+        class="steps-header__add-main"
+        (click)="addEntry.emit(defaultKind)"
+      >
+        Add step
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        class="steps-header__add-toggle"
+        [matMenuTriggerFor]="addMenu"
+        aria-label="Choose what to add"
+      >
+        <mat-icon>arrow_drop_down</mat-icon>
+      </button>
+      <mat-menu #addMenu="matMenu" xPosition="before">
+        @for (option of entryKinds; track option.kind) {
+          <button mat-menu-item type="button" (click)="addEntry.emit(option.kind)">
+            <mat-icon>{{ option.icon }}</mat-icon>
+            <span>{{ option.label }}</span>
+          </button>
+        }
+      </mat-menu>
+    </div>
   </div>
 
-  <div formArrayName="steps" class="steps">
-    @for (step of steps.controls; track $index; let i = $index) {
-      <div class="step" [formGroupName]="i">
-        <div class="step__title-row">
-          <h3>Step {{ i + 1 }}</h3>
+  <div
+    formArrayName="steps"
+    class="steps"
+    cdkDropList
+    (cdkDropListDropped)="entryDropped.emit($event)"
+  >
+    @for (entry of steps.controls; track entry; let i = $index) {
+      <div class="step" [class.step--gap]="isGap(i)" [formGroupName]="i" cdkDrag>
+        <div class="step__header">
+          <button
+            mat-icon-button
+            type="button"
+            class="step__handle"
+            cdkDragHandle
+            aria-label="Drag to reorder"
+          >
+            <mat-icon>drag_indicator</mat-icon>
+          </button>
+
+          <button
+            type="button"
+            class="step__toggle"
+            [attr.aria-expanded]="isExpanded(i)"
+            (click)="toggleEntry.emit(i)"
+          >
+            <mat-icon class="step__chevron">
+              {{ isExpanded(i) ? 'expand_more' : 'chevron_right' }}
+            </mat-icon>
+            @if (isGap(i)) {
+              <span class="step__name">Gap</span>
+              <span class="step__timing">{{ gapSummary(i) }}</span>
+            } @else {
+              <span class="step__number">{{ activityNumber(i) }}</span>
+              <span class="step__name">{{ stepTitle(i) }}</span>
+              <span class="step__timing">{{ stepTiming(i) }}</span>
+              @if (isAutoAdvance(i)) {
+                <mat-icon class="step__auto" aria-label="Auto-advance" title="Auto-advance">
+                  fast_forward
+                </mat-icon>
+              }
+            }
+          </button>
+
           <button
             mat-button
             type="button"
-            [disabled]="steps.length <= 1"
-            (click)="removeStep.emit(i)"
+            [disabled]="!canRemove(i)"
+            (click)="removeEntry.emit(i)"
           >
             Remove
           </button>
         </div>
 
-        <mat-form-field appearance="outline" class="full">
-          <mat-label>Title</mat-label>
-          <input matInput formControlName="title" required />
-        </mat-form-field>
+        @if (isExpanded(i)) {
+          @if (isGap(i)) {
+            <div class="step__nums">
+              <mat-form-field appearance="outline">
+                <mat-label>Gap (s)</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="durationSeconds"
+                  [min]="gapSecondsMin"
+                  [max]="gapSecondsMax"
+                  required
+                />
+              </mat-form-field>
+            </div>
 
-        <mat-form-field appearance="outline" class="full">
-          <mat-label>Description</mat-label>
-          <input matInput formControlName="description" />
-        </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Message (optional)</mat-label>
+              <textarea
+                matInput
+                rows="2"
+                formControlName="message"
+                [maxlength]="gapMessageMaxLength"
+                placeholder="Active recovery — keep moving"
+              ></textarea>
+              <mat-hint>Shown on screen while this gap counts down.</mat-hint>
+            </mat-form-field>
+          } @else {
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Title</mat-label>
+              <input matInput formControlName="title" required />
+            </mat-form-field>
 
-        <div class="step__nums">
-          <mat-form-field appearance="outline">
-            <mat-label>Start (s)</mat-label>
-            <input matInput type="number" formControlName="startSeconds" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>End (s)</mat-label>
-            <input matInput type="number" formControlName="endSeconds" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Duration (s)</mat-label>
-            <input matInput type="number" formControlName="durationSeconds" />
-          </mat-form-field>
-        </div>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Description</mat-label>
+              <input matInput formControlName="description" />
+            </mat-form-field>
 
-        <mat-checkbox formControlName="autoAdvance">Auto-advance</mat-checkbox>
+            <div class="step__nums">
+              <mat-form-field appearance="outline">
+                <mat-label>Start (s)</mat-label>
+                <input matInput type="number" formControlName="startSeconds" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>End (s)</mat-label>
+                <input matInput type="number" formControlName="endSeconds" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Duration (s)</mat-label>
+                <input matInput type="number" formControlName="durationSeconds" />
+              </mat-form-field>
+            </div>
+
+            <mat-checkbox formControlName="autoAdvance">Auto-advance</mat-checkbox>
+          }
+        }
       </div>
     }
   </div>

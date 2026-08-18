@@ -27,7 +27,9 @@ import { ScreenWakeLockService } from '../../../../core/services/screen-wake-loc
 import { CompletionPanelComponent } from '../../components/completion-panel/completion-panel.component';
 import { StepNavigatorComponent } from '../../components/step-navigator/step-navigator.component';
 import { VideoHostComponent } from '../../components/video-host/video-host.component';
+import { StepDefinition } from '../../models/step-definition.model';
 import { StepsItem } from '../../models/steps-item.model';
+import { activityEntries } from '../../models/step-entry';
 import {
   TikTokCreatorLink,
   creatorLabel,
@@ -249,8 +251,13 @@ export class ViewerPageComponent implements OnDestroy {
     void this.playback.start();
   }
 
-  selectStep(index: number): void {
-    void this.playback.selectStep(index);
+  /** Activity steps only; gaps are not listed in the navigator. */
+  activitySteps(item: StepsItem): StepDefinition[] {
+    return activityEntries(item.steps);
+  }
+
+  selectActivityStep(activityIndex: number): void {
+    void this.playback.selectActivityStep(activityIndex);
   }
 
   togglePause(state: PlaybackState): void {

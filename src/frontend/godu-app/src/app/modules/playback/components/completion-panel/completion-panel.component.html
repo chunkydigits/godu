@@ -6,7 +6,7 @@
     @if (stepsItem.creatorDisplayName) {
       <span> from <app-creator-name [item]="stepsItem" /></span>
     }
-    — {{ stepsItem.steps.length }} steps.
+    — {{ stepCount(stepsItem) }} steps.
   </p>
 
   <div class="completion__icon-actions" role="group" aria-label="Session actions">
@@ -52,7 +52,7 @@
             <a class="completion__related-link" [routerLink]="['/play', related.id]">
               <span class="completion__related-name">{{ related.title }}</span>
               <span class="completion__related-meta">
-                {{ related.steps.length }} steps
+                {{ stepCount(related) }} steps
               </span>
             </a>
           </li>

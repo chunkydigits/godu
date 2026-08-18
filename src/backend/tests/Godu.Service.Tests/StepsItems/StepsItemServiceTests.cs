@@ -75,6 +75,96 @@ public sealed class StepsItemServiceTests
     }
 
     [Fact]
+    public async Task CreateMineAsync_WhenGapEntryIncluded_ThenPersistsGapEntry()
+    {
+        Authenticate("usr_owner");
+        StepsItemDocument? saved = null;
+        _repository
+            .Setup(r => r.CreateAsync(It.IsAny<StepsItemDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StepsItemDocument doc, CancellationToken _) =>
+            {
+                saved = doc;
+                return doc;
+            });
+
+        var request = ValidCreateRequest();
+        request.Steps.Add(new StepDefinitionRequest
+        {
+            Order = 2,
+            Kind = "gap",
+            DurationSeconds = 20,
+            Message = "  Water break  ",
+        });
+        request.Steps.Add(new StepDefinitionRequest
+        {
+            Order = 3,
+            Title = "Cool down",
+            StartSeconds = 10,
+            EndSeconds = 20,
+            DurationSeconds = 10,
+        });
+
+        var result = await _sut.CreateMineAsync(request);
+
+        saved.Should().NotBeNull();
+        var gap = saved!.Steps.Single(s => s.Kind == "gap");
+        gap.DurationSeconds.Should().Be(20);
+        gap.Message.Should().Be("Water break");
+        gap.Title.Should().BeEmpty();
+        saved.Steps.Count(s => s.Kind == "step").Should().Be(2);
+        result.Steps.Should().HaveCount(3);
+        result.Steps[1].Kind.Should().Be("gap");
+        result.Steps[1].Message.Should().Be("Water break");
+    }
+
+    [Fact]
+    public async Task CreateMineAsync_WhenGapEntryLengthOutOfRange_ThenThrowsArgumentException()
+    {
+        Authenticate("usr_owner");
+        var request = ValidCreateRequest();
+        request.Steps.Add(new StepDefinitionRequest
+        {
+            Order = 2,
+            Kind = "gap",
+            DurationSeconds = 601,
+        });
+
+        var act = async () => await _sut.CreateMineAsync(request);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*durationSeconds must be between 1 and 600*");
+    }
+
+    [Fact]
+    public async Task CreateMineAsync_WhenOnlyGapEntries_ThenThrowsArgumentException()
+    {
+        Authenticate("usr_owner");
+        var request = ValidCreateRequest();
+        request.Steps =
+        [
+            new StepDefinitionRequest { Order = 1, Kind = "gap", DurationSeconds = 20 },
+        ];
+
+        var act = async () => await _sut.CreateMineAsync(request);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*At least one step is required*");
+    }
+
+    [Fact]
+    public async Task CreateMineAsync_WhenUnknownEntryKind_ThenThrowsArgumentException()
+    {
+        Authenticate("usr_owner");
+        var request = ValidCreateRequest();
+        request.Steps[0].Kind = "interval";
+
+        var act = async () => await _sut.CreateMineAsync(request);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*unknown kind 'interval'*");
+    }
+
+    [Fact]
     public async Task CreateMineAsync_WhenNotAuthenticated_ThenThrowsUnauthorized()
     {
         var act = async () => await _sut.CreateMineAsync(ValidCreateRequest());

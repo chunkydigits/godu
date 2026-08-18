@@ -1,12 +1,15 @@
 export interface ApiStepDefinition {
   id: string;
   order: number;
+  /** 'step' or 'gap'; absent on entries saved before gaps existed. */
+  kind?: string | null;
   title: string;
   description?: string | null;
   startSeconds: number;
   endSeconds: number;
   durationSeconds?: number | null;
   autoAdvance: boolean;
+  message?: string | null;
 }
 
 export interface ApiVideoReference {
@@ -48,12 +51,14 @@ export interface ApiStepsItem {
 export interface ApiStepDefinitionRequest {
   id?: string | null;
   order: number;
-  title: string;
+  kind: string;
+  title?: string | null;
   description?: string | null;
   startSeconds: number;
   endSeconds: number;
   durationSeconds?: number | null;
   autoAdvance: boolean;
+  message?: string | null;
 }
 
 export interface ApiVideoReferenceRequest {

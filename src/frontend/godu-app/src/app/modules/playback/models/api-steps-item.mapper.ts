@@ -1,5 +1,6 @@
 import { ApiStepsItem } from '../models/api-steps-item.model';
 import { StepDefinition } from '../models/step-definition.model';
+import { stepEntryKind } from '../models/step-entry';
 import { StepsItem } from '../models/steps-item.model';
 import { StepsItemStatus } from '../models/steps-item-status.enum';
 import { StepsVisibility } from '../models/steps-visibility.enum';
@@ -45,12 +46,14 @@ function mapStep(step: ApiStepsItem['steps'][number]): StepDefinition {
   return {
     id: step.id,
     order: step.order,
+    kind: stepEntryKind(step),
     title: step.title,
     description: step.description ?? undefined,
     startSeconds: step.startSeconds,
     endSeconds: step.endSeconds,
     durationSeconds: step.durationSeconds ?? null,
     autoAdvance: step.autoAdvance,
+    message: step.message ?? null,
   };
 }
 

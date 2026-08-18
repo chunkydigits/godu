@@ -46,12 +46,14 @@ public static class StepsItemMapper
                 {
                     Id = s.Id,
                     Order = s.Order,
+                    Kind = StepEntryKinds.Normalise(s.Kind),
                     Title = s.Title,
                     Description = s.Description,
                     StartSeconds = s.StartSeconds,
                     EndSeconds = s.EndSeconds,
                     DurationSeconds = s.DurationSeconds,
                     AutoAdvance = s.AutoAdvance,
+                    Message = s.Message,
                 })
                 .ToList(),
         };
@@ -59,19 +61,44 @@ public static class StepsItemMapper
 
     public static List<StepDefinitionDocument> ToStepDocuments(IEnumerable<StepDefinitionRequest> steps)
     {
-        return steps
-            .Select(s => new StepDefinitionDocument
+        return steps.Select(ToStepDocument).ToList();
+    }
+
+    private static StepDefinitionDocument ToStepDocument(StepDefinitionRequest step)
+    {
+        var id = string.IsNullOrWhiteSpace(step.Id) ? IdGenerator.NewStepId() : step.Id;
+        var kind = StepEntryKinds.Normalise(step.Kind);
+
+        // A gap has no clip of its own, so only its length and message are kept.
+        if (kind == StepEntryKinds.Gap)
+        {
+            var message = step.Message?.Trim();
+            return new StepDefinitionDocument
             {
-                Id = string.IsNullOrWhiteSpace(s.Id) ? IdGenerator.NewStepId() : s.Id,
-                Order = s.Order,
-                Title = s.Title.Trim(),
-                Description = s.Description,
-                StartSeconds = s.StartSeconds,
-                EndSeconds = s.EndSeconds,
-                DurationSeconds = s.DurationSeconds,
-                AutoAdvance = s.AutoAdvance,
-            })
-            .ToList();
+                Id = id,
+                Order = step.Order,
+                Kind = kind,
+                Title = string.Empty,
+                StartSeconds = 0,
+                EndSeconds = 0,
+                DurationSeconds = step.DurationSeconds,
+                AutoAdvance = true,
+                Message = string.IsNullOrEmpty(message) ? null : message,
+            };
+        }
+
+        return new StepDefinitionDocument
+        {
+            Id = id,
+            Order = step.Order,
+            Kind = kind,
+            Title = step.Title?.Trim() ?? string.Empty,
+            Description = step.Description,
+            StartSeconds = step.StartSeconds,
+            EndSeconds = step.EndSeconds,
+            DurationSeconds = step.DurationSeconds,
+            AutoAdvance = step.AutoAdvance,
+        };
     }
 
     public static VideoReferenceDocument ToVideoDocument(VideoReferenceRequest video)

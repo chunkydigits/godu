@@ -67,7 +67,8 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding-bottom: 1rem;
+  /* Top padding keeps the first field's floating label clear of the scroll edge. */
+  padding: 0.65rem 0 1rem;
 }
 
 .actions {

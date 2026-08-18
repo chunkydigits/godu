@@ -38,8 +38,12 @@
             <app-steps-editor-form
               [form]="form"
               [continuousSoundtrackEnabled]="continuousSoundtrackEnabled"
-              (addStep)="addStep()"
-              (removeStep)="removeStep($event)"
+              [activityStepCount]="activityStepCount"
+              [collapsedEntries]="collapsedEntries"
+              (addEntry)="addEntry($event)"
+              (removeEntry)="removeEntry($event)"
+              (toggleEntry)="toggleEntry($event)"
+              (entryDropped)="entryDropped($event)"
             />
 
             @if (saveState$ | async; as saveState) {

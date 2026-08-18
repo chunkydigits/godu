@@ -6,7 +6,14 @@ public sealed class StepDefinitionDocument
 
     public required int Order { get; set; }
 
-    public required string Title { get; set; }
+    /// <summary>
+    /// Entry kind: "step" or "gap". Absent on entries saved before gaps existed,
+    /// which are activity steps.
+    /// </summary>
+    public string Kind { get; set; } = StepEntryKinds.Step;
+
+    /// <summary>Empty on gap entries, which have no title of their own.</summary>
+    public string Title { get; set; } = string.Empty;
 
     public string? Description { get; set; }
 
@@ -14,7 +21,11 @@ public sealed class StepDefinitionDocument
 
     public required double EndSeconds { get; set; }
 
+    /// <summary>Activity length, or the rest length on a gap entry.</summary>
     public int? DurationSeconds { get; set; }
 
     public bool AutoAdvance { get; set; }
+
+    /// <summary>Gap entries only: copy shown while the gap counts down.</summary>
+    public string? Message { get; set; }
 }

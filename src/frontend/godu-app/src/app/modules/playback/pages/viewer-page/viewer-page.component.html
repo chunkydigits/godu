@@ -149,9 +149,9 @@
             <p class="viewer__step-count">
               @if (state.selectedStep) {
                 @if (isGap(state)) {
-                  Up next · Step {{ state.selectedStep.order }} of {{ item.steps.length }}
+                  Up next · Step {{ state.stepNumber }} of {{ state.stepCount }}
                 } @else {
-                  Step {{ state.selectedStep.order }} of {{ item.steps.length }}
+                  Step {{ state.stepNumber }} of {{ state.stepCount }}
                 }
                 @if (state.continuousSoundtrackActive) {
                   <span class="viewer__soundtrack-badge"> · Soundtrack</span>
@@ -165,8 +165,8 @@
               {{ state.selectedStep?.title || '—' }}
             </h2>
 
-            @if (isGap(state) && item.gapMessage) {
-              <p class="viewer__gap-message">{{ item.gapMessage }}</p>
+            @if (isGap(state) && state.gapMessage) {
+              <p class="viewer__gap-message">{{ state.gapMessage }}</p>
             } @else if (state.selectedStep?.description) {
               <div
                 class="viewer__step-description"
@@ -250,9 +250,9 @@
 
           <div class="viewer__dock">
             <app-step-navigator
-              [steps]="item.steps"
-              [selectedIndex]="state.selectedIndex"
-              (stepSelected)="selectStep($event)"
+              [steps]="activitySteps(item)"
+              [selectedIndex]="(state.stepNumber ?? 0) - 1"
+              (stepSelected)="selectActivityStep($event)"
             />
           </div>
         }

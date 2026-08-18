@@ -118,12 +118,14 @@ public sealed class InMemoryStepsItemRepository : IStepsItemRepository
                 {
                     Id = s.Id,
                     Order = s.Order,
+                    Kind = s.Kind,
                     Title = s.Title,
                     Description = s.Description,
                     StartSeconds = s.StartSeconds,
                     EndSeconds = s.EndSeconds,
                     DurationSeconds = s.DurationSeconds,
                     AutoAdvance = s.AutoAdvance,
+                    Message = s.Message,
                 })
                 .ToList(),
         };

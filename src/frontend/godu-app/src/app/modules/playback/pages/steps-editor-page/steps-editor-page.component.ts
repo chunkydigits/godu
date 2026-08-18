@@ -1,9 +1,12 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import {
+  AbstractControl,
   FormArray,
   FormBuilder,
+  FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
@@ -30,6 +33,18 @@ import {
   UpdateStepsItemRequest,
 } from '../../models/api-steps-item.model';
 import {
+  DEFAULT_GAP_SECONDS,
+  DEFAULT_STEP_ENTRY_KIND,
+  GAP_MESSAGE_MAX_LENGTH,
+  GAP_SECONDS_MAX,
+  GAP_SECONDS_MIN,
+  StepEntryKind,
+  activityCount,
+  normaliseGapMessage,
+  normaliseGapSeconds,
+  stepEntryKind,
+} from '../../models/step-entry';
+import {
   buildTikTokSourceUrl,
   formatCreatorDisplayName,
   parseTikTokVideo,
@@ -43,6 +58,20 @@ import {
 interface EditorSaveState {
   saving: boolean;
   error: string | null;
+}
+
+/** Raw value of one entry in the steps form array; shape depends on its kind. */
+interface StepEntryFormValue {
+  id?: string;
+  order?: number;
+  kind?: string;
+  title?: string;
+  description?: string;
+  startSeconds?: number | string;
+  endSeconds?: number | string;
+  durationSeconds?: number | string | null;
+  autoAdvance?: boolean;
+  message?: string;
 }
 
 const LAYOUT_KEY = 'godu.editor.videoOnEnd';
@@ -81,6 +110,9 @@ export class StepsEditorPageComponent {
   /** Desktop: when true, video column is on the end (right in LTR). */
   readonly videoOnEnd = signal(readVideoOnEnd());
 
+  /** Keyed by control so collapse state survives reordering. */
+  readonly collapsedEntries = new Set<AbstractControl>();
+
   readonly form = this.fb.nonNullable.group({
     videoInput: ['', [Validators.required]],
     title: ['', [Validators.required, Validators.minLength(1)]],
@@ -89,7 +121,7 @@ export class StepsEditorPageComponent {
     continuousSoundtrack: [false],
     gapSeconds: [null as number | null, [Validators.min(1), Validators.max(600)]],
     gapMessage: ['', [Validators.maxLength(200)]],
-    steps: this.fb.array([this.createStepGroup(1)]),
+    steps: this.fb.array<FormGroup>([this.createStepGroup(1)]),
   });
 
   readonly previewVideoId = toSignal(
@@ -148,18 +180,27 @@ export class StepsEditorPageComponent {
               { emitEvent: true },
             );
             this.steps.clear();
+            this.collapsedEntries.clear();
             for (const step of [...item.steps].sort((a, b) => a.order - b.order)) {
-              this.steps.push(
-                this.createStepGroup(step.order, {
-                  id: step.id,
-                  title: step.title,
-                  description: step.description ?? '',
-                  startSeconds: step.startSeconds,
-                  endSeconds: step.endSeconds,
-                  durationSeconds: step.durationSeconds ?? null,
-                  autoAdvance: step.autoAdvance,
-                }),
-              );
+              const group =
+                stepEntryKind(step) === 'gap'
+                  ? this.createGapGroup(step.order, {
+                      id: step.id,
+                      durationSeconds: step.durationSeconds ?? DEFAULT_GAP_SECONDS,
+                      message: step.message ?? '',
+                    })
+                  : this.createStepGroup(step.order, {
+                      id: step.id,
+                      title: step.title,
+                      description: step.description ?? '',
+                      startSeconds: step.startSeconds,
+                      endSeconds: step.endSeconds,
+                      durationSeconds: step.durationSeconds ?? null,
+                      autoAdvance: step.autoAdvance,
+                    });
+              this.steps.push(group);
+              // Saved entries start collapsed so the whole run is visible at once.
+              this.collapsedEntries.add(group);
             }
           }),
           map(() => ({ loading: false, error: null as string | null })),
@@ -212,21 +253,78 @@ export class StepsEditorPageComponent {
     writeVideoOnEnd(next);
   }
 
-  addStep(): void {
-    this.steps.push(this.createStepGroup(this.steps.length + 1));
+  addEntry(kind: StepEntryKind = DEFAULT_STEP_ENTRY_KIND): void {
+    const order = this.steps.length + 1;
+    // Left expanded: a new entry still needs filling in.
+    this.steps.push(
+      kind === 'gap' ? this.createGapGroup(order) : this.createStepGroup(order),
+    );
   }
 
-  removeStep(index: number): void {
-    if (this.steps.length <= 1) {
+  toggleEntry(index: number): void {
+    const control = this.steps.at(index);
+    if (!control) {
       return;
+    }
+    if (this.collapsedEntries.has(control)) {
+      this.collapsedEntries.delete(control);
+    } else {
+      this.collapsedEntries.add(control);
+    }
+  }
+
+  entryDropped(event: CdkDragDrop<unknown>): void {
+    const { previousIndex, currentIndex } = event;
+    if (previousIndex === currentIndex) {
+      return;
+    }
+    const control = this.steps.at(previousIndex);
+    if (!control) {
+      return;
+    }
+    this.steps.removeAt(previousIndex);
+    this.steps.insert(currentIndex, control);
+    this.renumberSteps();
+  }
+
+  /** Gaps can always go; the last remaining activity step cannot. */
+  canRemoveEntry(index: number): boolean {
+    const entry = this.steps.at(index)?.getRawValue() as StepEntryFormValue | undefined;
+    if (!entry) {
+      return false;
+    }
+    return stepEntryKind(entry) === 'gap' || this.activityStepCount > 1;
+  }
+
+  removeEntry(index: number): void {
+    if (!this.canRemoveEntry(index)) {
+      return;
+    }
+    const control = this.steps.at(index);
+    if (control) {
+      this.collapsedEntries.delete(control);
     }
     this.steps.removeAt(index);
     this.renumberSteps();
   }
 
+  get activityStepCount(): number {
+    return activityCount(this.steps.getRawValue() as StepEntryFormValue[]);
+  }
+
   submit(): void {
     this.form.markAllAsTouched();
+    this.expandInvalidEntries();
     this.saveTrigger$.next();
+  }
+
+  /** Collapsed fields hide their own errors, so reveal anything that failed. */
+  private expandInvalidEntries(): void {
+    for (const control of this.steps.controls) {
+      if (control.invalid) {
+        this.collapsedEntries.delete(control);
+      }
+    }
   }
 
   private applyUrlAutofill(username: string | null): void {
@@ -313,12 +411,33 @@ export class StepsEditorPageComponent {
     return this.fb.nonNullable.group({
       id: [values?.id ?? ''],
       order: [order],
+      kind: ['step'],
       title: [values?.title ?? '', [Validators.required]],
       description: [values?.description ?? ''],
       startSeconds: [values?.startSeconds ?? 0, [Validators.required, Validators.min(0)]],
       endSeconds: [values?.endSeconds ?? 5, [Validators.required, Validators.min(0)]],
       durationSeconds: [values?.durationSeconds ?? (null as number | null)],
       autoAdvance: [values?.autoAdvance ?? true],
+    });
+  }
+
+  private createGapGroup(
+    order: number,
+    values?: { id?: string; durationSeconds?: number | null; message?: string },
+  ) {
+    return this.fb.nonNullable.group({
+      id: [values?.id ?? ''],
+      order: [order],
+      kind: ['gap'],
+      durationSeconds: [
+        values?.durationSeconds ?? DEFAULT_GAP_SECONDS,
+        [
+          Validators.required,
+          Validators.min(GAP_SECONDS_MIN),
+          Validators.max(GAP_SECONDS_MAX),
+        ],
+      ],
+      message: [values?.message ?? '', [Validators.maxLength(GAP_MESSAGE_MAX_LENGTH)]],
     });
   }
 
@@ -341,28 +460,53 @@ export class StepsEditorPageComponent {
 
     const username =
       raw.creatorDisplayName.replace(/^@/, '').trim() || parsed.username || null;
-    const steps = raw.steps.map((step, index) => {
+    const entries = raw.steps as StepEntryFormValue[];
+    const steps = entries.map((entry, index) => {
+      const order = index + 1;
+
+      if (stepEntryKind(entry) === 'gap') {
+        return {
+          id: entry.id || null,
+          order,
+          kind: 'gap',
+          title: null,
+          description: null,
+          startSeconds: 0,
+          endSeconds: 0,
+          durationSeconds: normaliseGapSeconds(Number(entry.durationSeconds)),
+          autoAdvance: true,
+          message: normaliseGapMessage(entry.message),
+        };
+      }
+
       const duration =
-        step.durationSeconds === null || step.durationSeconds === ('' as unknown)
+        entry.durationSeconds === null || entry.durationSeconds === ''
           ? null
-          : Number(step.durationSeconds);
+          : Number(entry.durationSeconds);
 
       return {
-        id: step.id || null,
-        order: index + 1,
-        title: step.title.trim(),
-        description: step.description.trim() || null,
-        startSeconds: Number(step.startSeconds),
-        endSeconds: Number(step.endSeconds),
+        id: entry.id || null,
+        order,
+        kind: 'step',
+        title: entry.title?.trim() ?? '',
+        description: entry.description?.trim() || null,
+        startSeconds: Number(entry.startSeconds),
+        endSeconds: Number(entry.endSeconds),
         durationSeconds:
-          Number.isFinite(duration as number) && (duration as number) > 0
-            ? (duration as number)
-            : null,
-        autoAdvance: !!step.autoAdvance,
+          duration != null && Number.isFinite(duration) && duration > 0 ? duration : null,
+        autoAdvance: !!entry.autoAdvance,
+        message: null,
       };
     });
 
-    if (steps.some((s) => s.endSeconds <= s.startSeconds || !s.title)) {
+    const activitySteps = steps.filter((s) => s.kind !== 'gap');
+    if (activitySteps.length === 0) {
+      return null;
+    }
+    if (activitySteps.some((s) => s.endSeconds <= s.startSeconds || !s.title)) {
+      return null;
+    }
+    if (steps.some((s) => s.kind === 'gap' && s.durationSeconds === 0)) {
       return null;
     }
 

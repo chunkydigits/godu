@@ -1,4 +1,12 @@
 import { StepDefinition } from './step-definition.model';
+import {
+  GAP_MESSAGE_MAX_LENGTH,
+  GAP_SECONDS_MAX,
+  GAP_SECONDS_MIN,
+  activityCount,
+  isGapEntry,
+  stepEntryKind,
+} from './step-entry';
 
 export interface StepValidationResult {
   valid: boolean;
@@ -13,6 +21,29 @@ export function validateStepDefinition(
 
   if (step.order < 1) {
     errors.push('Order must be >= 1');
+  }
+
+  if (isGapEntry(step)) {
+    const seconds = step.durationSeconds;
+    if (
+      seconds == null ||
+      !Number.isFinite(seconds) ||
+      seconds < GAP_SECONDS_MIN ||
+      seconds > GAP_SECONDS_MAX
+    ) {
+      errors.push(
+        `DurationSeconds must be between ${GAP_SECONDS_MIN} and ${GAP_SECONDS_MAX}`,
+      );
+    }
+
+    if ((step.message?.trim().length ?? 0) > GAP_MESSAGE_MAX_LENGTH) {
+      errors.push(`Message must be ${GAP_MESSAGE_MAX_LENGTH} characters or fewer`);
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
   }
 
   if (!step.title?.trim()) {
@@ -54,8 +85,13 @@ export function validateStepsItemSteps(
   for (const step of steps) {
     const result = validateStepDefinition(step, videoDurationSeconds);
     if (!result.valid) {
-      errors.push(...result.errors.map((e) => `Step ${step.order}: ${e}`));
+      const label = stepEntryKind(step) === 'gap' ? 'Gap' : 'Step';
+      errors.push(...result.errors.map((e) => `${label} ${step.order}: ${e}`));
     }
+  }
+
+  if (steps.length > 0 && activityCount(steps) === 0) {
+    errors.push('At least one step is required');
   }
 
   return {

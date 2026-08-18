@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { MaterialModule } from '../../../../core/material.module';
 import { StepsItem } from '../../models/steps-item.model';
 import { StepDefinition } from '../../models/step-definition.model';
+import { activityCount } from '../../models/step-entry';
 import { CreatorNameComponent } from '../creator-name/creator-name.component';
 import { PlatformMarkComponent } from '../platform-mark/platform-mark.component';
 
@@ -18,4 +19,9 @@ export class CompletionPanelComponent {
   @Input() relatedSteps: StepsItem[] = [];
 
   @Output() readonly replay = new EventEmitter<void>();
+
+  /** Gaps are not steps, so they are left out of the counts shown here. */
+  stepCount(item: StepsItem): number {
+    return activityCount(item.steps);
+  }
 }
