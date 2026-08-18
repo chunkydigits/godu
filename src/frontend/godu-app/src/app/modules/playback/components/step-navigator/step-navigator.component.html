@@ -12,7 +12,13 @@
     </button>
 
     <div class="step-nav__track">
-      <span class="step-nav__cap" aria-hidden="true"></span>
+      <button
+        type="button"
+        class="step-nav__cap"
+        (click)="goToFirst()"
+        [disabled]="steps.length === 0 || selectedIndex === 0"
+        aria-label="First step"
+      ></button>
       <mat-slider
         class="step-nav__slider"
         [min]="0"
@@ -24,11 +30,17 @@
       >
         <input
           matSliderThumb
-          [value]="sliderValue"
-          (valueChange)="onSlider($event)"
+          [ngModel]="sliderValue"
+          (ngModelChange)="onSlider($event)"
         />
       </mat-slider>
-      <span class="step-nav__cap" aria-hidden="true"></span>
+      <button
+        type="button"
+        class="step-nav__cap"
+        (click)="goToLast()"
+        [disabled]="steps.length === 0 || selectedIndex === maxIndex"
+        aria-label="Last step"
+      ></button>
     </div>
 
     <button

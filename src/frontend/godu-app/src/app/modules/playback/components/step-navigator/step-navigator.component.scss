@@ -28,11 +28,18 @@
 
 .step-nav__cap {
   flex: 0 0 auto;
-  width: 0.7rem;
-  height: 0.7rem;
+  width: 0.85rem;
+  height: 0.85rem;
+  padding: 0;
   border-radius: 999px;
   border: 1px solid var(--steps-border);
   background: var(--steps-surface-elevated);
+  cursor: pointer;
+}
+
+.step-nav__cap:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .step-nav__slider {

@@ -1,10 +1,11 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MaterialModule } from '../../../../core/material.module';
 import { StepDefinition } from '../../models/step-definition.model';
 
 @Component({
   selector: 'app-step-navigator',
-  imports: [MaterialModule],
+  imports: [MaterialModule, FormsModule],
   templateUrl: './step-navigator.component.html',
   styleUrl: './step-navigator.component.scss',
 })
@@ -65,12 +66,28 @@ export class StepNavigatorComponent {
   }
 
   onSlider(value: number): void {
-    const index = Math.round(value);
-    if (index === this.selectedIndex) {
+    const index = Math.round(Number(value));
+    if (Number.isNaN(index) || index === this.selectedIndex) {
       return;
     }
 
     this.select(index);
+  }
+
+  goToFirst(): void {
+    if (this.steps.length === 0) {
+      return;
+    }
+
+    this.select(0);
+  }
+
+  goToLast(): void {
+    if (this.steps.length === 0) {
+      return;
+    }
+
+    this.select(this.maxIndex);
   }
 
   select(index: number): void {
