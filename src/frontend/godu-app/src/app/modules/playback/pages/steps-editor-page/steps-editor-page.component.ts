@@ -32,6 +32,7 @@ import {
   CreateStepsItemRequest,
   UpdateStepsItemRequest,
 } from '../../models/api-steps-item.model';
+import { EDITOR_SECTIONS, EditorSectionId } from '../../models/editor-sections';
 import {
   DEFAULT_GAP_SECONDS,
   DEFAULT_STEP_ENTRY_KIND,
@@ -113,16 +114,37 @@ export class StepsEditorPageComponent {
   /** Keyed by control so collapse state survives reordering. */
   readonly collapsedEntries = new Set<AbstractControl>();
 
+  /**
+   * Sections behave as an accordion, so at most one is open. Editing usually
+   * means tweaking steps, while a new item starts at the video.
+   */
+  readonly openSection = signal<EditorSectionId | null>(
+    this.isEditMode ? 'steps' : 'video',
+  );
+
   readonly form = this.fb.nonNullable.group({
     videoInput: ['', [Validators.required]],
     title: ['', [Validators.required, Validators.minLength(1)]],
     description: [''],
     creatorDisplayName: [''],
     continuousSoundtrack: [false],
-    gapSeconds: [null as number | null, [Validators.min(1), Validators.max(600)]],
-    gapMessage: ['', [Validators.maxLength(200)]],
+    // A new item has no default gap, so the lock starts on to match.
+    noGaps: [true],
+    gapSeconds: [
+      { value: null as number | null, disabled: true },
+      [Validators.min(1), Validators.max(600)],
+    ],
+    gapMessage: [{ value: '', disabled: true }, [Validators.maxLength(200)]],
     steps: this.fb.array<FormGroup>([this.createStepGroup(1)]),
   });
+
+  /** Keeps the gap fields locked in step with the checkbox for the component lifetime. */
+  private readonly gapLock = toSignal(
+    this.form.controls.noGaps.valueChanges.pipe(
+      tap((noGaps) => this.applyNoGaps(noGaps)),
+    ),
+    { initialValue: true },
+  );
 
   readonly previewVideoId = toSignal(
     this.form.controls.videoInput.valueChanges.pipe(
@@ -167,6 +189,7 @@ export class StepsEditorPageComponent {
             this.lastAutoCreator = '';
             this.lastAutoTitle = '';
             this.lastAutoDescription = '';
+            const noGaps = (item.gapSeconds ?? 0) <= 0;
             this.form.patchValue(
               {
                 videoInput: item.video.sourceUrl || item.video.externalVideoId,
@@ -176,9 +199,11 @@ export class StepsEditorPageComponent {
                 continuousSoundtrack: item.continuousSoundtrack,
                 gapSeconds: item.gapSeconds ?? null,
                 gapMessage: item.gapMessage ?? '',
+                noGaps,
               },
               { emitEvent: true },
             );
+            this.applyNoGaps(noGaps);
             this.steps.clear();
             this.collapsedEntries.clear();
             for (const step of [...item.steps].sort((a, b) => a.order - b.order)) {
@@ -261,6 +286,28 @@ export class StepsEditorPageComponent {
     );
   }
 
+  /**
+   * "No gaps" greys out the default gap fields; clearing it offers a usable gap
+   * rather than an empty box that would mean no gaps anyway.
+   */
+  private applyNoGaps(noGaps: boolean): void {
+    const { gapSeconds, gapMessage } = this.form.controls;
+    if (noGaps) {
+      gapSeconds.disable({ emitEvent: false });
+      gapMessage.disable({ emitEvent: false });
+      return;
+    }
+    if (gapSeconds.value == null) {
+      gapSeconds.setValue(DEFAULT_GAP_SECONDS, { emitEvent: false });
+    }
+    gapSeconds.enable({ emitEvent: false });
+    gapMessage.enable({ emitEvent: false });
+  }
+
+  toggleSection(id: EditorSectionId): void {
+    this.openSection.update((current) => (current === id ? null : id));
+  }
+
   toggleEntry(index: number): void {
     const control = this.steps.at(index);
     if (!control) {
@@ -314,8 +361,24 @@ export class StepsEditorPageComponent {
 
   submit(): void {
     this.form.markAllAsTouched();
+    this.revealInvalidSection();
     this.expandInvalidEntries();
     this.saveTrigger$.next();
+  }
+
+  /**
+   * Only one section can be open, so show the first one with a problem and
+   * leave the current section alone while it still has its own.
+   */
+  private revealInvalidSection(): void {
+    const sections = Object.values(EDITOR_SECTIONS);
+    const invalid = sections.filter((section) =>
+      section.controls.some((name) => this.form.get(name)?.invalid),
+    );
+    if (invalid.length === 0 || invalid.some((s) => s.id === this.openSection())) {
+      return;
+    }
+    this.openSection.set(invalid[0].id);
   }
 
   /** Collapsed fields hide their own errors, so reveal anything that failed. */
@@ -510,7 +573,8 @@ export class StepsEditorPageComponent {
       return null;
     }
 
-    const rawGap = raw.gapSeconds as number | string | null;
+    // Locked fields keep their last values, so the lock decides what is saved.
+    const rawGap = raw.noGaps ? null : (raw.gapSeconds as number | string | null);
     const parsedGap =
       rawGap === null || rawGap === ('' as unknown) ? NaN : Number(rawGap);
     const gapSeconds =

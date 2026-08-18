@@ -1,7 +1,14 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { AbstractControl, FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MaterialModule } from '../../../../core/material.module';
+import {
+  CONTINUOUS_SOUNDTRACK_TIP,
+  EDITOR_SECTIONS,
+  EditorSection,
+  EditorSectionId,
+} from '../../models/editor-sections';
 import {
   DEFAULT_STEP_ENTRY_KIND,
   GAP_MESSAGE_MAX_LENGTH,
@@ -15,7 +22,7 @@ import {
 
 @Component({
   selector: 'app-steps-editor-form',
-  imports: [MaterialModule, ReactiveFormsModule, DragDropModule],
+  imports: [MaterialModule, ReactiveFormsModule, DragDropModule, NgTemplateOutlet],
   templateUrl: './steps-editor-form.component.html',
   styleUrl: './steps-editor-form.component.scss',
 })
@@ -26,20 +33,46 @@ export class StepsEditorFormComponent {
   @Input() activityStepCount = 0;
   /** Entries the page has collapsed, keyed by control so reordering is safe. */
   @Input() collapsedEntries = new Set<AbstractControl>();
+  /** The one open section, if any: the panels act as an accordion. */
+  @Input() openSection: EditorSectionId | null = null;
 
   @Output() readonly addEntry = new EventEmitter<StepEntryKind>();
   @Output() readonly removeEntry = new EventEmitter<number>();
   @Output() readonly toggleEntry = new EventEmitter<number>();
+  @Output() readonly toggleSection = new EventEmitter<EditorSectionId>();
   @Output() readonly entryDropped = new EventEmitter<CdkDragDrop<unknown>>();
 
+  readonly sections = EDITOR_SECTIONS;
   readonly entryKinds = STEP_ENTRY_KINDS;
   readonly defaultKind = DEFAULT_STEP_ENTRY_KIND;
   readonly gapSecondsMin = GAP_SECONDS_MIN;
   readonly gapSecondsMax = GAP_SECONDS_MAX;
   readonly gapMessageMaxLength = GAP_MESSAGE_MAX_LENGTH;
 
+  /** Tips are a peek at one section at a time rather than a pinned panel. */
+  private openTips: EditorSectionId | null = null;
+
   get steps(): FormArray {
     return this.form.get('steps') as FormArray;
+  }
+
+  isSectionOpen(id: EditorSectionId): boolean {
+    return this.openSection === id;
+  }
+
+  areTipsOpen(id: EditorSectionId): boolean {
+    return this.openTips === id;
+  }
+
+  toggleTips(id: EditorSectionId): void {
+    this.openTips = this.openTips === id ? null : id;
+  }
+
+  tipsFor(section: EditorSection): readonly string[] {
+    if (section.id === 'video' && this.continuousSoundtrackEnabled) {
+      return [...section.tips, CONTINUOUS_SOUNDTRACK_TIP];
+    }
+    return section.tips;
   }
 
   isGap(index: number): boolean {

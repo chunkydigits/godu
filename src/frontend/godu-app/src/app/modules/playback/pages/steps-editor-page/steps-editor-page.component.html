@@ -40,9 +40,11 @@
               [continuousSoundtrackEnabled]="continuousSoundtrackEnabled"
               [activityStepCount]="activityStepCount"
               [collapsedEntries]="collapsedEntries"
+              [openSection]="openSection()"
               (addEntry)="addEntry($event)"
               (removeEntry)="removeEntry($event)"
               (toggleEntry)="toggleEntry($event)"
+              (toggleSection)="toggleSection($event)"
               (entryDropped)="entryDropped($event)"
             />
 
