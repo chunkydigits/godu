@@ -158,9 +158,26 @@
             @if (isGap(state) && item.gapMessage) {
               <p class="viewer__gap-message">{{ item.gapMessage }}</p>
             } @else if (state.selectedStep?.description) {
-              <p class="viewer__step-description">
-                {{ state.selectedStep?.description }}
-              </p>
+              <div
+                class="viewer__step-description"
+                [class.viewer__step-description--marquee]="descriptionMarquee"
+                #descriptionHost
+              >
+                <div
+                  class="viewer__step-description-track"
+                  [class.viewer__step-description-track--marquee]="descriptionMarquee"
+                  [style.--marquee-duration]="descriptionMarqueeDuration"
+                >
+                  <span class="viewer__step-description-text">{{
+                    state.selectedStep?.description
+                  }}</span>
+                  @if (descriptionMarquee) {
+                    <span class="viewer__step-description-text" aria-hidden="true">{{
+                      state.selectedStep?.description
+                    }}</span>
+                  }
+                </div>
+              </div>
             }
 
             @if (isGap(state)) {

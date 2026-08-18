@@ -1,5 +1,13 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, OnDestroy, inject } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   BehaviorSubject,
@@ -54,12 +62,17 @@ export class ViewerPageComponent implements OnDestroy {
   private readonly preferences = inject(ViewerPreferencesService);
   private readonly userSettings = inject(UserSettingsService);
   private readonly wakeLock = inject(ScreenWakeLockService);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
+
+  @ViewChild('descriptionHost') private descriptionHost?: ElementRef<HTMLElement>;
 
   private pendingItem: StepsItem | null = null;
   private settingsIdleTimer: ReturnType<typeof setTimeout> | null = null;
 
   settingsOpen = false;
+  descriptionMarquee = false;
+  descriptionMarqueeDuration = '14s';
 
   readonly error$ = new BehaviorSubject<string | null>(null);
   readonly showVideo$ = this.preferences.showVideo$;
@@ -131,6 +144,17 @@ export class ViewerPageComponent implements OnDestroy {
           this.closeSettingsPanel();
         }
       });
+
+    this.playback.state$
+      .pipe(
+        map((s) => (s.phase === 'gap' ? '' : (s.selectedStep?.description ?? ''))),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(() => {
+        this.descriptionMarquee = false;
+        setTimeout(() => this.measureDescriptionMarquee());
+      });
   }
 
   ngOnDestroy(): void {
@@ -139,6 +163,11 @@ export class ViewerPageComponent implements OnDestroy {
     this.destroy$.complete();
     void this.wakeLock.release();
     void this.playback.destroy();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.measureDescriptionMarquee();
   }
 
   usesContinuousSoundtrack(item: StepsItem): boolean {
@@ -233,6 +262,29 @@ export class ViewerPageComponent implements OnDestroy {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
+  private measureDescriptionMarquee(): void {
+    const host = this.descriptionHost?.nativeElement;
+    const text = host?.querySelector('.viewer__step-description-text') as HTMLElement | null;
+    if (!host || !text) {
+      if (this.descriptionMarquee) {
+        this.descriptionMarquee = false;
+        this.changeDetector.detectChanges();
+      }
+      return;
+    }
+
+    const overflows = text.scrollWidth > host.clientWidth + 4;
+    const seconds = Math.min(36, Math.max(10, text.scrollWidth / 32));
+    const duration = `${seconds}s`;
+    if (this.descriptionMarquee === overflows && this.descriptionMarqueeDuration === duration) {
+      return;
+    }
+
+    this.descriptionMarquee = overflows;
+    this.descriptionMarqueeDuration = duration;
+    this.changeDetector.detectChanges();
   }
 
   private setMuted(muted: boolean): void {
