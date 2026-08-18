@@ -1,14 +1,46 @@
 <nav class="step-nav" aria-label="Steps">
-  @for (step of steps; track step.id; let i = $index) {
+  <div class="step-nav__row">
     <button
+      mat-icon-button
       type="button"
-      class="step-nav__dot"
-      [class.step-nav__dot--active]="i === selectedIndex"
-      (click)="select(i)"
-      [attr.aria-current]="i === selectedIndex ? 'step' : null"
-      [attr.aria-label]="'Step ' + step.order + ': ' + step.title"
+      class="step-nav__arrow"
+      (click)="previous()"
+      [disabled]="atStart"
+      aria-label="Previous step"
     >
-      {{ step.order }}
+      <mat-icon>chevron_left</mat-icon>
     </button>
-  }
+
+    <div class="step-nav__track">
+      <span class="step-nav__cap" aria-hidden="true"></span>
+      <mat-slider
+        class="step-nav__slider"
+        [min]="0"
+        [max]="maxIndex"
+        [step]="1"
+        [discrete]="true"
+        [displayWith]="displayLabel"
+        [disabled]="steps.length < 2"
+      >
+        <input
+          matSliderThumb
+          [value]="sliderValue"
+          (valueChange)="onSlider($event)"
+        />
+      </mat-slider>
+      <span class="step-nav__cap" aria-hidden="true"></span>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="step-nav__arrow"
+      (click)="next()"
+      [disabled]="atEnd"
+      aria-label="Next step"
+    >
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+  <p class="step-nav__count">{{ currentLabel }}</p>
 </nav>

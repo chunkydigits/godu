@@ -48,6 +48,7 @@ export const routes: Routes = [
   },
   {
     path: 'my-steps',
+    canActivate: [authGuardFn],
     loadComponent: () =>
       import('./modules/playback/pages/my-steps-page/my-steps-page.component').then(
         (m) => m.MyStepsPageComponent,

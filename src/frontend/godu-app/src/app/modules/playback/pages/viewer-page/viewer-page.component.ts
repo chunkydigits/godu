@@ -147,14 +147,6 @@ export class ViewerPageComponent implements OnDestroy {
     void this.playback.selectStep(index);
   }
 
-  previous(): void {
-    void this.playback.previous();
-  }
-
-  next(): void {
-    void this.playback.next();
-  }
-
   togglePause(state: PlaybackState): void {
     if (state.phase === 'playing') {
       void this.playback.pause();

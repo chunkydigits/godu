@@ -1,4 +1,4 @@
-<app-page-template [showHeader]="false">
+<app-page-template [showHeader]="false" [lockContentScroll]="true">
   @if (error$ | async; as error) {
     <div class="viewer-error">
       <p>{{ error }}</p>
@@ -137,16 +137,6 @@
             } @else {
               <div class="viewer__actions">
                 <button
-                  mat-stroked-button
-                  type="button"
-                  (click)="previous()"
-                  [disabled]="state.selectedIndex <= 0"
-                >
-                  <mat-icon>chevron_left</mat-icon>
-                  Previous
-                </button>
-
-                <button
                   mat-flat-button
                   color="primary"
                   type="button"
@@ -157,20 +147,17 @@
                   </mat-icon>
                   {{ state.phase === 'paused' ? 'Resume' : 'Pause' }}
                 </button>
-
-                <button mat-stroked-button type="button" (click)="next()">
-                  Next
-                  <mat-icon>chevron_right</mat-icon>
-                </button>
               </div>
             }
+          </section>
 
+          <div class="viewer__dock">
             <app-step-navigator
               [steps]="item.steps"
               [selectedIndex]="state.selectedIndex"
               (stepSelected)="selectStep($event)"
             />
-          </section>
+          </div>
         }
       </div>
     }

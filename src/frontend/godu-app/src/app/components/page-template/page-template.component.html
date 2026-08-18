@@ -49,11 +49,11 @@
         <mat-icon>play_circle</mat-icon>
         <span>Demos</span>
       </a>
-      <a mat-menu-item routerLink="/my-steps">
-        <mat-icon>playlist_play</mat-icon>
-        <span>My Steps</span>
-      </a>
       @if (isAuthenticated$ | async) {
+        <a mat-menu-item routerLink="/my-steps">
+          <mat-icon>playlist_play</mat-icon>
+          <span>My Steps</span>
+        </a>
         <a mat-menu-item routerLink="/my-steps/new">
           <mat-icon>add_circle</mat-icon>
           <span>Create Steps</span>
