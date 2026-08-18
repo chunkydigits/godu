@@ -21,36 +21,76 @@
           </div>
 
           @if (state.phase !== 'completed') {
-            <button
-              mat-icon-button
-              type="button"
-              class="viewer__mute"
-              (click)="toggleMute()"
-              [disabled]="state.voiceCuesEnabled"
-              [attr.aria-label]="state.userMuted || state.voiceCuesEnabled ? 'Unmute' : 'Mute'"
-            >
-              <mat-icon>{{
-                state.userMuted || state.voiceCuesEnabled ? 'volume_off' : 'volume_up'
-              }}</mat-icon>
-            </button>
+            <div class="viewer__chrome">
+              @if (!settingsOpen) {
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="viewer__mute"
+                  (click)="toggleMute()"
+                  [attr.aria-label]="state.userMuted ? 'Unmute' : 'Mute'"
+                >
+                  <mat-icon>{{ state.userMuted ? 'volume_off' : 'volume_up' }}</mat-icon>
+                </button>
+              }
 
-            <div class="viewer__toggles">
-              <mat-slide-toggle
-                class="viewer__video-toggle"
-                [checked]="(showVideo$ | async) ?? true"
-                (change)="onShowVideoChange($event.checked)"
-                aria-label="Show video"
+              <div
+                class="viewer__settings"
+                (pointerdown)="onSettingsActivity()"
+                (pointermove)="onSettingsActivity()"
+                (focusin)="onSettingsActivity()"
               >
-                Video
-              </mat-slide-toggle>
-              <mat-slide-toggle
-                class="viewer__voice-toggle"
-                [checked]="state.voiceCuesEnabled"
-                (change)="onVoiceCuesChange($event.checked)"
-                aria-label="Voice cues"
-              >
-                Voice cues
-              </mat-slide-toggle>
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="viewer__settings-btn"
+                  [class.viewer__settings-btn--open]="settingsOpen"
+                  (click)="toggleSettingsPanel()"
+                  [attr.aria-expanded]="settingsOpen"
+                  aria-controls="viewer-settings-panel"
+                  aria-label="Playback settings"
+                >
+                  <mat-icon>settings</mat-icon>
+                </button>
+
+                @if (settingsOpen) {
+                  <div
+                    id="viewer-settings-panel"
+                    class="viewer__settings-panel"
+                    role="dialog"
+                    aria-label="Playback settings"
+                  >
+                    <div class="viewer__settings-row">
+                      <span>Sound</span>
+                      <mat-slide-toggle
+                        [checked]="!state.userMuted"
+                        (change)="onSoundChange($event.checked)"
+                        aria-label="Sound"
+                      />
+                    </div>
+                    <div class="viewer__settings-row">
+                      <span>Video</span>
+                      <mat-slide-toggle
+                        [checked]="(showVideo$ | async) ?? true"
+                        (change)="onShowVideoChange($event.checked)"
+                        aria-label="Video"
+                      />
+                    </div>
+                    <div
+                      class="viewer__settings-row"
+                      [class.viewer__settings-row--disabled]="state.userMuted"
+                    >
+                      <span>Voice cues</span>
+                      <mat-slide-toggle
+                        [checked]="(voiceCues$ | async) ?? false"
+                        [disabled]="state.userMuted"
+                        (change)="onVoiceCuesChange($event.checked)"
+                        aria-label="Voice cues"
+                      />
+                    </div>
+                  </div>
+                }
+              </div>
             </div>
           }
         </header>

@@ -57,9 +57,13 @@ export class ViewerPageComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   private pendingItem: StepsItem | null = null;
+  private settingsIdleTimer: ReturnType<typeof setTimeout> | null = null;
+
+  settingsOpen = false;
 
   readonly error$ = new BehaviorSubject<string | null>(null);
   readonly showVideo$ = this.preferences.showVideo$;
+  readonly voiceCues$ = this.userSettings.voiceCues$;
 
   readonly item$: Observable<StepsItem | null> = this.route.paramMap.pipe(
     map((params) => params.get('id')),
@@ -72,6 +76,7 @@ export class ViewerPageComponent implements OnDestroy {
           this.pendingItem = item;
           this.error$.next(null);
           this.playback.setUserMuted(this.preferences.muted);
+          this.syncVoiceCuesToPlayback();
           void this.playback.load(item);
         }),
         catchError((err: Error) => {
@@ -94,10 +99,11 @@ export class ViewerPageComponent implements OnDestroy {
   );
 
   constructor() {
-    this.playback.setVoiceCuesEnabled(this.userSettings.voiceCues);
+    this.playback.setUserMuted(this.preferences.muted);
+    this.syncVoiceCuesToPlayback();
     this.preferences.voiceCues$
       .pipe(takeUntil(this.destroy$))
-      .subscribe((enabled) => this.playback.setVoiceCuesEnabled(enabled));
+      .subscribe(() => this.syncVoiceCuesToPlayback());
     this.userSettings.hydrate().pipe(takeUntil(this.destroy$)).subscribe();
 
     this.playback.state$
@@ -113,9 +119,22 @@ export class ViewerPageComponent implements OnDestroy {
           void this.wakeLock.release();
         }
       });
+
+    this.playback.state$
+      .pipe(
+        map((s) => s.phase === 'completed'),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((completed) => {
+        if (completed) {
+          this.closeSettingsPanel();
+        }
+      });
   }
 
   ngOnDestroy(): void {
+    this.closeSettingsPanel();
     this.destroy$.next();
     this.destroy$.complete();
     void this.wakeLock.release();
@@ -146,16 +165,41 @@ export class ViewerPageComponent implements OnDestroy {
     } else {
       void this.playback.suspendVisualKeepSession();
     }
+    this.onSettingsActivity();
   }
 
   onVoiceCuesChange(enabled: boolean): void {
+    if (this.playback.snapshot.userMuted) {
+      return;
+    }
     this.userSettings.setUseVoiceCuesByDefault(enabled);
+    this.onSettingsActivity();
+  }
+
+  onSoundChange(enabled: boolean): void {
+    this.setMuted(!enabled);
+    this.onSettingsActivity();
   }
 
   toggleMute(): void {
-    const next = !this.playback.snapshot.userMuted;
-    this.preferences.setMuted(next);
-    this.playback.setUserMuted(next);
+    this.setMuted(!this.playback.snapshot.userMuted);
+  }
+
+  toggleSettingsPanel(): void {
+    if (this.settingsOpen) {
+      this.closeSettingsPanel();
+      return;
+    }
+    this.settingsOpen = true;
+    this.onSettingsActivity();
+  }
+
+  onSettingsActivity(): void {
+    if (!this.settingsOpen) {
+      return;
+    }
+    this.clearSettingsIdle();
+    this.settingsIdleTimer = setTimeout(() => this.closeSettingsPanel(), 2000);
   }
 
   start(): void {
@@ -189,6 +233,30 @@ export class ViewerPageComponent implements OnDestroy {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
+  private setMuted(muted: boolean): void {
+    this.preferences.setMuted(muted);
+    this.playback.setUserMuted(muted);
+    this.syncVoiceCuesToPlayback();
+  }
+
+  private syncVoiceCuesToPlayback(): void {
+    this.playback.setVoiceCuesEnabled(
+      this.userSettings.voiceCues && !this.playback.snapshot.userMuted,
+    );
+  }
+
+  private closeSettingsPanel(): void {
+    this.settingsOpen = false;
+    this.clearSettingsIdle();
+  }
+
+  private clearSettingsIdle(): void {
+    if (this.settingsIdleTimer != null) {
+      clearTimeout(this.settingsIdleTimer);
+      this.settingsIdleTimer = null;
+    }
   }
 
   private resolveItem(id: string): Observable<StepsItem> {
