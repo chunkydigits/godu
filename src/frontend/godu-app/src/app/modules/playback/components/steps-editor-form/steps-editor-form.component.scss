@@ -56,3 +56,9 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
 }
+
+.gap-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}

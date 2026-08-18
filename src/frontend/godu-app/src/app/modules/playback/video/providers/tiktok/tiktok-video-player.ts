@@ -1,3 +1,4 @@
+import { NgZone } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import {
   ControllableVideoPlayer,
@@ -28,19 +29,25 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
   private pendingSeekSeconds: number | null = null;
   private wantPlaying = false;
   private muted = false;
+  private lastPlayRetryAt = 0;
+  private playIntentAt = 0;
+  private seekPostedAt = 0;
 
   private readonly readySubject = new BehaviorSubject<boolean>(false);
+  private readonly isPlayingSubject = new BehaviorSubject<boolean>(false);
   private readonly timeUpdatesSubject = new Subject<VideoPlayerTimeUpdate>();
   private readonly onMessage = (event: MessageEvent<TikTokPlayerMessage>) =>
     this.handleMessage(event);
 
   readonly ready: Observable<boolean> = this.readySubject.asObservable();
+  readonly isPlaying: Observable<boolean> = this.isPlayingSubject.asObservable();
   readonly timeUpdates: Observable<VideoPlayerTimeUpdate> =
     this.timeUpdatesSubject.asObservable();
 
   constructor(
     private readonly hostElement: HTMLElement,
     private readonly externalVideoId: string,
+    private readonly ngZone?: NgZone,
   ) {}
 
   async initialise(): Promise<void> {
@@ -48,7 +55,12 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
       return;
     }
 
-    window.addEventListener('message', this.onMessage);
+    const listen = () => window.addEventListener('message', this.onMessage);
+    if (this.ngZone) {
+      this.ngZone.runOutsideAngular(listen);
+    } else {
+      listen();
+    }
     this.mountIframe({ autoplay: false, muted: this.muted });
   }
 
@@ -62,9 +74,14 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     }
 
     this.wantPlaying = true;
+    this.playIntentAt = Date.now();
     this.pendingSeekSeconds = startSeconds;
     this.currentTimeSeconds = startSeconds;
-    this.mountIframe({ autoplay: true, muted: this.muted });
+    this.seekPostedAt = Date.now();
+
+    if (!this.iframe) {
+      this.mountIframe({ autoplay: true, muted: this.muted });
+    }
     this.postControlCommands(startSeconds);
   }
 
@@ -75,18 +92,21 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
 
   async play(): Promise<void> {
     this.wantPlaying = true;
+    this.playIntentAt = Date.now();
     this.post('play');
     this.applyMuteState();
   }
 
   async pause(): Promise<void> {
     this.wantPlaying = false;
+    this.setPlaying(false);
     this.post('pause');
   }
 
   async seek(seconds: number): Promise<void> {
     this.pendingSeekSeconds = seconds;
     this.currentTimeSeconds = seconds;
+    this.seekPostedAt = Date.now();
     this.post('seekTo', seconds);
   }
 
@@ -100,14 +120,17 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     this.pendingSeekSeconds = null;
     window.removeEventListener('message', this.onMessage);
     this.readySubject.next(false);
+    this.setPlaying(false);
     this.hostElement.replaceChildren();
     this.iframe = null;
     this.readySubject.complete();
+    this.isPlayingSubject.complete();
     this.timeUpdatesSubject.complete();
   }
 
   private mountIframe(options: EmbedOptions): void {
     this.readySubject.next(false);
+    this.setPlaying(false);
 
     const iframe = document.createElement('iframe');
     iframe.src = this.buildEmbedUrl(options);
@@ -177,6 +200,9 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     if (event.origin !== 'https://www.tiktok.com') {
       return;
     }
+    if (this.iframe && event.source !== this.iframe.contentWindow) {
+      return;
+    }
 
     const data = event.data;
     if (!data || data['x-tiktok-player'] !== true || !data.type) {
@@ -193,17 +219,20 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
         break;
       case 'onStateChange': {
         const state = data.value as number | undefined;
-        if (this.wantPlaying && state === 2) {
-          this.post('play');
-          this.applyMuteState();
+        if (state === 1) {
+          this.setPlaying(true);
+        } else if (state === 0 || state === 2) {
+          this.setPlaying(false);
+        }
+        if (this.wantPlaying && state === 2 && Date.now() - this.playIntentAt < 2000) {
+          this.retryPlay();
         }
         break;
       }
       case 'onPlayerError': {
         const error = data.value as { errorCode?: number; errorType?: string } | undefined;
         if (error?.errorType === 'AUTOPLAY_ERROR' || error?.errorCode === 3002) {
-          this.post('play');
-          this.applyMuteState();
+          this.retryPlay();
         }
         break;
       }
@@ -212,16 +241,38 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
         if (!value) {
           return;
         }
-        this.currentTimeSeconds = value.currentTime ?? 0;
+        const nextTime = value.currentTime ?? 0;
+        if (this.pendingSeekSeconds != null) {
+          const landed = Math.abs(nextTime - this.pendingSeekSeconds) <= 1.25;
+          if (!landed && Date.now() - this.seekPostedAt < 1500) {
+            return;
+          }
+          if (landed) {
+            this.pendingSeekSeconds = null;
+          }
+        }
+        this.currentTimeSeconds = nextTime;
         this.durationSeconds = value.duration ?? this.durationSeconds;
-        this.timeUpdatesSubject.next({
-          currentTime: this.currentTimeSeconds,
-          duration: this.durationSeconds,
-        });
         break;
       }
       default:
         break;
     }
+  }
+
+  private setPlaying(playing: boolean): void {
+    if (this.isPlayingSubject.value === playing) {
+      return;
+    }
+    this.isPlayingSubject.next(playing);
+  }
+
+  private retryPlay(): void {
+    const now = Date.now();
+    if (now - this.lastPlayRetryAt < 500) {
+      return;
+    }
+    this.lastPlayRetryAt = now;
+    this.post('play');
   }
 }

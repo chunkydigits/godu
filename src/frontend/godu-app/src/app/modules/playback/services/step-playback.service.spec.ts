@@ -48,8 +48,9 @@ function createDemoItem(overrides: Partial<StepsItem> = {}): StepsItem {
   };
 }
 
-function createMockPlayer() {
+function createMockPlayer(options: { playing?: boolean } = {}) {
   const ready = new BehaviorSubject(true);
+  const isPlaying = new BehaviorSubject(options.playing ?? true);
   const timeUpdates = new Subject<VideoPlayerTimeUpdate>();
   const seek = vi.fn().mockResolvedValue(undefined);
   const play = vi.fn().mockResolvedValue(undefined);
@@ -58,6 +59,7 @@ function createMockPlayer() {
   const setMuted = vi.fn();
   const player: ControllableVideoPlayer = {
     ready: ready.asObservable(),
+    isPlaying: isPlaying.asObservable(),
     timeUpdates: timeUpdates.asObservable(),
     initialise: vi.fn().mockResolvedValue(undefined),
     play,
@@ -68,7 +70,16 @@ function createMockPlayer() {
     kickstartFromUserGesture,
     setMuted,
   };
-  return { player, timeUpdates, seek, play, pause, kickstartFromUserGesture, setMuted };
+  return {
+    player,
+    timeUpdates,
+    isPlaying,
+    seek,
+    play,
+    pause,
+    kickstartFromUserGesture,
+    setMuted,
+  };
 }
 
 describe('StepPlaybackService', () => {
@@ -220,17 +231,19 @@ describe('StepPlaybackService', () => {
   });
 
   it('loops when currentTime reaches endSeconds only while playing', async () => {
-    const { player, timeUpdates, seek } = createMockPlayer();
+    const { player, seek } = createMockPlayer();
+    player.getCurrentTime = vi.fn().mockResolvedValue(0);
     await service.attachPlayer(player);
     await service.load(createDemoItem());
     seek.mockClear();
 
-    timeUpdates.next({ currentTime: 5, duration: 60 });
+    await vi.advanceTimersByTimeAsync(500);
     expect(seek).not.toHaveBeenCalled();
 
     await service.start();
     seek.mockClear();
-    timeUpdates.next({ currentTime: 5, duration: 60 });
+    player.getCurrentTime = vi.fn().mockResolvedValue(5);
+    await vi.advanceTimersByTimeAsync(500);
     expect(seek).toHaveBeenCalledWith(0);
   });
 
@@ -293,5 +306,227 @@ describe('StepPlaybackService', () => {
     expect(kickstartFromUserGesture).toHaveBeenCalled();
     expect(service.snapshot.phase).toBe('playing');
     expect(service.snapshot.remainingSeconds).toBe(remainingBeforeResume);
+  });
+
+  it('does not start the activity timer until a 2Hz playing check succeeds', async () => {
+    const { player, isPlaying } = createMockPlayer({ playing: false });
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+
+    const startPromise = service.start();
+    await Promise.resolve();
+
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.remainingSeconds).toBe(2);
+
+    await vi.advanceTimersByTimeAsync(500);
+    expect(service.snapshot.remainingSeconds).toBe(2);
+
+    isPlaying.next(true);
+    await vi.advanceTimersByTimeAsync(500);
+    await startPromise;
+
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.selectedIndex).toBe(1);
+  });
+
+  it('starts the activity timer after one second if the video never reports playing', async () => {
+    const { player } = createMockPlayer({ playing: false });
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+
+    const startPromise = service.start();
+    await vi.advanceTimersByTimeAsync(1000);
+    await startPromise;
+
+    expect(service.snapshot.remainingSeconds).toBe(2);
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.selectedIndex).toBe(1);
+  });
+
+  it('inserts a between-step gap before auto-advancing', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        gapSeconds: 2,
+        gapMessage: 'Active recovery',
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'One',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+          {
+            id: 's2',
+            order: 2,
+            title: 'Two',
+            startSeconds: 5,
+            endSeconds: 10,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+        ],
+      }),
+    );
+    await service.start();
+
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(service.snapshot.phase).toBe('gap');
+    expect(service.snapshot.gapActive).toBe(true);
+    expect(service.snapshot.selectedIndex).toBe(1);
+    expect(service.snapshot.selectedStep?.title).toBe('Two');
+    expect(service.snapshot.remainingSeconds).toBe(2);
+
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.gapActive).toBe(false);
+    expect(service.snapshot.selectedIndex).toBe(1);
+  });
+
+  it('skips the gap when jumping with selectStep', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem({ gapSeconds: 30 }));
+    await service.start();
+    await service.selectStep(1);
+
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.gapActive).toBe(false);
+    expect(service.snapshot.selectedIndex).toBe(1);
+  });
+
+  it('starts the next clip immediately when the gap is 15 seconds or less', async () => {
+    const { player, play, seek } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        gapSeconds: 5,
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'One',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+          {
+            id: 's2',
+            order: 2,
+            title: 'Two',
+            startSeconds: 8,
+            endSeconds: 12,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    play.mockClear();
+    seek.mockClear();
+
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(service.snapshot.phase).toBe('gap');
+    expect(seek).toHaveBeenCalledWith(8);
+    expect(play).toHaveBeenCalled();
+  });
+
+  it('starts the next clip in the last 10 seconds when the gap is longer than 15 seconds', async () => {
+    const { player, play, seek } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        gapSeconds: 20,
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'One',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+          {
+            id: 's2',
+            order: 2,
+            title: 'Two',
+            startSeconds: 8,
+            endSeconds: 12,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    play.mockClear();
+    seek.mockClear();
+
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(service.snapshot.phase).toBe('gap');
+    expect(service.snapshot.remainingSeconds).toBe(20);
+    expect(play).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(9000);
+    expect(service.snapshot.phase).toBe('gap');
+    expect(play).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(service.snapshot.remainingSeconds).toBe(10);
+    expect(seek).toHaveBeenCalledWith(8);
+    expect(play).toHaveBeenCalled();
+    expect(service.snapshot.phase).toBe('gap');
+  });
+
+  it('can pause and resume a between-step gap', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        gapSeconds: 5,
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'One',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+          {
+            id: 's2',
+            order: 2,
+            title: 'Two',
+            startSeconds: 5,
+            endSeconds: 10,
+            durationSeconds: 1,
+            autoAdvance: true,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(service.snapshot.phase).toBe('gap');
+
+    await service.pause();
+    expect(service.snapshot.phase).toBe('paused');
+    expect(service.snapshot.gapActive).toBe(true);
+    const remaining = service.snapshot.remainingSeconds;
+
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(service.snapshot.remainingSeconds).toBe(remaining);
+
+    await service.resume();
+    expect(service.snapshot.phase).toBe('gap');
   });
 });

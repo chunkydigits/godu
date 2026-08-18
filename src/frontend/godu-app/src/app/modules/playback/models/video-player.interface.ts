@@ -22,6 +22,8 @@ export interface KickstartOptions {
 export interface ControllableVideoPlayer extends VideoPlayer {
   readonly timeUpdates: Observable<VideoPlayerTimeUpdate>;
   readonly ready: Observable<boolean>;
+  /** True while the provider reports that media is actually playing. */
+  readonly isPlaying: Observable<boolean>;
 
   /**
    * Begin media from a user gesture. Must run synchronously in the click stack

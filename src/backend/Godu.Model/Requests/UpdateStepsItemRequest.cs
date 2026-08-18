@@ -16,6 +16,12 @@ public sealed class UpdateStepsItemRequest
 
     public bool ContinuousSoundtrack { get; set; }
 
+    [Range(0, 600)]
+    public int? GapSeconds { get; set; }
+
+    [MaxLength(200)]
+    public string? GapMessage { get; set; }
+
     [Required]
     public required VideoReferenceRequest Video { get; set; }
 

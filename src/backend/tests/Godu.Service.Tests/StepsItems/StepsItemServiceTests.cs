@@ -42,6 +42,32 @@ public sealed class StepsItemServiceTests
     }
 
     [Fact]
+    public async Task CreateMineAsync_WhenGapConfigured_ThenPersistsGapFields()
+    {
+        Authenticate("usr_owner");
+        StepsItemDocument? saved = null;
+        _repository
+            .Setup(r => r.CreateAsync(It.IsAny<StepsItemDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StepsItemDocument doc, CancellationToken _) =>
+            {
+                saved = doc;
+                return doc;
+            });
+
+        var request = ValidCreateRequest();
+        request.GapSeconds = 60;
+        request.GapMessage = "  Active recovery  ";
+
+        var result = await _sut.CreateMineAsync(request);
+
+        saved.Should().NotBeNull();
+        saved!.GapSeconds.Should().Be(60);
+        saved.GapMessage.Should().Be("Active recovery");
+        result.GapSeconds.Should().Be(60);
+        result.GapMessage.Should().Be("Active recovery");
+    }
+
+    [Fact]
     public async Task CreateMineAsync_WhenNotAuthenticated_ThenThrowsUnauthorized()
     {
         var act = async () => await _sut.CreateMineAsync(ValidCreateRequest());

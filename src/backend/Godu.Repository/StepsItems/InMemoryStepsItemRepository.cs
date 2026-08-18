@@ -98,6 +98,8 @@ public sealed class InMemoryStepsItemRepository : IStepsItemRepository
             Description = item.Description,
             CreatorDisplayName = item.CreatorDisplayName,
             ContinuousSoundtrack = item.ContinuousSoundtrack,
+            GapSeconds = item.GapSeconds,
+            GapMessage = item.GapMessage,
             CreatedUtc = item.CreatedUtc,
             UpdatedUtc = item.UpdatedUtc,
             PublishedUtc = item.PublishedUtc,

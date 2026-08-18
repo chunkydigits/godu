@@ -87,6 +87,8 @@ export class StepsEditorPageComponent {
     description: [''],
     creatorDisplayName: [''],
     continuousSoundtrack: [false],
+    gapSeconds: [null as number | null, [Validators.min(1), Validators.max(600)]],
+    gapMessage: ['', [Validators.maxLength(200)]],
     steps: this.fb.array([this.createStepGroup(1)]),
   });
 
@@ -140,6 +142,8 @@ export class StepsEditorPageComponent {
                 description: item.description ?? '',
                 creatorDisplayName: item.creatorDisplayName ?? '',
                 continuousSoundtrack: item.continuousSoundtrack,
+                gapSeconds: item.gapSeconds ?? null,
+                gapMessage: item.gapMessage ?? '',
               },
               { emitEvent: true },
             );
@@ -362,6 +366,17 @@ export class StepsEditorPageComponent {
       return null;
     }
 
+    const rawGap = raw.gapSeconds as number | string | null;
+    const parsedGap =
+      rawGap === null || rawGap === ('' as unknown) ? NaN : Number(rawGap);
+    const gapSeconds =
+      Number.isFinite(parsedGap) && parsedGap > 0 ? Math.floor(parsedGap) : null;
+    if (gapSeconds != null && (gapSeconds < 1 || gapSeconds > 600)) {
+      return null;
+    }
+    const gapMessage =
+      gapSeconds != null ? raw.gapMessage.trim().slice(0, 200) || null : null;
+
     return {
       title: raw.title.trim(),
       description: raw.description.trim() || null,
@@ -369,6 +384,8 @@ export class StepsEditorPageComponent {
       continuousSoundtrack: this.continuousSoundtrackEnabled
         ? !!raw.continuousSoundtrack
         : false,
+      gapSeconds,
+      gapMessage,
       video: {
         provider: 'tiktok',
         externalVideoId: parsed.videoId,

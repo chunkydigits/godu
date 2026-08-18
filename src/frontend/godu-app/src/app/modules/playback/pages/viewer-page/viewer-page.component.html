@@ -5,12 +5,12 @@
       <a mat-button routerLink="/demos">Back to demos</a>
     </div>
   } @else if (item$ | async; as item) {
-    @if (state$ | async; as state) {
-      <div
-        class="viewer"
-        [class.viewer--video-off]="(showVideo$ | async) === false"
-        [class.viewer--complete]="state.phase === 'completed'"
-      >
+    <div
+      class="viewer"
+      [class.viewer--video-off]="(showVideo$ | async) === false"
+      [class.viewer--complete]="(showVideoPane$ | async) === false"
+    >
+      @if (state$ | async; as state) {
         <header class="viewer__header">
           <a mat-icon-button routerLink="/demos" aria-label="Back to demos">
             <mat-icon>arrow_back</mat-icon>
@@ -41,37 +41,39 @@
             </mat-slide-toggle>
           }
         </header>
+      }
 
-        @if (state.phase !== 'completed') {
-          <div
-            class="viewer__video"
-            [class.viewer__video--hidden]="(showVideo$ | async) === false"
-          >
-            <app-video-host
-              [provider]="item.video.provider"
-              [externalVideoId]="item.video.externalVideoId"
-              (playerReady)="onPlayerReady($event)"
-            />
-          </div>
+      @if ((showVideoPane$ | async) !== false) {
+        <div
+          class="viewer__video"
+          [class.viewer__video--hidden]="(showVideo$ | async) === false"
+        >
+          <app-video-host
+            [provider]="item.video.provider"
+            [externalVideoId]="item.video.externalVideoId"
+            (playerReady)="onPlayerReady($event)"
+          />
+        </div>
 
-          @if ((showVideo$ | async) === false) {
-            <div class="viewer__video-off" aria-live="polite">
-              <mat-icon>videocam_off</mat-icon>
-              <p>Video guidance off — timers and step text only.</p>
-            </div>
-          }
-        }
-
-        @if (usesContinuousSoundtrack(item) && state.phase !== 'completed') {
-          <div class="viewer__soundtrack" aria-hidden="true">
-            <app-video-host
-              [provider]="item.video.provider"
-              [externalVideoId]="item.video.externalVideoId"
-              (playerReady)="onSoundtrackReady($event)"
-            />
+        @if ((showVideo$ | async) === false) {
+          <div class="viewer__video-off" aria-live="polite">
+            <mat-icon>videocam_off</mat-icon>
+            <p>Video guidance off — timers and step text only.</p>
           </div>
         }
+      }
 
+      @if (usesContinuousSoundtrack(item) && (showVideoPane$ | async) !== false) {
+        <div class="viewer__soundtrack" aria-hidden="true">
+          <app-video-host
+            [provider]="item.video.provider"
+            [externalVideoId]="item.video.externalVideoId"
+            (playerReady)="onSoundtrackReady($event)"
+          />
+        </div>
+      }
+
+      @if (state$ | async; as state) {
         @if (state.phase === 'completed') {
           <app-completion-panel
             [stepsItem]="item"
@@ -83,7 +85,11 @@
           <section class="viewer__controls">
             <p class="viewer__step-count">
               @if (state.selectedStep) {
-                Step {{ state.selectedStep.order }} of {{ item.steps.length }}
+                @if (isGap(state)) {
+                  Up next · Step {{ state.selectedStep.order }} of {{ item.steps.length }}
+                } @else {
+                  Step {{ state.selectedStep.order }} of {{ item.steps.length }}
+                }
                 @if (state.continuousSoundtrackActive) {
                   <span class="viewer__soundtrack-badge"> · Soundtrack</span>
                 }
@@ -96,18 +102,27 @@
               {{ state.selectedStep?.title || '—' }}
             </h2>
 
-            @if (state.selectedStep?.description) {
+            @if (isGap(state) && item.gapMessage) {
+              <p class="viewer__gap-message">{{ item.gapMessage }}</p>
+            } @else if (state.selectedStep?.description) {
               <p class="viewer__step-description">
                 {{ state.selectedStep?.description }}
               </p>
             }
 
-            <p
-              class="viewer__timer"
-              [class.viewer__timer--untimed]="!state.isTimedStep"
-            >
-              {{ formatRemaining(state.remainingSeconds) }}
-            </p>
+            @if (isGap(state)) {
+              <p class="viewer__gap-countdown" aria-live="polite">
+                Get ready to go again in {{ state.remainingSeconds ?? 0 }}
+                {{ (state.remainingSeconds ?? 0) === 1 ? 'second' : 'seconds' }}
+              </p>
+            } @else {
+              <p
+                class="viewer__timer"
+                [class.viewer__timer--untimed]="!state.isTimedStep"
+              >
+                {{ formatRemaining(state.remainingSeconds) }}
+              </p>
+            }
 
             @if (state.phase === 'ready' || state.phase === 'idle') {
               <div class="viewer__start">
@@ -159,7 +174,7 @@
             />
           </div>
         }
-      </div>
-    }
+      }
+    </div>
   }
 </app-page-template>

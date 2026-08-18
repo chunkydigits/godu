@@ -52,9 +52,10 @@
 }
 
 .viewer__video {
-  flex: 1 1 42%;
+  flex: 0 0 42vh;
+  height: 42vh;
   min-height: 220px;
-  max-height: 48vh;
+  max-height: 42vh;
   background: #000;
 }
 
@@ -172,6 +173,22 @@
 .viewer__timer--untimed {
   font-size: 1.1rem;
   color: var(--steps-text-muted);
+}
+
+.viewer__gap-message {
+  margin: 0;
+  color: var(--steps-text-muted);
+  font-size: 1rem;
+  text-align: center;
+}
+
+.viewer__gap-countdown {
+  margin: 0.5rem 0;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
 }
 
 .viewer__start {

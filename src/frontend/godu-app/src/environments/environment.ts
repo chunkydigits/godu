@@ -13,4 +13,25 @@ export const environment = {
      */
     continuousSoundtrack: false,
   },
+  playback: {
+    /**
+     * Between-step gaps at or below this (seconds) start the next clip immediately.
+     * Longer gaps wait until gapPrerollLeadSeconds before the gap ends.
+     */
+    gapPrerollImmediateMaxSeconds: 15,
+    /**
+     * For gaps longer than gapPrerollImmediateMaxSeconds, start the next clip
+     * this many seconds before the gap ends.
+     */
+    gapPrerollLeadSeconds: 10,
+    /**
+     * Spoken cues and beeps over the video (Web Speech + a start beep).
+     */
+    voiceCues: true,
+    /**
+     * Between-step gaps shorter than this only say “Go” when the step timer starts.
+     * Longer gaps say “{title} for {n} seconds, Go”, timed to land on the timer start.
+     */
+    gapGoCueMaxSeconds: 10,
+  },
 };

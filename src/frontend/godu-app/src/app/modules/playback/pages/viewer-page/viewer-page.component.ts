@@ -86,11 +86,15 @@ export class ViewerPageComponent implements OnDestroy {
   );
 
   readonly state$: Observable<PlaybackState> = this.playback.state$;
+  readonly showVideoPane$ = this.playback.state$.pipe(
+    map((s) => s.phase !== 'completed'),
+    distinctUntilChanged(),
+  );
 
   constructor() {
     this.playback.state$
       .pipe(
-        map((s) => s.phase === 'playing'),
+        map((s) => s.phase === 'playing' || s.phase === 'gap'),
         distinctUntilChanged(),
         takeUntil(this.destroy$),
       )
@@ -116,6 +120,9 @@ export class ViewerPageComponent implements OnDestroy {
 
   async onPlayerReady(player: ControllableVideoPlayer): Promise<void> {
     await this.playback.attachPlayer(player);
+    if (!this.preferences.showVideo) {
+      await this.playback.suspendVisualKeepSession();
+    }
     await this.syncPlayerToState();
   }
 
@@ -148,11 +155,15 @@ export class ViewerPageComponent implements OnDestroy {
   }
 
   togglePause(state: PlaybackState): void {
-    if (state.phase === 'playing') {
+    if (state.phase === 'playing' || state.phase === 'gap') {
       void this.playback.pause();
     } else if (state.phase === 'paused') {
       void this.playback.resume();
     }
+  }
+
+  isGap(state: PlaybackState): boolean {
+    return state.phase === 'gap' || (state.phase === 'paused' && state.gapActive);
   }
 
   replay(): void {
@@ -183,6 +194,11 @@ export class ViewerPageComponent implements OnDestroy {
   private async syncPlayerToState(): Promise<void> {
     const snap = this.playback.snapshot;
     if (snap.phase === 'playing' && snap.selectedIndex >= 0) {
+      this.playback.resumeVisualKeepSessionFromUserGesture();
+      return;
+    }
+
+    if (snap.phase === 'gap' && snap.selectedIndex >= 0) {
       this.playback.resumeVisualKeepSessionFromUserGesture();
       return;
     }

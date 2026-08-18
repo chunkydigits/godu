@@ -1,14 +1,17 @@
 import {
   AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   EventEmitter,
   Input,
+  NgZone,
   OnChanges,
   OnDestroy,
   Output,
   SimpleChanges,
   ViewChild,
+  inject,
 } from '@angular/core';
 import { VideoProvider } from '../../models/video-provider.enum';
 import { ControllableVideoPlayer } from '../../models/video-player.interface';
@@ -18,8 +21,11 @@ import { TikTokVideoPlayer } from '../../video/providers/tiktok/tiktok-video-pla
   selector: 'app-video-host',
   templateUrl: './video-host.component.html',
   styleUrl: './video-host.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VideoHostComponent implements AfterViewInit, OnChanges, OnDestroy {
+  private readonly ngZone = inject(NgZone);
+
   @ViewChild('mount', { static: true }) mountRef!: ElementRef<HTMLDivElement>;
 
   @Input({ required: true }) provider!: VideoProvider;
@@ -62,6 +68,7 @@ export class VideoHostComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.player = new TikTokVideoPlayer(
       this.mountRef.nativeElement,
       this.externalVideoId,
+      this.ngZone,
     );
     this.playerReady.emit(this.player);
   }

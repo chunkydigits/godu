@@ -70,6 +70,8 @@ public sealed class StepsItemService : IStepsItemService
             Description = request.Description,
             CreatorDisplayName = request.CreatorDisplayName,
             ContinuousSoundtrack = request.ContinuousSoundtrack,
+            GapSeconds = NormalizeGapSeconds(request.GapSeconds),
+            GapMessage = NormalizeGapMessage(request.GapMessage, request.GapSeconds),
             Video = StepsItemMapper.ToVideoDocument(request.Video),
             Steps = StepsItemMapper.ToStepDocuments(request.Steps),
             CreatedUtc = now,
@@ -106,6 +108,8 @@ public sealed class StepsItemService : IStepsItemService
         existing.Description = request.Description;
         existing.CreatorDisplayName = request.CreatorDisplayName;
         existing.ContinuousSoundtrack = request.ContinuousSoundtrack;
+        existing.GapSeconds = NormalizeGapSeconds(request.GapSeconds);
+        existing.GapMessage = NormalizeGapMessage(request.GapMessage, request.GapSeconds);
         existing.Slug = slug;
         existing.Video = StepsItemMapper.ToVideoDocument(request.Video);
         existing.Steps = StepsItemMapper.ToStepDocuments(request.Steps);
@@ -173,6 +177,42 @@ public sealed class StepsItemService : IStepsItemService
         {
             throw new ArgumentException(string.Join(" ", errors));
         }
+    }
+
+    private static int? NormalizeGapSeconds(int? gapSeconds)
+    {
+        if (gapSeconds is null or <= 0)
+        {
+            return null;
+        }
+
+        if (gapSeconds > 600)
+        {
+            throw new ArgumentException("Gap seconds must be between 1 and 600.");
+        }
+
+        return gapSeconds;
+    }
+
+    private static string? NormalizeGapMessage(string? message, int? gapSeconds)
+    {
+        if (NormalizeGapSeconds(gapSeconds) is null)
+        {
+            return null;
+        }
+
+        var trimmed = message?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        if (trimmed.Length > 200)
+        {
+            throw new ArgumentException("Gap message must be 200 characters or fewer.");
+        }
+
+        return trimmed;
     }
 
     private static string? SpecSlug(string? slug)

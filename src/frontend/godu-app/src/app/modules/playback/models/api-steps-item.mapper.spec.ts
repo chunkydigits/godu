@@ -18,6 +18,8 @@ describe('mapApiStepsItem', () => {
       description: 'Demo',
       creatorDisplayName: '@coach',
       continuousSoundtrack: false,
+      gapSeconds: 15,
+      gapMessage: 'Active recovery — keep moving',
       createdUtc: '2026-08-14T12:00:00Z',
       updatedUtc: '2026-08-14T12:00:00Z',
       publishedUtc: '2026-08-14T12:00:00Z',
@@ -52,5 +54,7 @@ describe('mapApiStepsItem', () => {
     expect(item.steps).toHaveLength(1);
     expect(item.steps[0].title).toBe('Warm up');
     expect(item.steps[0].description).toBeUndefined();
+    expect(item.gapSeconds).toBe(15);
+    expect(item.gapMessage).toBe('Active recovery — keep moving');
   });
 });

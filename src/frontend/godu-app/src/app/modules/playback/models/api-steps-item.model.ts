@@ -30,6 +30,8 @@ export interface ApiStepsItem {
   description?: string | null;
   creatorDisplayName?: string | null;
   continuousSoundtrack: boolean;
+  gapSeconds?: number | null;
+  gapMessage?: string | null;
   video: ApiVideoReference;
   steps: ApiStepDefinition[];
   createdUtc: string;
@@ -64,6 +66,8 @@ export interface CreateStepsItemRequest {
   creatorDisplayName?: string | null;
   slug?: string | null;
   continuousSoundtrack: boolean;
+  gapSeconds?: number | null;
+  gapMessage?: string | null;
   video: ApiVideoReferenceRequest;
   steps: ApiStepDefinitionRequest[];
 }

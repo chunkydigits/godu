@@ -18,6 +18,8 @@ export function mapApiStepsItem(api: ApiStepsItem): StepsItem {
     description: api.description ?? undefined,
     creatorDisplayName: api.creatorDisplayName ?? undefined,
     continuousSoundtrack: api.continuousSoundtrack,
+    gapSeconds: api.gapSeconds ?? null,
+    gapMessage: api.gapMessage ?? undefined,
     createdUtc: api.createdUtc,
     updatedUtc: api.updatedUtc,
     publishedUtc: api.publishedUtc ?? undefined,

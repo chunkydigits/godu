@@ -22,6 +22,8 @@ public static class StepsItemMapper
             Description = document.Description,
             CreatorDisplayName = document.CreatorDisplayName,
             ContinuousSoundtrack = document.ContinuousSoundtrack,
+            GapSeconds = document.GapSeconds,
+            GapMessage = document.GapMessage,
             CreatedUtc = document.CreatedUtc,
             UpdatedUtc = document.UpdatedUtc,
             PublishedUtc = document.PublishedUtc,

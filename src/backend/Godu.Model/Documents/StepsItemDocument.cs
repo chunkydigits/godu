@@ -26,6 +26,10 @@ public sealed class StepsItemDocument
 
     public bool ContinuousSoundtrack { get; set; }
 
+    public int? GapSeconds { get; set; }
+
+    public string? GapMessage { get; set; }
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; set; }
