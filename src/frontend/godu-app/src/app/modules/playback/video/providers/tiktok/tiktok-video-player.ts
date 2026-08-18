@@ -79,10 +79,9 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     this.currentTimeSeconds = startSeconds;
     this.seekPostedAt = Date.now();
 
-    if (!this.iframe) {
-      this.mountIframe({ autoplay: true, muted: this.muted });
-    }
-    this.postControlCommands(startSeconds);
+    // TikTok ignores postMessage `play` on an already-paused embed. Navigating
+    // a new iframe with autoplay=1 in this click stack is what actually starts it.
+    this.mountIframe({ autoplay: true, muted: this.muted });
   }
 
   setMuted(muted: boolean): void {
@@ -133,8 +132,8 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     this.setPlaying(false);
 
     const iframe = document.createElement('iframe');
-    iframe.src = this.buildEmbedUrl(options);
     iframe.title = 'TikTok video';
+    // `allow` must be set before `src` or the navigation starts without autoplay.
     iframe.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
     iframe.setAttribute('allowfullscreen', 'true');
     iframe.referrerPolicy = 'strict-origin-when-cross-origin';
@@ -142,9 +141,24 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     iframe.style.height = '100%';
     iframe.style.border = '0';
     iframe.style.display = 'block';
+    iframe.addEventListener('load', () => this.onIframeLoad(iframe));
 
     this.hostElement.replaceChildren(iframe);
     this.iframe = iframe;
+    iframe.src = this.buildEmbedUrl(options);
+  }
+
+  /**
+   * The player API is often not listening yet when the iframe first exists, so
+   * replay the pending seek/play as soon as the document has loaded as well.
+   */
+  private onIframeLoad(iframe: HTMLIFrameElement): void {
+    if (this.destroyed || this.iframe !== iframe) {
+      return;
+    }
+    if (this.wantPlaying || this.pendingSeekSeconds != null) {
+      this.replayIntent();
+    }
   }
 
   private buildEmbedUrl(options: EmbedOptions): string {
@@ -173,9 +187,17 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     return `https://www.tiktok.com/player/v1/${this.externalVideoId}?${params.toString()}`;
   }
 
-  private postControlCommands(startSeconds: number): void {
-    this.post('seekTo', startSeconds);
-    this.post('play');
+  /**
+   * Commands sent before the embed was listening are dropped, so replay them
+   * once it reports ready or the iframe document loads. Only play if playback
+   * was actually asked for: an unrequested play here spends the autoplay
+   * allowance before the user has pressed anything.
+   */
+  private replayIntent(): void {
+    if (this.pendingSeekSeconds != null) {
+      this.post('seekTo', this.pendingSeekSeconds);
+    }
+    this.post(this.wantPlaying ? 'play' : 'pause');
     this.applyMuteState();
   }
 
@@ -212,10 +234,7 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     switch (data.type) {
       case 'onPlayerReady':
         this.readySubject.next(true);
-        if (this.pendingSeekSeconds != null || this.wantPlaying) {
-          const seekTo = this.pendingSeekSeconds ?? this.currentTimeSeconds;
-          this.postControlCommands(seekTo);
-        }
+        this.replayIntent();
         break;
       case 'onStateChange': {
         const state = data.value as number | undefined;

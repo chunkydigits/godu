@@ -342,13 +342,19 @@ describe('StepPlaybackService', () => {
     expect(service.snapshot.selectedIndex).toBe(1);
   });
 
-  it('starts the activity timer after one second if the video never reports playing', async () => {
-    const { player } = createMockPlayer({ playing: false });
+  it('retries play while waiting, then starts the timer if the video never reports playing', async () => {
+    const { player, play } = createMockPlayer({ playing: false });
     await service.attachPlayer(player);
     await service.load(createDemoItem());
 
     const startPromise = service.start();
+
+    // A play command dropped before the embed was listening gets re-issued.
     await vi.advanceTimersByTimeAsync(1000);
+    expect(play).toHaveBeenCalled();
+    expect(service.snapshot.remainingSeconds).toBe(2);
+
+    await vi.advanceTimersByTimeAsync(2000);
     await startPromise;
 
     expect(service.snapshot.remainingSeconds).toBe(2);

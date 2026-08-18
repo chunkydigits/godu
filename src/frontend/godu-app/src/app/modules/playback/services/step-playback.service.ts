@@ -67,7 +67,12 @@ const initialState: PlaybackState = {
 };
 
 const MEDIA_POLL_MS = 500;
-const PLAYBACK_STARTED_TIMEOUT_MS = 1000;
+/**
+ * How long a step timer waits for the embed to confirm playback. Long enough to
+ * cover a cold start so the timer and video run together, but capped so a
+ * provider that never reports still leaves the routine usable.
+ */
+const PLAYBACK_STARTED_TIMEOUT_MS = 3000;
 
 @Injectable()
 export class StepPlaybackService implements OnDestroy {
@@ -776,6 +781,11 @@ export class StepPlaybackService implements OnDestroy {
       }
 
       await firstValueFrom(timer(Math.min(MEDIA_POLL_MS, remainingMs)));
+
+      // The first play can be dropped if the embed was not listening yet.
+      if (generation === this.sessionGeneration && this.snapshot.phase === 'playing') {
+        await this.player?.play();
+      }
     }
   }
 
