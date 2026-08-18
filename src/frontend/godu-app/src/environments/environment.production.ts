@@ -4,7 +4,7 @@ export const environment = {
   auth0: {
     domain: 'godu.uk.auth0.com',
     clientId: '7LwaVrb1418enC9cZE2e2fWXA9lCTyiF', // set at deploy time
-    audience: 'https://api.godu.it',
+    audience: 'https://api.godu.uk',
   },
   features: {
     /**
