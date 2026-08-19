@@ -220,6 +220,18 @@ See `field-feedback.md` §3.
 
 ---
 
+## 9e. Product metrics (after TikTok publishing)
+
+| Decision | Choice |
+| --- | --- |
+| When | **After Phase 8** (TikTok creator publishing). Not before public Godus exist |
+| Approach | First-party append-only events in Cosmos `analytics-events`; no paid analytics vendor for Early Access |
+| Identity | Internal Godu `UserId` plus browser `anonymousId` / `sessionId`. Never Auth0/provider IDs, email, name, or IP in analytics |
+| Reliability | Fire-and-forget. Analytics failure must not affect create, play, or navigation |
+| Contract | [`product-metrics.md`](./product-metrics.md) — event catalogue, metric definitions, admin summary, tests |
+
+---
+
 ## 10. Testing
 
 | Decision | Choice |
@@ -252,3 +264,4 @@ See `field-feedback.md` §3.
 4. **Product name**: Commercial brand is **Godu**; domain models keep Steps* feature names.
 4. Initial specification remains the narrative source for product rules not restated here.
 5. Field feedback in `field-feedback.md` extends product requirements; conflict order unchanged (`decisions.md` still wins).
+6. **Analytics:** [`product-metrics.md`](./product-metrics.md) is the contract for Early Access metrics and **supersedes** initial-spec Phase 10 “light analytics hooks”. It still does not start until Phase 8 publishing is done.

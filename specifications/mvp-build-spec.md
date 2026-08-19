@@ -224,13 +224,23 @@ TikTok OAuth connect + verify + settings UI (sign-in methods vs creator accounts
 
 Lazy Creator; publish only if verified account owns video; public URLs; creator dashboard; **related Steps from same creator** on public viewer/completion (`field-feedback.md` §4).
 
+### Phase 8b — Product metrics (after Phase 8)
+
+First-party Early Access analytics. Contract: [`product-metrics.md`](./product-metrics.md).
+
+Do **not** start this until Phase 8 public publishing works — share, public-view, and `godu_published` funnels depend on it.
+
+P0 (event model, anonymous/session IDs, central Angular service, ingest API, core create/consume events, user association, environment/internal flags, summary API) is required before Early Access. P1 dashboard and funnels are strongly recommended. P2 (cohorts, geo, BI, rollups, revenue) stays later.
+
+Events must never block playback, navigation, or saves. No paid analytics vendor for this phase.
+
 ### Phase 9 — Additional Auth0 social connections
 
 Apple / Google / Microsoft / Facebook via Auth0 config as needed.
 
-### Phase 10 — Light analytics hooks + UX refinement
+### Phase 10 — UX refinement
 
-Events must never block playback.
+Loading states, error states, PWA, sharing UI. Analytics implementation lives in Phase 8b, not here.
 
 ### Post-MVP — Device integrations (noted only)
 
