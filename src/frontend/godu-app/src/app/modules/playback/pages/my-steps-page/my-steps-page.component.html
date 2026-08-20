@@ -5,6 +5,7 @@
   @if (isAuthenticated$ | async) {
     <div class="action-bar">
       <a mat-flat-button color="primary" routerLink="/my-steps/new">Create Steps</a>
+      <a mat-stroked-button routerLink="/creator">Published Steps</a>
     </div>
   }
 
@@ -15,25 +16,68 @@
       <div class="status-row">
         <mat-progress-bar mode="indeterminate" />
       </div>
-    } @else if (view.error) {
-      <p class="error">{{ view.error }}</p>
     } @else {
+      @if (view.error) {
+        <p class="error">{{ view.error }}</p>
+      }
       @if (view.actionMessage) {
         <p class="notice">{{ view.actionMessage }}</p>
       }
-      @if (view.items.length === 0) {
+      @if (!view.canPublish && !view.error) {
+        <p class="notice">
+          Connect a verified TikTok account in
+          <a routerLink="/settings">Settings</a>
+          to publish Steps on a public URL.
+        </p>
+      }
+      @if (view.items.length === 0 && !view.error) {
         <p class="empty">No saved Steps yet. Create one to get started.</p>
-      } @else {
+      } @else if (view.items.length > 0) {
         <ul class="mine-list">
           @for (item of view.items; track item.id) {
             <li class="mine-item">
               <div class="mine-item__body">
                 <h2>{{ item.title }}</h2>
                 <p>{{ item.status }} · {{ item.visibility }}</p>
+                @if (isPublic(item)) {
+                  @if (publicHref(item); as href) {
+                    <p class="mine-item__url">{{ href }}</p>
+                  }
+                }
               </div>
               <div class="mine-item__actions">
                 <a mat-stroked-button [routerLink]="['/play', item.id]">Open</a>
                 <a mat-button [routerLink]="['/my-steps', item.id, 'edit']">Edit</a>
+                @if (isPublic(item)) {
+                  @if (publicHref(item); as href) {
+                    <a mat-button [routerLink]="href">Public page</a>
+                    <button mat-button type="button" (click)="copyPublicUrl(item)">
+                      {{ copiedId === item.id ? 'Copied' : 'Copy URL' }}
+                    </button>
+                  }
+                  <button mat-button type="button" (click)="confirmUnpublish(item)">
+                    Unpublish
+                  </button>
+                } @else if (view.canPublish && publishingId === item.id) {
+                  <mat-form-field appearance="outline" class="mine-item__slug">
+                    <mat-label>Public slug</mat-label>
+                    <input matInput [(ngModel)]="slugDraft" name="slug" />
+                  </mat-form-field>
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    type="button"
+                    [disabled]="!canConfirmPublish"
+                    (click)="confirmPublish(item)"
+                  >
+                    Confirm
+                  </button>
+                  <button mat-button type="button" (click)="cancelPublish()">Cancel</button>
+                } @else if (view.canPublish) {
+                  <button mat-stroked-button type="button" (click)="startPublish(item)">
+                    Publish
+                  </button>
+                }
                 <button mat-button type="button" (click)="confirmArchive(item)">Archive</button>
               </div>
             </li>

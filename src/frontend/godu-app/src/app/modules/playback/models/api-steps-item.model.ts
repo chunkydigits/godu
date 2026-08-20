@@ -46,6 +46,7 @@ export interface ApiStepsItem {
   createdUtc: string;
   updatedUtc: string;
   publishedUtc?: string | null;
+  publicPath?: string | null;
 }
 
 export interface ApiStepDefinitionRequest {

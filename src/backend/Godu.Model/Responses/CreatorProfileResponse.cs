@@ -7,4 +7,6 @@ public sealed class CreatorProfileResponse
     public required string DisplayName { get; init; }
 
     public required IReadOnlyList<CreatorSocialResponse> Socials { get; init; }
+
+    public IReadOnlyList<PublicStepsSummaryResponse> PublishedSteps { get; init; } = [];
 }

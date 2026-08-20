@@ -11,4 +11,6 @@ public static class IdGenerator
     public static string NewStepId() => $"step_{Ulid.NewUlid()}";
 
     public static string NewPlatformAccountId() => $"platform_{Ulid.NewUlid()}";
+
+    public static string NewCreatorId() => $"creator_{Ulid.NewUlid()}";
 }

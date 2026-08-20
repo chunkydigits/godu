@@ -84,6 +84,38 @@ public sealed class CosmosLinkedPlatformAccountRepository : ILinkedPlatformAccou
         return null;
     }
 
+    public async Task<LinkedPlatformAccountDocument?> GetVerifiedByProviderAndUsernameAsync(
+        string provider,
+        string username,
+        CancellationToken cancellationToken = default)
+    {
+        var handle = username.Trim().TrimStart('@').ToLowerInvariant();
+        const string sql =
+            """
+            SELECT * FROM c
+            WHERE c.provider = @provider
+              AND c.isVerified = true
+              AND (c.username = @username OR ARRAY_CONTAINS(c.usernameAliases, @username, true))
+            """;
+
+        var query = new QueryDefinition(sql)
+            .WithParameter("@provider", provider.ToLowerInvariant())
+            .WithParameter("@username", handle);
+
+        using var iterator = _container.GetItemQueryIterator<LinkedPlatformAccountDocument>(query);
+        while (iterator.HasMoreResults)
+        {
+            var page = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+            var match = page.Resource.FirstOrDefault();
+            if (match is not null)
+            {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
     public async Task<LinkedPlatformAccountDocument> CreateAsync(
         LinkedPlatformAccountDocument account,
         CancellationToken cancellationToken = default)

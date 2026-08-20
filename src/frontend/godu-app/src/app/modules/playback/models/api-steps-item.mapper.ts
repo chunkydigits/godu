@@ -1,11 +1,12 @@
-import { ApiStepsItem } from '../models/api-steps-item.model';
-import { StepDefinition } from '../models/step-definition.model';
-import { stepEntryKind } from '../models/step-entry';
-import { StepsItem } from '../models/steps-item.model';
-import { StepsItemStatus } from '../models/steps-item-status.enum';
-import { StepsVisibility } from '../models/steps-visibility.enum';
-import { VideoProvider } from '../models/video-provider.enum';
-import { VideoReference } from '../models/video-reference.model';
+import { ApiStepsItem } from './api-steps-item.model';
+import { publicViewerPath } from './public-path';
+import { StepDefinition } from './step-definition.model';
+import { stepEntryKind } from './step-entry';
+import { StepsItem } from './steps-item.model';
+import { StepsItemStatus } from './steps-item-status.enum';
+import { StepsVisibility } from './steps-visibility.enum';
+import { VideoProvider } from './video-provider.enum';
+import { VideoReference } from './video-reference.model';
 
 export function mapApiStepsItem(api: ApiStepsItem): StepsItem {
   return {
@@ -25,6 +26,7 @@ export function mapApiStepsItem(api: ApiStepsItem): StepsItem {
     createdUtc: api.createdUtc,
     updatedUtc: api.updatedUtc,
     publishedUtc: api.publishedUtc ?? undefined,
+    publicPath: api.publicPath ?? publicViewerPath(api) ?? undefined,
     video: mapVideo(api.video),
     steps: api.steps.map(mapStep),
   };

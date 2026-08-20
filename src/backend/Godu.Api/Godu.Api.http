@@ -1,4 +1,4 @@
-@Godu.Api_HostAddress = http://localhost:5246
+@Godu.Api_HostAddress = http://localhost:5300
 
 GET {{Godu.Api_HostAddress}}/weatherforecast/
 Accept: application/json

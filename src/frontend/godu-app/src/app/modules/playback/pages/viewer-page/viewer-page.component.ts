@@ -8,7 +8,7 @@ import {
   ViewChild,
   inject,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, ParamMap, RouterLink } from '@angular/router';
 import {
   BehaviorSubject,
   Observable,
@@ -20,6 +20,7 @@ import {
   switchMap,
   takeUntil,
   tap,
+  throwError,
 } from 'rxjs';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
 import { MaterialModule } from '../../../../core/material.module';
@@ -39,12 +40,15 @@ import { isContinuousSoundtrackEnabled } from '../../models/continuous-soundtrac
 import { ControllableVideoPlayer } from '../../models/video-player.interface';
 import { DemoStepsService } from '../../services/demo-steps.service';
 import { MyStepsApiService } from '../../services/my-steps-api.service';
+import { PublicStepsApiService } from '../../services/public-steps-api.service';
 import {
   PlaybackState,
   StepPlaybackService,
 } from '../../services/step-playback.service';
 import { ViewerPreferencesService } from '../../services/viewer-preferences.service';
 import { UserSettingsService } from '../../../settings/services/user-settings.service';
+import { publicCreatorPath } from '../../models/public-path';
+import { StepsVisibility } from '../../models/steps-visibility.enum';
 
 @Component({
   selector: 'app-viewer-page',
@@ -65,6 +69,7 @@ export class ViewerPageComponent implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly demoSteps = inject(DemoStepsService);
   private readonly myStepsApi = inject(MyStepsApiService);
+  private readonly publicStepsApi = inject(PublicStepsApiService);
   private readonly playback = inject(StepPlaybackService);
   private readonly preferences = inject(ViewerPreferencesService);
   private readonly userSettings = inject(UserSettingsService);
@@ -86,12 +91,8 @@ export class ViewerPageComponent implements OnDestroy {
   readonly voiceCues$ = this.userSettings.voiceCues$;
 
   readonly item$: Observable<StepsItem | null> = this.route.paramMap.pipe(
-    map((params) => params.get('id')),
-    switchMap((id) => {
-      if (!id) {
-        return of(null);
-      }
-      return this.resolveItem(id).pipe(
+    switchMap((params) =>
+      this.resolveItem(params).pipe(
         tap((item) => {
           this.pendingItem = item;
           this.error$.next(null);
@@ -103,13 +104,13 @@ export class ViewerPageComponent implements OnDestroy {
           this.error$.next(err.message || 'Steps item not found.');
           return of(null);
         }),
-      );
-    }),
+      ),
+    ),
     takeUntil(this.destroy$),
   );
 
   readonly related$: Observable<StepsItem[]> = this.item$.pipe(
-    switchMap((item) => (item ? this.demoSteps.getRelatedByCreator(item) : of([]))),
+    switchMap((item) => (item ? this.resolveRelated(item) : of([]))),
   );
 
   readonly state$: Observable<PlaybackState> = this.playback.state$;
@@ -332,16 +333,55 @@ export class ViewerPageComponent implements OnDestroy {
     }
   }
 
-  private resolveItem(id: string): Observable<StepsItem> {
-    return this.demoSteps.getById(id).pipe(
-      catchError(() =>
-        this.myStepsApi.getAsStepsItem(id).pipe(
-          catchError(() => {
-            throw new Error(`Steps item not found: ${id}`);
-          }),
+  private resolveItem(params: ParamMap): Observable<StepsItem> {
+    const id = params.get('id');
+    if (id) {
+      return this.demoSteps.getById(id).pipe(
+        catchError(() =>
+          this.myStepsApi.getAsStepsItem(id).pipe(
+            catchError(() => {
+              throw new Error(`Steps item not found: ${id}`);
+            }),
+          ),
         ),
-      ),
-    );
+      );
+    }
+
+    const username = params.get('username');
+    const slug = params.get('slug');
+    const provider = this.route.snapshot.data['provider'] as string | undefined;
+    if (username && slug && provider) {
+      return this.publicStepsApi.getAsStepsItem(provider, username, slug).pipe(
+        catchError(() => {
+          throw new Error('This public Steps page was not found.');
+        }),
+      );
+    }
+
+    return throwError(() => new Error('Steps item not found.'));
+  }
+
+  private resolveRelated(item: StepsItem): Observable<StepsItem[]> {
+    const provider = item.video.provider;
+    const username = item.video.creatorUsername;
+    const slug = item.slug;
+    const isPublic =
+      item.visibility === StepsVisibility.Public ||
+      !!this.route.snapshot.paramMap.get('slug');
+
+    if (isPublic && provider && username && slug) {
+      return this.publicStepsApi.getRelatedAsStepsItems(provider, username, slug).pipe(
+        catchError(() => of([])),
+      );
+    }
+
+    return this.demoSteps.getRelatedByCreator(item);
+  }
+
+  backLink(): string {
+    const username = this.route.snapshot.paramMap.get('username');
+    const provider = this.route.snapshot.data['provider'] as string | undefined;
+    return publicCreatorPath(provider, username) ?? '/demos';
   }
 
   private async syncPlayerToState(): Promise<void> {

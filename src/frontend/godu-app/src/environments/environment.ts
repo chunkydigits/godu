@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiBaseUrl: 'https://localhost:7166',
+  apiBaseUrl: 'https://localhost:7300',
   auth0: {
     domain: 'godu.uk.auth0.com',
     clientId: '7LwaVrb1418enC9cZE2e2fWXA9lCTyiF', // set via Auth0 SPA application Client ID

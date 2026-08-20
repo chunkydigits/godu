@@ -37,4 +37,6 @@ public sealed class StepsItemResponse
     public DateTime UpdatedUtc { get; init; }
 
     public DateTime? PublishedUtc { get; init; }
+
+    public string? PublicPath { get; init; }
 }

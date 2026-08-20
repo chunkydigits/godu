@@ -3,8 +3,11 @@ using Godu.Model.Documents;
 using Godu.Model.Requests;
 using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
+using Godu.Repository.Users;
+using Godu.Service.Creators;
 using Godu.Service.Identity;
 using Godu.Service.StepsItems;
+using Godu.Service.TikTok;
 using Moq;
 
 namespace Godu.Service.Tests.StepsItems;
@@ -13,6 +16,9 @@ public sealed class StepsItemServiceTests
 {
     private readonly Mock<IStepsItemRepository> _repository = new();
     private readonly Mock<ILinkedPlatformAccountRepository> _accounts = new();
+    private readonly Mock<ITikTokVideoOwnershipVerifier> _ownership = new();
+    private readonly Mock<ICreatorService> _creators = new();
+    private readonly Mock<IUserRepository> _users = new();
     private readonly CurrentUser _currentUser = new();
     private readonly StepsItemService _sut;
 
@@ -21,7 +27,13 @@ public sealed class StepsItemServiceTests
         _accounts
             .Setup(r => r.ListByUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
-        _sut = new StepsItemService(_repository.Object, _accounts.Object, _currentUser);
+        _sut = new StepsItemService(
+            _repository.Object,
+            _accounts.Object,
+            _currentUser,
+            _ownership.Object,
+            _creators.Object,
+            _users.Object);
     }
 
     [Fact]
@@ -250,6 +262,142 @@ public sealed class StepsItemServiceTests
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task PublishMineAsync_WhenUnverified_ThenThrows()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner", "published");
+        existing.Video.CreatorUsername = "coach";
+        _repository
+            .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([TikTokAccount(verified: false)]);
+
+        var act = () => _sut.PublishMineAsync(existing.Id, new PublishStepsItemRequest { Slug = "morning" });
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*verified TikTok*");
+    }
+
+    [Fact]
+    public async Task PublishMineAsync_WhenVideoNotOwned_ThenThrows()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner", "published");
+        existing.Video.CreatorUsername = "coach";
+        var account = TikTokAccount(verified: true);
+        _repository
+            .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([account]);
+        _ownership
+            .Setup(o => o.OwnsVideoAsync(It.IsAny<LinkedPlatformAccountDocument>(), "123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var act = () => _sut.PublishMineAsync(existing.Id, new PublishStepsItemRequest { Slug = "morning" });
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*not owned*");
+    }
+
+    [Fact]
+    public async Task PublishMineAsync_WhenSlugTaken_ThenThrowsConflict()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner", "published");
+        existing.Video.CreatorUsername = "coach";
+        var account = TikTokAccount(verified: true);
+        _repository
+            .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([account]);
+        _ownership
+            .Setup(o => o.OwnsVideoAsync(It.IsAny<LinkedPlatformAccountDocument>(), "123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _repository
+            .Setup(r => r.SlugTakenAsync("usr_owner", account.Id, "morning", existing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var act = () => _sut.PublishMineAsync(existing.Id, new PublishStepsItemRequest { Slug = "Morning" });
+
+        await act.Should().ThrowAsync<SlugConflictException>();
+    }
+
+    [Fact]
+    public async Task PublishMineAsync_WhenOwned_ThenMakesPublicAndCreatesCreator()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner", "published");
+        existing.Video.CreatorUsername = "someone-else";
+        var account = TikTokAccount(verified: true);
+        _repository
+            .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([account]);
+        _ownership
+            .Setup(o => o.OwnsVideoAsync(It.IsAny<LinkedPlatformAccountDocument>(), "123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _repository
+            .Setup(r => r.SlugTakenAsync("usr_owner", account.Id, "morning", existing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _repository
+            .Setup(r => r.UpdateAsync(It.IsAny<StepsItemDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StepsItemDocument doc, CancellationToken _) => doc);
+
+        var result = await _sut.PublishMineAsync(existing.Id, new PublishStepsItemRequest { Slug = "Morning" });
+
+        result.Visibility.Should().Be("public");
+        result.Slug.Should().Be("morning");
+        result.LinkedPlatformAccountId.Should().Be(account.Id);
+        result.Video.CreatorUsername.Should().Be("coach");
+        result.PublicPath.Should().Be("/t/coach/morning");
+        _creators.Verify(
+            c => c.EnsureForUserAsync("usr_owner", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task PublishMineAsync_WhenOtherUsersAccountId_ThenThrows()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner", "published");
+        _repository
+            .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _accounts
+            .Setup(r => r.GetByIdAsync("platform_other", "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LinkedPlatformAccountDocument?)null);
+
+        var act = () => _sut.PublishMineAsync(
+            existing.Id,
+            new PublishStepsItemRequest { Slug = "morning", LinkedPlatformAccountId = "platform_other" });
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*not found*");
+    }
+
+    private static LinkedPlatformAccountDocument TikTokAccount(bool verified) =>
+        new()
+        {
+            Id = "platform_1",
+            UserId = "usr_owner",
+            Provider = "tiktok",
+            ExternalAccountId = "oid",
+            Username = "coach",
+            DisplayName = "Coach",
+            IsVerified = verified,
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow,
+        };
 
     private void Authenticate(string userId)
     {

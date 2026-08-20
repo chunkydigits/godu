@@ -23,6 +23,7 @@ describe('mapApiStepsItem', () => {
       createdUtc: '2026-08-14T12:00:00Z',
       updatedUtc: '2026-08-14T12:00:00Z',
       publishedUtc: '2026-08-14T12:00:00Z',
+      publicPath: '/t/coach/mobility',
       video: {
         provider: 'tiktok',
         externalVideoId: '1234567890',
@@ -56,6 +57,30 @@ describe('mapApiStepsItem', () => {
     expect(item.steps[0].description).toBeUndefined();
     expect(item.gapSeconds).toBe(15);
     expect(item.gapMessage).toBe('Active recovery — keep moving');
+    expect(item.publicPath).toBe('/t/coach/mobility');
+  });
+
+  it('builds a public path when the API omitted it', () => {
+    const api: ApiStepsItem = {
+      id: 'steps_3',
+      createdByUserId: 'usr_1',
+      visibility: 'public',
+      status: 'published',
+      slug: 'circuit',
+      title: 'Circuit',
+      continuousSoundtrack: false,
+      createdUtc: '2026-08-18T08:00:00Z',
+      updatedUtc: '2026-08-18T08:00:00Z',
+      video: {
+        provider: 'tiktok',
+        externalVideoId: '1234567890',
+        sourceUrl: 'https://www.tiktok.com/@coach/video/1234567890',
+        creatorUsername: 'coach',
+      },
+      steps: [],
+    };
+
+    expect(mapApiStepsItem(api).publicPath).toBe('/t/coach/circuit');
   });
 
   it('maps gap entries and defaults a missing kind to step', () => {

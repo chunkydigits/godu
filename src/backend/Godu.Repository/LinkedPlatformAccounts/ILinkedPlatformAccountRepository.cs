@@ -18,6 +18,11 @@ public interface ILinkedPlatformAccountRepository
         string externalAccountId,
         CancellationToken cancellationToken = default);
 
+    Task<LinkedPlatformAccountDocument?> GetVerifiedByProviderAndUsernameAsync(
+        string provider,
+        string username,
+        CancellationToken cancellationToken = default);
+
     Task<LinkedPlatformAccountDocument> CreateAsync(
         LinkedPlatformAccountDocument account,
         CancellationToken cancellationToken = default);

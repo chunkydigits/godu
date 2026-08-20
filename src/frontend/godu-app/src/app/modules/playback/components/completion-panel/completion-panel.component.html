@@ -49,7 +49,7 @@
       <ul class="completion__related-list">
         @for (related of relatedSteps; track related.id) {
           <li>
-            <a class="completion__related-link" [routerLink]="['/play', related.id]">
+            <a class="completion__related-link" [routerLink]="viewerLink(related)">
               <span class="completion__related-name">{{ related.title }}</span>
               <span class="completion__related-meta">
                 {{ stepCount(related) }} steps

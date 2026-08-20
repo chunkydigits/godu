@@ -2,7 +2,7 @@
   @if (error$ | async; as error) {
     <div class="viewer-error">
       <p>{{ error }}</p>
-      <a mat-button routerLink="/demos">Back to demos</a>
+      <a mat-button [routerLink]="backLink()">Back</a>
     </div>
   } @else if (item$ | async; as item) {
     <div
@@ -12,7 +12,7 @@
     >
       @if (state$ | async; as state) {
         <header class="viewer__header">
-          <a mat-icon-button routerLink="/demos" aria-label="Back to demos">
+          <a mat-icon-button [routerLink]="backLink()" aria-label="Back">
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div class="viewer__heading">

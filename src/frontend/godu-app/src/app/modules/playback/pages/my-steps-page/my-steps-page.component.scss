@@ -56,10 +56,21 @@
   font-size: 0.85rem;
 }
 
+.mine-item__url {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-all;
+}
+
 .mine-item__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.mine-item__slug {
+  width: 12rem;
+  margin: 0;
 }
 
 @media (min-width: 640px) {

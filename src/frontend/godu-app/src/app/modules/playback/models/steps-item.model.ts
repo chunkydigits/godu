@@ -29,4 +29,5 @@ export interface StepsItem {
   createdUtc: string;
   updatedUtc?: string;
   publishedUtc?: string;
+  publicPath?: string;
 }

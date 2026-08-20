@@ -14,6 +14,8 @@ public static class ServiceConfiguration
         services.AddScoped<ILinkedPlatformAccountService, LinkedPlatformAccountService>();
         services.AddScoped<IStepsItemService, StepsItemService>();
         services.AddScoped<ICreatorProfileService, CreatorProfileService>();
+        services.AddScoped<ICreatorService, CreatorService>();
+        services.AddScoped<ITikTokVideoOwnershipVerifier, TikTokVideoOwnershipVerifier>();
         services.AddScoped<IUserProvisioningService, UserProvisioningService>();
         services.AddScoped<IUserSettingsService, UserSettingsService>();
         services.AddSingleton<IPlatformOAuthStateStore, InMemoryPlatformOAuthStateStore>();

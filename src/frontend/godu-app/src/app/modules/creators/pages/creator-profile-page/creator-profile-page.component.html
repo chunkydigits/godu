@@ -25,6 +25,29 @@
           }
         </ul>
       </section>
+
+      @if (profile.publishedSteps?.length) {
+        <section class="published">
+          <h3 class="published__title">Published Steps</h3>
+          <ul class="published__list">
+            @for (item of profile.publishedSteps; track item.id) {
+              <li>
+                @if (itemPath(item); as href) {
+                  <a class="published__card" [routerLink]="href">
+                    <h4 class="published__name">{{ item.title }}</h4>
+                    <span class="published__meta">{{ item.stepCount }} steps</span>
+                  </a>
+                } @else {
+                  <div class="published__card">
+                    <h4 class="published__name">{{ item.title }}</h4>
+                    <span class="published__meta">{{ item.stepCount }} steps</span>
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
     }
   }
 </app-page-template>

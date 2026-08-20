@@ -30,6 +30,10 @@ public static class StepsItemMapper
             CreatedUtc = document.CreatedUtc,
             UpdatedUtc = document.UpdatedUtc,
             PublishedUtc = document.PublishedUtc,
+            PublicPath = ProviderUtilities.PublicPath(
+                document.Video.Provider,
+                document.Video.CreatorUsername,
+                document.Slug),
             Video = new VideoReferenceResponse
             {
                 Provider = document.Video.Provider,
@@ -56,6 +60,25 @@ public static class StepsItemMapper
                     Message = s.Message,
                 })
                 .ToList(),
+        };
+    }
+
+    public static PublicStepsSummaryResponse ToPublicSummary(StepsItemDocument document)
+    {
+        var username = document.Video.CreatorUsername?.Trim().TrimStart('@').ToLowerInvariant() ?? string.Empty;
+        return new PublicStepsSummaryResponse
+        {
+            Id = document.Id,
+            Title = document.Title,
+            Description = document.Description,
+            Slug = document.Slug ?? string.Empty,
+            Provider = document.Video.Provider,
+            Username = username,
+            StepCount = document.Steps.Count(s => !StepEntryKinds.IsGap(s.Kind)),
+            PublicPath = ProviderUtilities.PublicPath(
+                document.Video.Provider,
+                username,
+                document.Slug),
         };
     }
 

@@ -9,7 +9,7 @@ cd src/frontend/godu-app
 npm start
 ```
 
-Open http://localhost:4200/
+Open http://localhost:4300/
 
 ## Test
 

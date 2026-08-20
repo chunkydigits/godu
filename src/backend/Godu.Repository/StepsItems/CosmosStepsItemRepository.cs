@@ -93,6 +93,126 @@ public sealed class CosmosStepsItemRepository : IStepsItemRepository
         return null;
     }
 
+    public async Task<IReadOnlyList<StepsItemDocument>> ListPublicByUserAsync(
+        string createdByUserId,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql =
+            """
+            SELECT * FROM c
+            WHERE c.createdByUserId = @userId
+              AND c.status = 'published'
+              AND c.visibility = 'public'
+            """;
+
+        return await QueryListAsync(
+                new QueryDefinition(sql).WithParameter("@userId", createdByUserId),
+                new PartitionKey(createdByUserId),
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<StepsItemDocument>> ListPublicByLinkedAccountAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string? excludeItemId,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql =
+            """
+            SELECT * FROM c
+            WHERE c.createdByUserId = @userId
+              AND c.linkedPlatformAccountId = @accountId
+              AND c.status = 'published'
+              AND c.visibility = 'public'
+            """;
+
+        var items = await QueryListAsync(
+                new QueryDefinition(sql)
+                    .WithParameter("@userId", createdByUserId)
+                    .WithParameter("@accountId", linkedPlatformAccountId),
+                new PartitionKey(createdByUserId),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return items
+            .Where(x => excludeItemId is null || !string.Equals(x.Id, excludeItemId, StringComparison.Ordinal))
+            .OrderByDescending(x => x.PublishedUtc ?? x.UpdatedUtc)
+            .Take(Math.Max(0, take))
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<StepsItemDocument>> ListPublicByUsernameAsync(
+        string provider,
+        string platformUsername,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql =
+            """
+            SELECT * FROM c
+            WHERE c.status = 'published'
+              AND c.visibility = 'public'
+              AND c.video.provider = @provider
+              AND c.video.creatorUsername = @username
+            """;
+
+        var query = new QueryDefinition(sql)
+            .WithParameter("@provider", provider.ToLowerInvariant())
+            .WithParameter("@username", platformUsername.ToLowerInvariant());
+
+        return await QueryListAsync(query, partitionKey: null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<bool> SlugTakenAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string slug,
+        string? excludeItemId,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql =
+            """
+            SELECT * FROM c
+            WHERE c.createdByUserId = @userId
+              AND c.linkedPlatformAccountId = @accountId
+              AND c.slug = @slug
+              AND c.status = 'published'
+              AND c.visibility = 'public'
+            """;
+
+        var items = await QueryListAsync(
+                new QueryDefinition(sql)
+                    .WithParameter("@userId", createdByUserId)
+                    .WithParameter("@accountId", linkedPlatformAccountId)
+                    .WithParameter("@slug", slug.ToLowerInvariant()),
+                new PartitionKey(createdByUserId),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return items.Any(x => excludeItemId is null || !string.Equals(x.Id, excludeItemId, StringComparison.Ordinal));
+    }
+
+    private async Task<IReadOnlyList<StepsItemDocument>> QueryListAsync(
+        QueryDefinition query,
+        PartitionKey? partitionKey,
+        CancellationToken cancellationToken)
+    {
+        var results = new List<StepsItemDocument>();
+        var options = partitionKey is { } key
+            ? new QueryRequestOptions { PartitionKey = key }
+            : new QueryRequestOptions();
+
+        using var iterator = _container.GetItemQueryIterator<StepsItemDocument>(query, requestOptions: options);
+        while (iterator.HasMoreResults)
+        {
+            var page = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+            results.AddRange(page.Resource);
+        }
+
+        return results.OrderByDescending(x => x.PublishedUtc ?? x.UpdatedUtc).ToList();
+    }
+
     public async Task<StepsItemDocument> CreateAsync(
         StepsItemDocument item,
         CancellationToken cancellationToken = default)

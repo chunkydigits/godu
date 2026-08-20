@@ -27,4 +27,27 @@ public interface IStepsItemService
         string platformUsername,
         string slug,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StepsItemResponse>> ListPublicByUsernameAsync(
+        string providerAlias,
+        string platformUsername,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StepsItemResponse>> ListRelatedPublicAsync(
+        string providerAlias,
+        string platformUsername,
+        string slug,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StepsItemResponse>> ListMinePublicAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<StepsItemResponse> PublishMineAsync(
+        string id,
+        PublishStepsItemRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<StepsItemResponse> UnpublishMineAsync(
+        string id,
+        CancellationToken cancellationToken = default);
 }

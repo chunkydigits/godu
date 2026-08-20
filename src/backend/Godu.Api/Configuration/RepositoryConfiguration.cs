@@ -1,5 +1,6 @@
 using Godu.Model.Configuration;
 using Godu.Repository.Cosmos;
+using Godu.Repository.Creators;
 using Godu.Repository.ExternalIdentities;
 using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
@@ -23,6 +24,7 @@ public static class RepositoryConfiguration
             services.AddSingleton<IExternalIdentityRepository, InMemoryExternalIdentityRepository>();
             services.AddSingleton<ILinkedPlatformAccountRepository, InMemoryLinkedPlatformAccountRepository>();
             services.AddSingleton<IStepsItemRepository, InMemoryStepsItemRepository>();
+            services.AddSingleton<ICreatorRepository, InMemoryCreatorRepository>();
             services.AddSingleton<IUserRepository, InMemoryUserRepository>();
             return services;
         }
@@ -31,6 +33,7 @@ public static class RepositoryConfiguration
         services.AddSingleton<IExternalIdentityRepository, CosmosExternalIdentityRepository>();
         services.AddSingleton<ILinkedPlatformAccountRepository, CosmosLinkedPlatformAccountRepository>();
         services.AddSingleton<IStepsItemRepository, CosmosStepsItemRepository>();
+        services.AddSingleton<ICreatorRepository, CosmosCreatorRepository>();
         services.AddSingleton<IUserRepository, CosmosUserRepository>();
         return services;
     }

@@ -4,8 +4,11 @@ using Godu.Model.Requests;
 using Godu.Model.Responses;
 using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
+using Godu.Repository.Users;
+using Godu.Service.Creators;
 using Godu.Service.Identity;
 using Godu.Service.Mapping;
+using Godu.Service.TikTok;
 using Godu.Service.Validation;
 using Godu.Utility;
 
@@ -16,15 +19,24 @@ public sealed class StepsItemService : IStepsItemService
     private readonly IStepsItemRepository _repository;
     private readonly ILinkedPlatformAccountRepository _platformAccounts;
     private readonly ICurrentUser _currentUser;
+    private readonly ITikTokVideoOwnershipVerifier _ownership;
+    private readonly ICreatorService _creators;
+    private readonly IUserRepository _users;
 
     public StepsItemService(
         IStepsItemRepository repository,
         ILinkedPlatformAccountRepository platformAccounts,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        ITikTokVideoOwnershipVerifier ownership,
+        ICreatorService creators,
+        IUserRepository users)
     {
         _repository = repository;
         _platformAccounts = platformAccounts;
         _currentUser = currentUser;
+        _ownership = ownership;
+        _creators = creators;
+        _users = users;
     }
 
     public async Task<IReadOnlyList<StepsItemResponse>> ListMineAsync(
@@ -169,6 +181,217 @@ public sealed class StepsItemService : IStepsItemService
         return item is null
             ? null
             : await ToResponseAsync(item, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<StepsItemResponse>> ListPublicByUsernameAsync(
+        string providerAlias,
+        string platformUsername,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ProviderUtilities.TryCanonicalise(providerAlias, out var provider))
+        {
+            return [];
+        }
+
+        var username = platformUsername.Trim().TrimStart('@').ToLowerInvariant();
+        if (string.IsNullOrEmpty(username))
+        {
+            return [];
+        }
+
+        var items = await _repository
+            .ListPublicByUsernameAsync(provider, username, cancellationToken)
+            .ConfigureAwait(false);
+        return await MapManyAsync(items, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<StepsItemResponse>> ListRelatedPublicAsync(
+        string providerAlias,
+        string platformUsername,
+        string slug,
+        CancellationToken cancellationToken = default)
+    {
+        var current = await GetPublicAsync(providerAlias, platformUsername, slug, cancellationToken)
+            .ConfigureAwait(false);
+        if (current?.LinkedPlatformAccountId is null)
+        {
+            return [];
+        }
+
+        var related = await _repository
+            .ListPublicByLinkedAccountAsync(
+                current.CreatedByUserId,
+                current.LinkedPlatformAccountId,
+                current.Id,
+                take: 4,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return await MapManyAsync(related, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<StepsItemResponse>> ListMinePublicAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var userId = RequireUserId();
+        var items = await _repository
+            .ListPublicByUserAsync(userId, cancellationToken)
+            .ConfigureAwait(false);
+        return await MapManyAsync(items, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<StepsItemResponse> PublishMineAsync(
+        string id,
+        PublishStepsItemRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = RequireUserId();
+        var existing = await _repository.GetByIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
+        if (existing is null)
+        {
+            throw new KeyNotFoundException("Steps item not found.");
+        }
+
+        if (string.Equals(existing.Status, "archived", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Archived steps cannot be published.");
+        }
+
+        var slug = SpecSlug(request.Slug);
+        if (string.IsNullOrEmpty(slug))
+        {
+            slug = SpecSlug(SlugUtilities.FromTitle(existing.Title));
+        }
+
+        if (string.IsNullOrEmpty(slug))
+        {
+            throw new ArgumentException("A public URL slug is required.");
+        }
+
+        var account = await ResolvePublishAccountAsync(userId, existing, request.LinkedPlatformAccountId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!account.IsVerified)
+        {
+            throw new InvalidOperationException("A verified TikTok account is required to publish.");
+        }
+
+        var owned = await _ownership
+            .OwnsVideoAsync(account, existing.Video.ExternalVideoId, cancellationToken)
+            .ConfigureAwait(false);
+        if (!owned)
+        {
+            throw new InvalidOperationException("This TikTok video is not owned by the linked account.");
+        }
+
+        var taken = await _repository
+            .SlugTakenAsync(userId, account.Id, slug, existing.Id, cancellationToken)
+            .ConfigureAwait(false);
+        if (taken)
+        {
+            throw new SlugConflictException();
+        }
+
+        var displayName = account.DisplayName?.Trim();
+        if (string.IsNullOrEmpty(displayName))
+        {
+            displayName = $"@{account.Username}";
+        }
+
+        await _creators
+            .EnsureForUserAsync(userId, displayName, account.AvatarUrl, cancellationToken)
+            .ConfigureAwait(false);
+
+        existing.Visibility = StepsItemMapper.VisibilityName(StepsVisibility.Public);
+        existing.Status = StepsItemMapper.StatusName(StepsItemStatus.Published);
+        existing.Slug = slug;
+        existing.LinkedPlatformAccountId = account.Id;
+        existing.CreatorDisplayName = displayName;
+        existing.Video.CreatorUsername = account.Username.Trim().ToLowerInvariant();
+        existing.Video.CreatorExternalAccountId = account.ExternalAccountId;
+        existing.PublishedUtc = DateTime.UtcNow;
+        existing.UpdatedUtc = DateTime.UtcNow;
+
+        var updated = await _repository.UpdateAsync(existing, cancellationToken).ConfigureAwait(false);
+        return await ToResponseAsync(updated, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<StepsItemResponse> UnpublishMineAsync(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = RequireUserId();
+        var existing = await _repository.GetByIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
+        if (existing is null)
+        {
+            throw new KeyNotFoundException("Steps item not found.");
+        }
+
+        existing.Visibility = StepsItemMapper.VisibilityName(StepsVisibility.Private);
+        existing.UpdatedUtc = DateTime.UtcNow;
+
+        var updated = await _repository.UpdateAsync(existing, cancellationToken).ConfigureAwait(false);
+        return await ToResponseAsync(updated, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<LinkedPlatformAccountDocument> ResolvePublishAccountAsync(
+        string userId,
+        StepsItemDocument item,
+        string? requestedAccountId,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(requestedAccountId))
+        {
+            var requested = await _platformAccounts
+                .GetByIdAsync(requestedAccountId, userId, cancellationToken)
+                .ConfigureAwait(false);
+            if (requested is null)
+            {
+                throw new InvalidOperationException("Linked account not found.");
+            }
+
+            return requested;
+        }
+
+        var accounts = await _platformAccounts.ListByUserAsync(userId, cancellationToken).ConfigureAwait(false);
+        var tiktok = accounts
+            .Where(a => a.IsVerified && string.Equals(a.Provider, "tiktok", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (tiktok.Count == 0)
+        {
+            throw new InvalidOperationException("Connect a verified TikTok account in Settings before publishing.");
+        }
+
+        var videoHandle = item.Video.CreatorUsername?.Trim().TrimStart('@');
+        var matching = tiktok.FirstOrDefault(a =>
+            !string.IsNullOrWhiteSpace(videoHandle)
+            && (string.Equals(a.Username, videoHandle, StringComparison.OrdinalIgnoreCase)
+                || a.UsernameAliases.Contains(videoHandle, StringComparer.OrdinalIgnoreCase)));
+
+        if (matching is not null)
+        {
+            return matching;
+        }
+
+        if (tiktok.Count == 1)
+        {
+            return tiktok[0];
+        }
+
+        throw new InvalidOperationException(
+            "Choose which verified TikTok account owns this video.");
+    }
+
+    private async Task<IReadOnlyList<StepsItemResponse>> MapManyAsync(
+        IReadOnlyList<StepsItemDocument> items,
+        CancellationToken cancellationToken)
+    {
+        var results = new List<StepsItemResponse>(items.Count);
+        foreach (var item in items)
+        {
+            results.Add(await ToResponseAsync(item, cancellationToken).ConfigureAwait(false));
+        }
+
+        return results;
     }
 
     private async Task<StepsItemResponse> ToResponseAsync(

@@ -62,6 +62,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'creator',
+    canActivate: [authGuardFn],
+    loadComponent: () =>
+      import('./modules/creators/pages/creator-dashboard-page/creator-dashboard-page.component').then(
+        (m) => m.CreatorDashboardPageComponent,
+      ),
+  },
+  {
     path: 'u/:userId',
     loadComponent: () =>
       import('./modules/creators/pages/creator-profile-page/creator-profile-page.component').then(
@@ -81,6 +89,38 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./modules/settings/pages/tiktok-oauth-callback/tiktok-oauth-callback.component').then(
         (m) => m.TikTokOAuthCallbackComponent,
+      ),
+  },
+  {
+    path: 't/:username/:slug',
+    data: { provider: 'tiktok' },
+    loadComponent: () =>
+      import('./modules/playback/pages/viewer-page/viewer-page.component').then(
+        (m) => m.ViewerPageComponent,
+      ),
+  },
+  {
+    path: 'tiktok/:username/:slug',
+    data: { provider: 'tiktok' },
+    loadComponent: () =>
+      import('./modules/playback/pages/viewer-page/viewer-page.component').then(
+        (m) => m.ViewerPageComponent,
+      ),
+  },
+  {
+    path: 't/:username',
+    data: { provider: 'tiktok' },
+    loadComponent: () =>
+      import('./modules/creators/pages/creator-profile-page/creator-profile-page.component').then(
+        (m) => m.CreatorProfilePageComponent,
+      ),
+  },
+  {
+    path: 'tiktok/:username',
+    data: { provider: 'tiktok' },
+    loadComponent: () =>
+      import('./modules/creators/pages/creator-profile-page/creator-profile-page.component').then(
+        (m) => m.CreatorProfilePageComponent,
       ),
   },
   { path: '**', redirectTo: '' },

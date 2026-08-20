@@ -39,6 +39,7 @@ public sealed class CosmosClientProvider : IAsyncDisposable
         EnsureContainer(_database, "ExternalIdentities", "/id");
         EnsureContainer(_database, "StepsItems", "/createdByUserId");
         EnsureContainer(_database, "LinkedPlatformAccounts", "/userId");
+        EnsureContainer(_database, "Creators", "/userId");
     }
 
     public bool IsEnabled => _enabled;
@@ -50,6 +51,8 @@ public sealed class CosmosClientProvider : IAsyncDisposable
     public Container StepsItems => GetContainer("StepsItems");
 
     public Container LinkedPlatformAccounts => GetContainer("LinkedPlatformAccounts");
+
+    public Container Creators => GetContainer("Creators");
 
     public ValueTask DisposeAsync()
     {

@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Godu.Model.Documents;
+using Godu.Repository.Creators;
 using Godu.Repository.LinkedPlatformAccounts;
+using Godu.Repository.StepsItems;
 using Godu.Repository.Users;
 using Godu.Service.Creators;
 using Moq;
@@ -11,11 +13,23 @@ public sealed class CreatorProfileServiceTests
 {
     private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<ILinkedPlatformAccountRepository> _accounts = new();
+    private readonly Mock<ICreatorRepository> _creators = new();
+    private readonly Mock<IStepsItemRepository> _steps = new();
     private readonly CreatorProfileService _sut;
 
     public CreatorProfileServiceTests()
     {
-        _sut = new CreatorProfileService(_users.Object, _accounts.Object);
+        _creators
+            .Setup(r => r.GetByUserIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CreatorDocument?)null);
+        _steps
+            .Setup(r => r.ListPublicByUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        _sut = new CreatorProfileService(
+            _users.Object,
+            _accounts.Object,
+            _creators.Object,
+            _steps.Object);
     }
 
     [Fact]

@@ -20,6 +20,29 @@ public interface IStepsItemRepository
         string slug,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<StepsItemDocument>> ListPublicByUserAsync(
+        string createdByUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StepsItemDocument>> ListPublicByLinkedAccountAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string? excludeItemId,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StepsItemDocument>> ListPublicByUsernameAsync(
+        string provider,
+        string platformUsername,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> SlugTakenAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string slug,
+        string? excludeItemId,
+        CancellationToken cancellationToken = default);
+
     Task<StepsItemDocument> CreateAsync(
         StepsItemDocument item,
         CancellationToken cancellationToken = default);

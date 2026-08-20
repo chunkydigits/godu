@@ -1,0 +1,55 @@
+<app-page-template
+  title="Published Steps"
+  subtitle="Public Godus on your creator URLs."
+>
+  <div class="action-bar">
+    <a mat-stroked-button routerLink="/my-steps">My Steps</a>
+  </div>
+
+  @if (view$ | async; as view) {
+    @if (view.loading) {
+      <div class="status-row">
+        <mat-progress-bar mode="indeterminate" />
+      </div>
+    } @else if (view.error) {
+      <p class="error">{{ view.error }}</p>
+    } @else {
+      @if (view.actionMessage) {
+        <p class="notice">{{ view.actionMessage }}</p>
+      }
+      @if (view.items.length === 0) {
+        <p class="empty">
+          Nothing published yet. Publish from
+          <a routerLink="/my-steps">My Steps</a>
+          after connecting TikTok in
+          <a routerLink="/settings">Settings</a>.
+        </p>
+      } @else {
+        <ul class="dash-list">
+          @for (item of view.items; track item.id) {
+            <li class="dash-item">
+              <div class="dash-item__body">
+                <h2>{{ item.title }}</h2>
+                @if (publicHref(item); as href) {
+                  <p class="dash-item__url">{{ href }}</p>
+                }
+              </div>
+              <div class="dash-item__actions">
+                @if (publicHref(item); as href) {
+                  <a mat-stroked-button [routerLink]="href">Open</a>
+                  <button mat-button type="button" (click)="copyPublicUrl(item)">
+                    {{ copiedId === item.id ? 'Copied' : 'Copy URL' }}
+                  </button>
+                }
+                <a mat-button [routerLink]="['/my-steps', item.id, 'edit']">Edit</a>
+                <button mat-button type="button" (click)="confirmUnpublish(item)">
+                  Unpublish
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+</app-page-template>

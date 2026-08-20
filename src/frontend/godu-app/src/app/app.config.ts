@@ -17,7 +17,7 @@ export const appConfig: ApplicationConfig = {
       domain: environment.auth0.domain,
       clientId: environment.auth0.clientId,
       authorizationParams: {
-        redirect_uri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200',
+        redirect_uri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4300',
         audience: environment.auth0.audience,
       },
       httpInterceptor: {

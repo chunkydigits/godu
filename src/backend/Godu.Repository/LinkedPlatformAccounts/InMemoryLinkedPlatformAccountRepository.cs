@@ -50,6 +50,21 @@ public sealed class InMemoryLinkedPlatformAccountRepository : ILinkedPlatformAcc
         return Task.FromResult(match is null ? null : Clone(match));
     }
 
+    public Task<LinkedPlatformAccountDocument?> GetVerifiedByProviderAndUsernameAsync(
+        string provider,
+        string username,
+        CancellationToken cancellationToken = default)
+    {
+        var handle = username.Trim().TrimStart('@');
+        var match = _store.Values.FirstOrDefault(x =>
+            x.IsVerified
+            && string.Equals(x.Provider, provider, StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(x.Username, handle, StringComparison.OrdinalIgnoreCase)
+                || x.UsernameAliases.Contains(handle, StringComparer.OrdinalIgnoreCase)));
+
+        return Task.FromResult(match is null ? null : Clone(match));
+    }
+
     public Task<LinkedPlatformAccountDocument> CreateAsync(
         LinkedPlatformAccountDocument account,
         CancellationToken cancellationToken = default)

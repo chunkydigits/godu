@@ -57,6 +57,73 @@ public sealed class InMemoryStepsItemRepository : IStepsItemRepository
         return Task.FromResult(match is null ? null : Clone(match));
     }
 
+    public Task<IReadOnlyList<StepsItemDocument>> ListPublicByUserAsync(
+        string createdByUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var items = PublicOwned(createdByUserId)
+            .OrderByDescending(x => x.PublishedUtc ?? x.UpdatedUtc)
+            .Select(Clone)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<StepsItemDocument>>(items);
+    }
+
+    public Task<IReadOnlyList<StepsItemDocument>> ListPublicByLinkedAccountAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string? excludeItemId,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var items = PublicOwned(createdByUserId)
+            .Where(x => string.Equals(x.LinkedPlatformAccountId, linkedPlatformAccountId, StringComparison.Ordinal))
+            .Where(x => excludeItemId is null || !string.Equals(x.Id, excludeItemId, StringComparison.Ordinal))
+            .OrderByDescending(x => x.PublishedUtc ?? x.UpdatedUtc)
+            .Take(Math.Max(0, take))
+            .Select(Clone)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<StepsItemDocument>>(items);
+    }
+
+    public Task<IReadOnlyList<StepsItemDocument>> ListPublicByUsernameAsync(
+        string provider,
+        string platformUsername,
+        CancellationToken cancellationToken = default)
+    {
+        var items = _store.Values
+            .Where(IsPublicPublished)
+            .Where(x =>
+                string.Equals(x.Video.Provider, provider, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(x.Video.CreatorUsername, platformUsername, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(x => x.PublishedUtc ?? x.UpdatedUtc)
+            .Select(Clone)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<StepsItemDocument>>(items);
+    }
+
+    public Task<bool> SlugTakenAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string slug,
+        string? excludeItemId,
+        CancellationToken cancellationToken = default)
+    {
+        var taken = PublicOwned(createdByUserId).Any(x =>
+            string.Equals(x.LinkedPlatformAccountId, linkedPlatformAccountId, StringComparison.Ordinal)
+            && string.Equals(x.Slug, slug, StringComparison.OrdinalIgnoreCase)
+            && (excludeItemId is null || !string.Equals(x.Id, excludeItemId, StringComparison.Ordinal)));
+        return Task.FromResult(taken);
+    }
+
+    private IEnumerable<StepsItemDocument> PublicOwned(string createdByUserId) =>
+        _store.Values
+            .Where(x => string.Equals(x.CreatedByUserId, createdByUserId, StringComparison.Ordinal))
+            .Where(IsPublicPublished);
+
+    private static bool IsPublicPublished(StepsItemDocument item) =>
+        string.Equals(item.Status, StepsItemMapperStatus.Published, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(item.Visibility, StepsItemMapperStatus.Public, StringComparison.OrdinalIgnoreCase);
+
     public Task<StepsItemDocument> CreateAsync(
         StepsItemDocument item,
         CancellationToken cancellationToken = default)
