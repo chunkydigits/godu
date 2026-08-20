@@ -5,6 +5,7 @@ import { Observable, catchError, combineLatest, map, of, startWith, switchMap } 
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
 import { MaterialModule } from '../../../../core/material.module';
 import { platformLabel } from '../../../playback/models/creator-link';
+import { PlatformMarkComponent } from '../../../playback/components/platform-mark/platform-mark.component';
 import { publicViewerPath } from '../../../playback/models/public-path';
 import { CreatorProfile, PublicStepsSummary } from '../../models/creator-profile.model';
 import { CreatorProfileApiService } from '../../services/creator-profile-api.service';
@@ -17,7 +18,7 @@ interface CreatorProfileView {
 
 @Component({
   selector: 'app-creator-profile-page',
-  imports: [PageTemplateComponent, MaterialModule, AsyncPipe, RouterLink],
+  imports: [PageTemplateComponent, MaterialModule, AsyncPipe, RouterLink, PlatformMarkComponent],
   templateUrl: './creator-profile-page.component.html',
   styleUrl: './creator-profile-page.component.scss',
 })

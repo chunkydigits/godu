@@ -50,6 +50,18 @@
   border-color: var(--steps-accent);
 }
 
+.social__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.social__mark {
+  flex: 0 0 auto;
+  color: var(--steps-text);
+}
+
 .social__provider {
   font-weight: 500;
 }

@@ -18,7 +18,10 @@
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span class="social__provider">{{ platformName(social.provider) }}</span>
+                <span class="social__brand">
+                  <app-platform-mark class="social__mark" [provider]="social.provider" />
+                  <span class="social__provider">{{ platformName(social.provider) }}</span>
+                </span>
                 <span class="social__handle">@{{ social.username }}</span>
               </a>
             </li>
