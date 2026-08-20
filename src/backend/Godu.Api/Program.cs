@@ -79,13 +79,16 @@ builder.Services.AddGoduServices();
 
 var app = builder.Build();
 
+// CORS before anything that can redirect or challenge. Cloudflare terminates
+// TLS for https://dev-api.godu.it and typically forwards HTTP to Kestrel;
+// HTTPS redirection here would send the browser to localhost and surface as status 0.
+app.UseCors("GoduSpa");
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.UseHttpsRedirection();
 }
 
-app.UseCors("GoduSpa");
 app.UseAuthentication();
 app.UseMiddleware<CurrentUserMiddleware>();
 app.UseAuthorization();
