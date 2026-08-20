@@ -21,7 +21,14 @@ export const appConfig: ApplicationConfig = {
         audience: environment.auth0.audience,
       },
       httpInterceptor: {
-        allowedList: [`${environment.apiBaseUrl}/api/*`],
+        allowedList: [
+          {
+            uri: `${environment.apiBaseUrl}/api/public/*`,
+            allowAnonymous: true,
+          },
+          `${environment.apiBaseUrl}/api/me/*`,
+          `${environment.apiBaseUrl}/api/creator/*`,
+        ],
       },
     }),
   ],
