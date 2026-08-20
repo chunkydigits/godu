@@ -19,4 +19,7 @@ public interface ILinkedPlatformAccountService
         CancellationToken cancellationToken = default);
 
     Task DisconnectAsync(string id, CancellationToken cancellationToken = default);
+
+    Task<LinkedPlatformAccountResponse> RefreshVerifiedMetadataAsync(
+        CancellationToken cancellationToken = default);
 }

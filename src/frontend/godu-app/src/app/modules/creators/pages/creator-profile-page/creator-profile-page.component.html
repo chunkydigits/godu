@@ -7,7 +7,27 @@
       <a mat-button routerLink="/demos">Back to demos</a>
     } @else if (view.profile; as profile) {
       <section class="profile">
-        <h2 class="profile__name">{{ profile.displayName }}</h2>
+        <div class="profile__hero">
+          @if (profile.profileImageUrl) {
+            <img
+              class="profile__photo"
+              [src]="profile.profileImageUrl"
+              [alt]="profile.displayName"
+              referrerpolicy="no-referrer"
+            />
+          } @else {
+            <div class="profile__photo profile__photo--fallback" aria-hidden="true">
+              {{ initial(profile.displayName) }}
+            </div>
+          }
+          <div class="profile__identity">
+            <h2 class="profile__name">{{ profile.displayName }}</h2>
+            @if (profile.bio) {
+              <p class="profile__bio">{{ profile.bio }}</p>
+            }
+          </div>
+        </div>
+
         <p class="profile__copy">Find them on these platforms.</p>
         <ul class="socials">
           @for (social of profile.socials; track social.provider + social.username) {

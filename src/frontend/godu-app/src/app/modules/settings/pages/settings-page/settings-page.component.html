@@ -49,6 +49,116 @@
     </mat-slide-toggle>
   </section>
 
+  @if (user$ | async) {
+    <section class="panel">
+      <h2>Public profile</h2>
+      <p class="panel__copy">
+        Optional name, profile image, and description on your creator page. Import them from
+        TikTok, or edit them here.
+      </p>
+
+      @if (profileView$ | async; as profileView) {
+        @if (profileView.loading || profileView.saving) {
+          <div class="status-row">
+            <mat-progress-bar mode="indeterminate" />
+          </div>
+        }
+        @if (profileView.error) {
+          <p class="error">{{ profileView.error }}</p>
+        }
+        @if (profileView.actionMessage) {
+          <p class="notice">{{ profileView.actionMessage }}</p>
+        }
+
+        @if (!profileView.loading && !profileView.profile && !profileView.error) {
+          <p class="empty">
+            Connect a TikTok account below, then you can import its profile image and description.
+          </p>
+        } @else if (profileView.profile; as profile) {
+          <div class="profile-editor">
+            <div class="profile-editor__preview">
+              @if (previewImageSrc && !imageFailed) {
+                @for (key of [previewKey]; track key) {
+                  <img
+                    class="profile-editor__image"
+                    [src]="previewImageSrc"
+                    [alt]="displayName || 'Profile image'"
+                    referrerpolicy="no-referrer"
+                    (error)="imageFailed = true"
+                  />
+                }
+              } @else {
+                <div class="profile-editor__image profile-editor__image--fallback" aria-hidden="true">
+                  {{ (displayName || '?').trim().charAt(0).toUpperCase() }}
+                </div>
+              }
+            </div>
+
+            <form class="profile-editor__form" (ngSubmit)="savePublicProfile()">
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Display name</mat-label>
+                <input
+                  matInput
+                  name="displayName"
+                  [(ngModel)]="displayName"
+                  maxlength="80"
+                  required
+                />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Description</mat-label>
+                <textarea
+                  matInput
+                  name="bio"
+                  rows="4"
+                  maxlength="500"
+                  [(ngModel)]="bio"
+                ></textarea>
+                <mat-hint>Shown on your public creator page.</mat-hint>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Profile image URL</mat-label>
+                <input
+                  matInput
+                  name="profileImageUrl"
+                  [(ngModel)]="profileImageUrl"
+                  (ngModelChange)="onProfileImageUrlChange()"
+                  [maxlength]="profileImageMaxLength"
+                  placeholder="https:// or data:image/png;base64,…"
+                />
+                <mat-hint>https image, data:image URL, or import from TikTok.</mat-hint>
+              </mat-form-field>
+
+              <div class="action-bar">
+                <button
+                  mat-flat-button
+                  color="primary"
+                  type="submit"
+                  [disabled]="profileView.saving || !displayName.trim()"
+                >
+                  Save
+                </button>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="profileView.saving"
+                  (click)="importPublicProfile()"
+                >
+                  Use from TikTok
+                </button>
+                @if (publicPagePath(profile); as href) {
+                  <a mat-button [routerLink]="href">View public page</a>
+                }
+              </div>
+            </form>
+          </div>
+        }
+      }
+    </section>
+  }
+
   <section class="panel">
     <h2>Creator accounts</h2>
     <p class="panel__copy">

@@ -63,8 +63,73 @@
 
 .action-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 1rem;
+}
+
+.full {
+  width: 100%;
+}
+
+.profile-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.profile-editor__preview {
+  display: flex;
+  align-items: center;
+}
+
+.profile-editor__image {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--steps-border) 35%, transparent);
+  border: 1px solid var(--steps-border);
+}
+
+.profile-editor__image--fallback {
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--steps-text-muted);
+}
+
+.profile-editor__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.profile-editor__form .full {
+  margin: 0;
+}
+
+:host ::ng-deep .profile-editor__form .mat-mdc-form-field-subscript-wrapper {
+  margin-top: 0.45rem;
+  margin-bottom: 0.15rem;
+}
+
+:host ::ng-deep .profile-editor__form .mat-mdc-form-field-hint {
+  padding-top: 0.15rem;
+}
+
+@media (min-width: 640px) {
+  .profile-editor {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .profile-editor__form {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 .setting-toggle {

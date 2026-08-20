@@ -361,7 +361,12 @@ public sealed class StepsItemServiceTests
         result.Video.CreatorUsername.Should().Be("coach");
         result.PublicPath.Should().Be("/t/coach/morning");
         _creators.Verify(
-            c => c.EnsureForUserAsync("usr_owner", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            c => c.EnsureForUserAsync(
+                "usr_owner",
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

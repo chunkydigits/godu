@@ -63,6 +63,11 @@ export class CreatorProfilePageComponent {
     return platformLabel(provider);
   }
 
+  initial(name: string): string {
+    const trimmed = name.trim();
+    return trimmed ? trimmed.charAt(0).toUpperCase() : '?';
+  }
+
   itemPath(item: PublicStepsSummary): string | null {
     return publicViewerPath(item);
   }

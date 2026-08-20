@@ -19,6 +19,14 @@ export interface PublicStepsSummary {
 export interface CreatorProfile {
   userId: string;
   displayName: string;
+  bio?: string | null;
+  profileImageUrl?: string | null;
   socials: CreatorSocial[];
   publishedSteps?: PublicStepsSummary[];
+}
+
+export interface UpdateCreatorProfileRequest {
+  displayName?: string | null;
+  bio?: string | null;
+  profileImageUrl?: string | null;
 }

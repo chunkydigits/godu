@@ -18,6 +18,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
     private readonly ITikTokOAuthClient _tikTokOAuth;
     private readonly IPlatformOAuthStateStore _oauthState;
     private readonly IPlatformTokenProtector _tokenProtector;
+    private readonly ITikTokAccessTokenResolver _accessTokens;
     private readonly TikTokOptions _tikTok;
     private readonly ILogger<LinkedPlatformAccountService> _logger;
 
@@ -27,6 +28,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
         ITikTokOAuthClient tikTokOAuth,
         IPlatformOAuthStateStore oauthState,
         IPlatformTokenProtector tokenProtector,
+        ITikTokAccessTokenResolver accessTokens,
         IOptions<TikTokOptions> tikTokOptions,
         ILogger<LinkedPlatformAccountService> logger)
     {
@@ -35,6 +37,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
         _tikTokOAuth = tikTokOAuth;
         _oauthState = oauthState;
         _tokenProtector = tokenProtector;
+        _accessTokens = accessTokens;
         _tikTok = tikTokOptions.Value;
         _logger = logger;
     }
@@ -159,6 +162,79 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
         await _repository.DeleteAsync(id, userId, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<LinkedPlatformAccountResponse> RefreshVerifiedMetadataAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var userId = RequireUserId();
+        var accounts = await _repository.ListByUserAsync(userId, cancellationToken).ConfigureAwait(false);
+        var account = accounts.FirstOrDefault(item => item.IsVerified)
+            ?? throw new InvalidOperationException("Connect a verified creator account first.");
+
+        var profile = await FetchLiveUserInfoAsync(account, cancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(profile.Username))
+        {
+            throw new InvalidOperationException(
+                "TikTok did not return a username. Reconnect the account and try again.");
+        }
+
+        ApplyLiveProfile(account, profile);
+        account.UpdatedUtc = DateTime.UtcNow;
+        var updated = await _repository.UpdateAsync(account, cancellationToken).ConfigureAwait(false);
+        return LinkedPlatformAccountMapper.ToResponse(updated);
+    }
+
+    private async Task<TikTokUserInfo> FetchLiveUserInfoAsync(
+        LinkedPlatformAccountDocument account,
+        CancellationToken cancellationToken)
+    {
+        var accessToken = await _accessTokens
+            .ResolveAccessTokenAsync(account, cancellationToken)
+            .ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            throw new InvalidOperationException("Could not reach TikTok. Reconnect the account and try again.");
+        }
+
+        try
+        {
+            return await _tikTokOAuth.GetUserInfoAsync(accessToken, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "TikTok user info failed for {AccountId}; trying a token refresh.",
+                account.Id);
+        }
+
+        var refreshed = await _accessTokens
+            .TryRefreshAsync(account, cancellationToken)
+            .ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(refreshed))
+        {
+            throw new InvalidOperationException("Could not reach TikTok. Reconnect the account and try again.");
+        }
+
+        return await _tikTokOAuth.GetUserInfoAsync(refreshed, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void ApplyLiveProfile(LinkedPlatformAccountDocument account, TikTokUserInfo profile)
+    {
+        var username = profile.Username!.Trim().ToLowerInvariant();
+        if (!string.Equals(account.Username, username, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(account.Username)
+            && !account.UsernameAliases.Contains(account.Username, StringComparer.OrdinalIgnoreCase))
+        {
+            account.UsernameAliases.Add(account.Username);
+        }
+
+        account.Username = username;
+        account.DisplayName = profile.DisplayName;
+        account.ProfileUrl = BuildProfileUrl(username);
+        account.AvatarUrl = profile.AvatarUrl;
+        account.Bio = profile.Bio;
+    }
+
     private async Task UpsertVerifiedTikTokAsync(
         string userId,
         string openId,
@@ -194,6 +270,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
                 DisplayName = profile.DisplayName,
                 ProfileUrl = BuildProfileUrl(username),
                 AvatarUrl = profile.AvatarUrl,
+                Bio = profile.Bio,
                 UsernameAliases = [],
                 IsVerified = true,
                 VerifiedUtc = now,
@@ -221,6 +298,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
         existing.DisplayName = profile.DisplayName;
         existing.ProfileUrl = BuildProfileUrl(username);
         existing.AvatarUrl = profile.AvatarUrl;
+        existing.Bio = profile.Bio;
         existing.IsVerified = true;
         existing.VerifiedUtc ??= now;
         existing.UpdatedUtc = now;

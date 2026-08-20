@@ -74,7 +74,7 @@ public sealed class TikTokOAuthClient : ITikTokOAuthClient
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            "v2/user/info/?fields=open_id,union_id,avatar_url,display_name,username");
+            "v2/user/info/?fields=open_id,union_id,avatar_url,avatar_large_url,display_name,username,bio_description");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
         using var response = await _httpClient
@@ -106,7 +106,8 @@ public sealed class TikTokOAuthClient : ITikTokOAuthClient
             OpenId = user.OpenId,
             Username = string.IsNullOrWhiteSpace(user.Username) ? null : user.Username.Trim(),
             DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? null : user.DisplayName.Trim(),
-            AvatarUrl = string.IsNullOrWhiteSpace(user.AvatarUrl) ? null : user.AvatarUrl.Trim(),
+            AvatarUrl = FirstNonEmpty(user.AvatarLargeUrl, user.AvatarUrl),
+            Bio = string.IsNullOrWhiteSpace(user.BioDescription) ? null : user.BioDescription.Trim(),
         };
     }
 
@@ -128,6 +129,19 @@ public sealed class TikTokOAuthClient : ITikTokOAuthClient
             throw new InvalidOperationException(
                 $"TikTok token revoke failed ({(int)response.StatusCode}).");
         }
+    }
+
+    private static string? FirstNonEmpty(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value.Trim();
+            }
+        }
+
+        return null;
     }
 
     public async Task<TikTokTokenResult> RefreshAsync(
@@ -266,6 +280,12 @@ public sealed class TikTokOAuthClient : ITikTokOAuthClient
 
         [JsonPropertyName("avatar_url")]
         public string? AvatarUrl { get; set; }
+
+        [JsonPropertyName("avatar_large_url")]
+        public string? AvatarLargeUrl { get; set; }
+
+        [JsonPropertyName("bio_description")]
+        public string? BioDescription { get; set; }
     }
 
     private sealed class UserInfoError

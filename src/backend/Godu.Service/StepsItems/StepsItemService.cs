@@ -298,7 +298,7 @@ public sealed class StepsItemService : IStepsItemService
         }
 
         await _creators
-            .EnsureForUserAsync(userId, displayName, account.AvatarUrl, cancellationToken)
+            .EnsureForUserAsync(userId, displayName, account.AvatarUrl, account.Bio, cancellationToken)
             .ConfigureAwait(false);
 
         existing.Visibility = StepsItemMapper.VisibilityName(StepsVisibility.Public);

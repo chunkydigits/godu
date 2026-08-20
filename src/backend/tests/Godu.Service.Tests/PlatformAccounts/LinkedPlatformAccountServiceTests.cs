@@ -37,6 +37,7 @@ public sealed class LinkedPlatformAccountServiceTests
             _tikTok.Object,
             _stateStore,
             _protector,
+            TokenResolver(),
             options,
             NullLogger<LinkedPlatformAccountService>.Instance);
     }
@@ -142,6 +143,8 @@ public sealed class LinkedPlatformAccountServiceTests
         saved.Provider.Should().Be("tiktok");
         saved.ExternalAccountId.Should().Be("open-1");
         saved.Username.Should().Be("therealjoe");
+        saved.AvatarUrl.Should().Be("https://example.com/a.png");
+        saved.Bio.Should().Be("I coach people.");
         saved.IsVerified.Should().BeTrue();
         saved.VerifiedUtc.Should().NotBeNull();
         saved.EncryptedAccessToken.Should().Be("p:access-token");
@@ -288,6 +291,60 @@ public sealed class LinkedPlatformAccountServiceTests
     }
 
     [Fact]
+    public async Task RefreshVerifiedMetadataAsync_WhenTikTokReturnsNewProfile_ThenPersistsLiveFields()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner");
+        existing.EncryptedAccessToken = "p:access-token";
+        existing.AccessTokenExpiresUtc = DateTime.UtcNow.AddHours(1);
+        existing.AvatarUrl = "https://example.com/old.png";
+        existing.Bio = "Old bio";
+        _repository
+            .Setup(r => r.ListByUserAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([existing]);
+        _tikTok
+            .Setup(c => c.GetUserInfoAsync("access-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TikTokUserInfo
+            {
+                OpenId = "open-1",
+                Username = "therealjoe",
+                DisplayName = "Joe v2",
+                AvatarUrl = "https://example.com/new.png",
+                Bio = "Updated TikTok bio",
+            });
+        LinkedPlatformAccountDocument? saved = null;
+        _repository
+            .Setup(r => r.UpdateAsync(It.IsAny<LinkedPlatformAccountDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LinkedPlatformAccountDocument doc, CancellationToken _) =>
+            {
+                saved = doc;
+                return doc;
+            });
+
+        var result = await _sut.RefreshVerifiedMetadataAsync();
+
+        result.DisplayName.Should().Be("Joe v2");
+        result.AvatarUrl.Should().Be("https://example.com/new.png");
+        result.Bio.Should().Be("Updated TikTok bio");
+        saved.Should().NotBeNull();
+        saved!.AvatarUrl.Should().Be("https://example.com/new.png");
+        saved.Bio.Should().Be("Updated TikTok bio");
+    }
+
+    [Fact]
+    public async Task RefreshVerifiedMetadataAsync_WhenNoVerifiedAccount_ThenThrows()
+    {
+        Authenticate("usr_owner");
+        _repository
+            .Setup(r => r.ListByUserAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var act = () => _sut.RefreshVerifiedMetadataAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
     public async Task DisconnectAsync_WhenNotOwner_ThenThrowsNotFound()
     {
         Authenticate("usr_owner");
@@ -317,9 +374,17 @@ public sealed class LinkedPlatformAccountServiceTests
             _tikTok.Object,
             _stateStore,
             _protector,
+            TokenResolver(),
             Options.Create(new TikTokOptions()),
             NullLogger<LinkedPlatformAccountService>.Instance);
     }
+
+    private TikTokAccessTokenResolver TokenResolver() =>
+        new(
+            _tikTok.Object,
+            _protector,
+            _repository.Object,
+            NullLogger<TikTokAccessTokenResolver>.Instance);
 
     private static TikTokTokenResult ValidTokens() => new()
     {
@@ -337,6 +402,7 @@ public sealed class LinkedPlatformAccountServiceTests
         Username = "TheRealJoe",
         DisplayName = "Joe Fitness",
         AvatarUrl = "https://example.com/a.png",
+        Bio = "I coach people.",
     };
 
     private static LinkedPlatformAccountDocument SampleDocument(string userId) => new()

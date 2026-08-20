@@ -18,6 +18,8 @@ public sealed class LinkedPlatformAccountDocument
 
     public string? AvatarUrl { get; set; }
 
+    public string? Bio { get; set; }
+
     public List<string> UsernameAliases { get; set; } = [];
 
     public bool IsVerified { get; set; }

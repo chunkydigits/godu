@@ -9,4 +9,6 @@ public sealed class TikTokUserInfo
     public string? DisplayName { get; init; }
 
     public string? AvatarUrl { get; init; }
+
+    public string? Bio { get; init; }
 }

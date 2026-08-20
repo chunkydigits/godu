@@ -18,6 +18,8 @@ public sealed class LinkedPlatformAccountResponse
 
     public string? AvatarUrl { get; init; }
 
+    public string? Bio { get; init; }
+
     public required bool IsVerified { get; init; }
 
     public DateTime? VerifiedUtc { get; init; }

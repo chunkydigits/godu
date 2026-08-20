@@ -115,6 +115,7 @@ public sealed class InMemoryLinkedPlatformAccountRepository : ILinkedPlatformAcc
             DisplayName = account.DisplayName,
             ProfileUrl = account.ProfileUrl,
             AvatarUrl = account.AvatarUrl,
+            Bio = account.Bio,
             UsernameAliases = [.. account.UsernameAliases],
             IsVerified = account.IsVerified,
             VerifiedUtc = account.VerifiedUtc,

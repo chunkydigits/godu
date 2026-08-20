@@ -7,6 +7,7 @@ export interface LinkedPlatformAccount {
   displayName?: string | null;
   profileUrl?: string | null;
   avatarUrl?: string | null;
+  bio?: string | null;
   isVerified: boolean;
   verifiedUtc?: string | null;
   createdUtc: string;

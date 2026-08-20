@@ -8,5 +8,13 @@ public interface ICreatorService
         string userId,
         string displayName,
         string? profileImageUrl,
+        string? bio = null,
+        CancellationToken cancellationToken = default);
+
+    Task<CreatorDocument> UpdateForUserAsync(
+        string userId,
+        string displayName,
+        string? bio,
+        string? profileImageUrl,
         CancellationToken cancellationToken = default);
 }
