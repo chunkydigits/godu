@@ -1,4 +1,5 @@
 using Godu.Model.Configuration;
+using Godu.Repository.Analytics;
 using Godu.Repository.Cosmos;
 using Godu.Repository.Creators;
 using Godu.Repository.ExternalIdentities;
@@ -26,6 +27,7 @@ public static class RepositoryConfiguration
             services.AddSingleton<IStepsItemRepository, InMemoryStepsItemRepository>();
             services.AddSingleton<ICreatorRepository, InMemoryCreatorRepository>();
             services.AddSingleton<IUserRepository, InMemoryUserRepository>();
+            services.AddSingleton<IAnalyticsEventRepository, InMemoryAnalyticsEventRepository>();
             return services;
         }
 
@@ -35,6 +37,7 @@ public static class RepositoryConfiguration
         services.AddSingleton<IStepsItemRepository, CosmosStepsItemRepository>();
         services.AddSingleton<ICreatorRepository, CosmosCreatorRepository>();
         services.AddSingleton<IUserRepository, CosmosUserRepository>();
+        services.AddSingleton<IAnalyticsEventRepository, CosmosAnalyticsEventRepository>();
         return services;
     }
 }

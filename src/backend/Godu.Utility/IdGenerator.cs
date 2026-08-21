@@ -13,4 +13,6 @@ public static class IdGenerator
     public static string NewPlatformAccountId() => $"platform_{Ulid.NewUlid()}";
 
     public static string NewCreatorId() => $"creator_{Ulid.NewUlid()}";
+
+    public static string NewAnalyticsEventId() => $"evt_{Ulid.NewUlid()}";
 }

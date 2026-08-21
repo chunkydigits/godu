@@ -1,3 +1,4 @@
+using Godu.Service.Analytics;
 using Godu.Service.Creators;
 using Godu.Service.Identity;
 using Godu.Service.PlatformAccounts;
@@ -19,6 +20,8 @@ public static class ServiceConfiguration
         services.AddScoped<ITikTokVideoOwnershipVerifier, TikTokVideoOwnershipVerifier>();
         services.AddScoped<IUserProvisioningService, UserProvisioningService>();
         services.AddScoped<IUserSettingsService, UserSettingsService>();
+        services.AddScoped<IAnalyticsIngestService, AnalyticsIngestService>();
+        services.AddScoped<IAnalyticsSummaryService, AnalyticsSummaryService>();
         services.AddSingleton<IPlatformOAuthStateStore, InMemoryPlatformOAuthStateStore>();
         services.AddSingleton<IPlatformTokenProtector, DataProtectionPlatformTokenProtector>();
         services.AddHttpClient<ITikTokOAuthClient, TikTokOAuthClient>(client =>

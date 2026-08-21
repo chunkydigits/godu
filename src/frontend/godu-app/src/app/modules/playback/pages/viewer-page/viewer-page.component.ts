@@ -49,6 +49,8 @@ import { ViewerPreferencesService } from '../../services/viewer-preferences.serv
 import { UserSettingsService } from '../../../settings/services/user-settings.service';
 import { publicCreatorPath } from '../../models/public-path';
 import { StepsVisibility } from '../../models/steps-visibility.enum';
+import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
+import { AnalyticsService } from '../../../../core/analytics/analytics.service';
 
 @Component({
   selector: 'app-viewer-page',
@@ -74,8 +76,10 @@ export class ViewerPageComponent implements OnDestroy {
   private readonly preferences = inject(ViewerPreferencesService);
   private readonly userSettings = inject(UserSettingsService);
   private readonly wakeLock = inject(ScreenWakeLockService);
+  private readonly analytics = inject(AnalyticsService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
+  private startedAtMs: number | null = null;
 
   @ViewChild('descriptionHost') private descriptionHost?: ElementRef<HTMLElement>;
 
@@ -98,6 +102,7 @@ export class ViewerPageComponent implements OnDestroy {
           this.error$.next(null);
           this.playback.setUserMuted(this.preferences.muted);
           this.syncVoiceCuesToPlayback();
+          this.trackViewed(item);
           void this.playback.load(item);
         }),
         catchError((err: Error) => {
@@ -150,6 +155,23 @@ export class ViewerPageComponent implements OnDestroy {
       .subscribe((completed) => {
         if (completed) {
           this.closeSettingsPanel();
+          this.trackCompleted();
+        }
+      });
+
+    this.playback.state$
+      .pipe(
+        map((s) => (s.phase === 'playing' ? s.stepNumber : null)),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((stepNumber) => {
+        const item = this.playback.snapshot.stepsItem;
+        if (item && stepNumber != null) {
+          this.analytics.track(AnalyticsEvent.StepStarted, {
+            ...this.goduProps(item),
+            stepNumber,
+          });
         }
       });
 
@@ -249,6 +271,11 @@ export class ViewerPageComponent implements OnDestroy {
   }
 
   start(): void {
+    const item = this.playback.snapshot.stepsItem;
+    if (item) {
+      this.startedAtMs = Date.now();
+      this.analytics.trackOnce(`started:${item.id}`, AnalyticsEvent.GoduStarted, this.goduProps(item));
+    }
     void this.playback.start();
   }
 
@@ -258,6 +285,22 @@ export class ViewerPageComponent implements OnDestroy {
   }
 
   selectActivityStep(activityIndex: number): void {
+    const current = Math.max(0, (this.playback.snapshot.stepNumber ?? 1) - 1);
+    const item = this.playback.snapshot.stepsItem;
+    if (item && activityIndex !== current) {
+      const event =
+        activityIndex > current ? AnalyticsEvent.NextStepClicked : AnalyticsEvent.PreviousStepClicked;
+      this.analytics.track(event, {
+        ...this.goduProps(item),
+        fromStep: current + 1,
+        toStep: activityIndex + 1,
+      });
+    } else if (item && activityIndex === current) {
+      this.analytics.track(AnalyticsEvent.StepRepeated, {
+        ...this.goduProps(item),
+        stepNumber: activityIndex + 1,
+      });
+    }
     void this.playback.selectActivityStep(activityIndex);
   }
 
@@ -274,6 +317,7 @@ export class ViewerPageComponent implements OnDestroy {
   }
 
   replay(): void {
+    this.startedAtMs = Date.now();
     void this.playback.restart();
   }
 
@@ -382,6 +426,37 @@ export class ViewerPageComponent implements OnDestroy {
     const username = this.route.snapshot.paramMap.get('username');
     const provider = this.route.snapshot.data['provider'] as string | undefined;
     return publicCreatorPath(provider, username) ?? '/demos';
+  }
+
+  private trackViewed(item: StepsItem): void {
+    this.analytics.trackOnce(`viewed:${item.id}`, AnalyticsEvent.GoduViewed, {
+      ...this.goduProps(item),
+      owner: !this.route.snapshot.paramMap.get('username'),
+      stepCount: activityEntries(item.steps).length,
+      visibility: item.visibility,
+    });
+  }
+
+  private trackCompleted(): void {
+    const item = this.playback.snapshot.stepsItem;
+    if (!item) {
+      return;
+    }
+
+    const elapsedSeconds =
+      this.startedAtMs == null ? undefined : Math.max(0, Math.round((Date.now() - this.startedAtMs) / 1000));
+    this.analytics.trackOnce(`completed:${item.id}`, AnalyticsEvent.GoduCompleted, {
+      ...this.goduProps(item),
+      stepCount: activityEntries(item.steps).length,
+      elapsedSeconds,
+    });
+  }
+
+  private goduProps(item: StepsItem): { goduId: string; platform: string | null } {
+    return {
+      goduId: item.id,
+      platform: item.video.provider ?? 'tiktok',
+    };
   }
 
   private async syncPlayerToState(): Promise<void> {

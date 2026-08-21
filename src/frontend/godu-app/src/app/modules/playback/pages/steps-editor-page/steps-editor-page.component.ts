@@ -24,6 +24,8 @@ import {
   tap,
 } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
+import { AnalyticsService } from '../../../../core/analytics/analytics.service';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
 import { MaterialModule } from '../../../../core/material.module';
 import { StepsEditorFormComponent } from '../../components/steps-editor-form/steps-editor-form.component';
@@ -96,6 +98,7 @@ export class StepsEditorPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly myStepsApi = inject(MyStepsApiService);
+  private readonly analytics = inject(AnalyticsService);
 
   private readonly saveTrigger$ = new Subject<void>();
 
@@ -103,10 +106,17 @@ export class StepsEditorPageComponent {
   private lastAutoCreator = '';
   private lastAutoTitle = '';
   private lastAutoDescription = '';
+  private lastTrackedVideoId: string | null = null;
 
   readonly continuousSoundtrackEnabled = environment.features.continuousSoundtrack;
   readonly editId$ = this.route.paramMap.pipe(map((p) => p.get('id')));
   readonly isEditMode = !!this.route.snapshot.paramMap.get('id');
+
+  constructor() {
+    if (!this.isEditMode) {
+      this.analytics.trackOnce('create', AnalyticsEvent.CreateStarted);
+    }
+  }
 
   /** Desktop: when true, video column is on the end (right in LTR). */
   readonly videoOnEnd = signal(readVideoOnEnd());
@@ -168,10 +178,29 @@ export class StepsEditorPageComponent {
           return of(null);
         }
 
+        const isNewSubmission = parsed.videoId !== this.lastTrackedVideoId;
+        if (isNewSubmission) {
+          this.lastTrackedVideoId = parsed.videoId;
+          this.analytics.track(AnalyticsEvent.VideoUrlSubmitted, { platform: 'tiktok' });
+        }
+
         const lookupKey = value.trim().startsWith('http') ? value.trim() : parsed.sourceUrl;
         return this.myStepsApi.lookupTikTokMetadata(lookupKey).pipe(
-          tap((metadata) => this.applyOEmbedAutofill(metadata)),
-          catchError(() => of(null)),
+          tap((metadata) => {
+            this.applyOEmbedAutofill(metadata);
+            if (isNewSubmission) {
+              this.analytics.track(AnalyticsEvent.VideoLoaded, { platform: 'tiktok' });
+            }
+          }),
+          catchError(() => {
+            if (isNewSubmission) {
+              this.analytics.track(AnalyticsEvent.VideoLoadFailed, {
+                platform: 'tiktok',
+                failureReason: 'unsupported-video',
+              });
+            }
+            return of(null);
+          }),
         );
       }),
     ),
@@ -189,6 +218,8 @@ export class StepsEditorPageComponent {
             this.lastAutoCreator = '';
             this.lastAutoTitle = '';
             this.lastAutoDescription = '';
+            this.lastTrackedVideoId =
+              parseTikTokVideo(item.video.sourceUrl || item.video.externalVideoId)?.videoId ?? null;
             const noGaps = (item.gapSeconds ?? 0) <= 0;
             this.form.patchValue(
               {
@@ -254,6 +285,12 @@ export class StepsEditorPageComponent {
 
       return save$.pipe(
         tap((saved) => {
+          this.analytics.track(AnalyticsEvent.GoduSaved, {
+            goduId: saved.id,
+            stepCount: activityCount(saved.steps),
+            visibility: saved.visibility,
+            platform: saved.video.provider || 'tiktok',
+          });
           void this.router.navigate(['/play', saved.id]);
         }),
         map(() => ({ saving: false, error: null as string | null })),
@@ -284,6 +321,9 @@ export class StepsEditorPageComponent {
     this.steps.push(
       kind === 'gap' ? this.createGapGroup(order) : this.createStepGroup(order),
     );
+    if (kind === 'step') {
+      this.analytics.track(AnalyticsEvent.StepAdded, { stepNumber: this.activityStepCount });
+    }
   }
 
   /**
@@ -346,6 +386,13 @@ export class StepsEditorPageComponent {
   removeEntry(index: number): void {
     if (!this.canRemoveEntry(index)) {
       return;
+    }
+    const entry = this.steps.at(index)?.getRawValue() as StepEntryFormValue | undefined;
+    if (entry && stepEntryKind(entry) === 'step') {
+      const entries = this.steps.getRawValue() as StepEntryFormValue[];
+      this.analytics.track(AnalyticsEvent.StepDeleted, {
+        stepNumber: activityCount(entries.slice(0, index + 1)),
+      });
     }
     const control = this.steps.at(index);
     if (control) {

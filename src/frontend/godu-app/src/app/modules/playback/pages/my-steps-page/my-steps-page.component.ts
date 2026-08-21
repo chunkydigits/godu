@@ -13,14 +13,18 @@ import {
   of,
   startWith,
   switchMap,
+  tap,
 } from 'rxjs';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
 import { problemDetail } from '../../../../core/http-problem';
 import { MaterialModule } from '../../../../core/material.module';
 import { CreatorStepsApiService } from '../../../creators/services/creator-steps-api.service';
 import { PlatformAccountsApiService } from '../../../settings/services/platform-accounts-api.service';
+import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
+import { AnalyticsService } from '../../../../core/analytics/analytics.service';
 import { ApiStepsItem } from '../../models/api-steps-item.model';
 import { isValidSlug, publicViewerPath, slugFromTitle } from '../../models/public-path';
+import { activityCount } from '../../models/step-entry';
 import { MyStepsApiService } from '../../services/my-steps-api.service';
 
 interface MyStepsView {
@@ -58,6 +62,7 @@ export class MyStepsPageComponent {
   private readonly myStepsApi = inject(MyStepsApiService);
   private readonly creatorSteps = inject(CreatorStepsApiService);
   private readonly platformAccounts = inject(PlatformAccountsApiService);
+  private readonly analytics = inject(AnalyticsService);
 
   private readonly actions$ = new Subject<MyStepsAction>();
 
@@ -128,6 +133,10 @@ export class MyStepsPageComponent {
     }
     void navigator.clipboard.writeText(`${window.location.origin}${path}`).then(() => {
       this.copiedId = item.id;
+      this.analytics.track(AnalyticsEvent.LinkCopied, {
+        goduId: item.id,
+        platform: item.video.provider || 'tiktok',
+      });
       if (this.copiedTimer) {
         clearTimeout(this.copiedTimer);
       }
@@ -153,6 +162,15 @@ export class MyStepsPageComponent {
           : 'Unpublished.';
 
     return request$.pipe(
+      tap((item) => {
+        if (action.kind === 'publish') {
+          this.analytics.track(AnalyticsEvent.GoduPublished, {
+            goduId: item.id,
+            stepCount: activityCount(item.steps),
+            platform: item.video.provider || 'tiktok',
+          });
+        }
+      }),
       switchMap(() => this.loadView(true, message)),
       startWith(emptyView({ loading: true })),
       catchError((err: unknown) =>

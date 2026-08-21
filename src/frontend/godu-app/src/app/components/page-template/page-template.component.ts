@@ -2,6 +2,8 @@ import { AsyncPipe } from '@angular/common';
 import { Component, Input, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
+import { AnalyticsEvent } from '../../core/analytics/analytics-event';
+import { AnalyticsService } from '../../core/analytics/analytics.service';
 import { MaterialModule } from '../../core/material.module';
 
 @Component({
@@ -12,6 +14,7 @@ import { MaterialModule } from '../../core/material.module';
 })
 export class PageTemplateComponent {
   private readonly auth = inject(AuthService);
+  private readonly analytics = inject(AnalyticsService);
 
   @Input() title = '';
   @Input() subtitle = '';
@@ -26,6 +29,7 @@ export class PageTemplateComponent {
   }
 
   logout(): void {
+    this.analytics.track(AnalyticsEvent.Logout);
     this.auth.logout({ logoutParams: { returnTo: window.location.origin } });
   }
 }

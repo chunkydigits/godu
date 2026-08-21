@@ -1,0 +1,27 @@
+export const AnalyticsEvent = {
+  PageViewed: 'page_viewed',
+  LandingPageViewed: 'landing_page_viewed',
+  CreateStarted: 'create_started',
+  VideoUrlSubmitted: 'video_url_submitted',
+  VideoLoaded: 'video_loaded',
+  VideoLoadFailed: 'video_load_failed',
+  StepAdded: 'step_added',
+  StepDeleted: 'step_deleted',
+  GoduSaved: 'godu_saved',
+  GoduPublished: 'godu_published',
+  GoduViewed: 'godu_viewed',
+  GoduStarted: 'godu_started',
+  StepStarted: 'step_started',
+  StepCompleted: 'step_completed',
+  NextStepClicked: 'next_step_clicked',
+  PreviousStepClicked: 'previous_step_clicked',
+  StepRepeated: 'step_repeated',
+  GoduCompleted: 'godu_completed',
+  ShareClicked: 'share_clicked',
+  LinkCopied: 'link_copied',
+  RegistrationStarted: 'registration_started',
+  LoginCompleted: 'login_completed',
+  Logout: 'logout',
+} as const;
+
+export type AnalyticsEventName = (typeof AnalyticsEvent)[keyof typeof AnalyticsEvent];

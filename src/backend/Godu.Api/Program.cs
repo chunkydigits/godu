@@ -28,6 +28,7 @@ if (!string.IsNullOrWhiteSpace(keyVaultUri))
 builder.Services.AddDataProtection();
 builder.Services.Configure<Auth0Options>(builder.Configuration.GetSection(Auth0Options.SectionName));
 builder.Services.Configure<TikTokOptions>(builder.Configuration.GetSection(TikTokOptions.SectionName));
+builder.Services.Configure<AnalyticsOptions>(builder.Configuration.GetSection(AnalyticsOptions.SectionName));
 var auth0 = builder.Configuration.GetSection(Auth0Options.SectionName).Get<Auth0Options>()
     ?? throw new InvalidOperationException("Auth0 configuration is required.");
 
