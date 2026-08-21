@@ -92,6 +92,16 @@ export class AnalyticsService {
     this.track(eventName, properties);
   }
 
+  trackShare(
+    method: 'native' | 'copy-link',
+    properties: AnalyticsTrackProperties = {},
+  ): void {
+    this.track(AnalyticsEvent.ShareClicked, { method, ...properties });
+    if (method === 'copy-link') {
+      this.track(AnalyticsEvent.LinkCopied, properties);
+    }
+  }
+
   private onNavigation(url: string): void {
     const path = url.split('?')[0] || '/';
     const params = new URLSearchParams(url.includes('?') ? url.slice(url.indexOf('?') + 1) : '');

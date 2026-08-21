@@ -144,6 +144,7 @@ public sealed class AnalyticsSummaryServiceTests
         await Seed(AnalyticsEventNames.PageViewed, "anon-a", "s1", day1);
         await Seed(AnalyticsEventNames.PageViewed, "anon-b", "s2", day1);
         await Seed(AnalyticsEventNames.CreateStarted, "anon-a", "s1", day1);
+        await Seed(AnalyticsEventNames.CreateStarted, "anon-c", "s5", day1);
         await Seed(AnalyticsEventNames.GoduSaved, "anon-a", "s1", day1, "steps_1", "usr_1");
         await Seed(AnalyticsEventNames.GoduSaved, "anon-a", "s3", day2, "steps_2", "usr_1");
         await Seed(AnalyticsEventNames.GoduStarted, "anon-b", "s2", day1, "steps_1");
@@ -159,7 +160,7 @@ public sealed class AnalyticsSummaryServiceTests
 
         var summary = await _sut.SummarizeAsync(day1, day2.AddDays(1), "Development");
 
-        summary.UniqueVisitors.Should().Be(2);
+        summary.UniqueVisitors.Should().Be(3);
         summary.GodusCreated.Should().Be(2);
         summary.GodusStarted.Should().Be(3);
         summary.GodusCompleted.Should().Be(1);
@@ -168,6 +169,10 @@ public sealed class AnalyticsSummaryServiceTests
         summary.RepeatConsumers.Should().Be(1);
         summary.ReturningUsers.Should().Be(2);
         summary.UsersCreatingSecondGodu.Should().Be(1);
+        summary.CreationAbandoned.Should().Be(1);
+        summary.CreationAbandonRate.Should().Be(50);
+        summary.UsageAbandoned.Should().Be(2);
+        summary.UsageAbandonRate.Should().Be(66.7);
     }
 
     private async Task Seed(

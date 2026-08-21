@@ -133,7 +133,7 @@ export class MyStepsPageComponent {
     }
     void navigator.clipboard.writeText(`${window.location.origin}${path}`).then(() => {
       this.copiedId = item.id;
-      this.analytics.track(AnalyticsEvent.LinkCopied, {
+      this.analytics.trackShare('copy-link', {
         goduId: item.id,
         platform: item.video.provider || 'tiktok',
       });

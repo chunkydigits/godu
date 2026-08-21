@@ -5,7 +5,6 @@ import { Observable, Subject, catchError, map, merge, of, startWith, switchMap }
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
 import { problemDetail } from '../../../../core/http-problem';
 import { MaterialModule } from '../../../../core/material.module';
-import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../../core/analytics/analytics.service';
 import { ApiStepsItem } from '../../../playback/models/api-steps-item.model';
 import { publicViewerPath } from '../../../playback/models/public-path';
@@ -67,7 +66,7 @@ export class CreatorDashboardPageComponent {
     }
     void navigator.clipboard.writeText(`${window.location.origin}${path}`).then(() => {
       this.copiedId = item.id;
-      this.analytics.track(AnalyticsEvent.LinkCopied, {
+      this.analytics.trackShare('copy-link', {
         goduId: item.id,
         platform: item.video.provider || 'tiktok',
       });

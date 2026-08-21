@@ -29,6 +29,16 @@
       <mat-icon>replay</mat-icon>
     </button>
 
+    <button
+      mat-icon-button
+      class="completion__icon-btn"
+      type="button"
+      (click)="share()"
+      [attr.aria-label]="copied ? 'Link copied' : 'Share'"
+    >
+      <mat-icon>{{ copied ? 'check' : 'share' }}</mat-icon>
+    </button>
+
     <a
       mat-icon-button
       class="completion__icon-btn completion__icon-btn--platform"

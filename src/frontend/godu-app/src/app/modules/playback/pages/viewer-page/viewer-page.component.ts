@@ -80,6 +80,8 @@ export class ViewerPageComponent implements OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
   private startedAtMs: number | null = null;
+  private lastPlayingStep: number | null = null;
+  private lastCompletedStep: number | null = null;
 
   @ViewChild('descriptionHost') private descriptionHost?: ElementRef<HTMLElement>;
 
@@ -99,6 +101,8 @@ export class ViewerPageComponent implements OnDestroy {
       this.resolveItem(params).pipe(
         tap((item) => {
           this.pendingItem = item;
+          this.lastPlayingStep = null;
+          this.lastCompletedStep = null;
           this.error$.next(null);
           this.playback.setUserMuted(this.preferences.muted);
           this.syncVoiceCuesToPlayback();
@@ -161,17 +165,57 @@ export class ViewerPageComponent implements OnDestroy {
 
     this.playback.state$
       .pipe(
-        map((s) => (s.phase === 'playing' ? s.stepNumber : null)),
-        distinctUntilChanged(),
+        map((s) => ({
+          phase: s.phase,
+          stepNumber: s.stepNumber,
+          remainingSeconds: s.remainingSeconds,
+        })),
+        distinctUntilChanged(
+          (a, b) =>
+            a.phase === b.phase &&
+            a.stepNumber === b.stepNumber &&
+            a.remainingSeconds === b.remainingSeconds,
+        ),
         takeUntil(this.destroy$),
       )
-      .subscribe((stepNumber) => {
+      .subscribe(({ phase, stepNumber, remainingSeconds }) => {
         const item = this.playback.snapshot.stepsItem;
-        if (item && stepNumber != null) {
-          this.analytics.track(AnalyticsEvent.StepStarted, {
-            ...this.goduProps(item),
-            stepNumber,
-          });
+        if (!item) {
+          return;
+        }
+
+        if (phase === 'ready' || phase === 'idle') {
+          this.lastPlayingStep = null;
+          this.lastCompletedStep = null;
+          return;
+        }
+
+        const totalSteps = activityEntries(item.steps).length;
+        if (
+          this.lastPlayingStep != null &&
+          stepNumber != null &&
+          stepNumber > this.lastPlayingStep
+        ) {
+          this.trackStepCompleted(item, this.lastPlayingStep, totalSteps);
+        }
+
+        if (
+          this.lastPlayingStep != null &&
+          remainingSeconds === 0 &&
+          phase !== 'gap'
+        ) {
+          this.trackStepCompleted(item, this.lastPlayingStep, totalSteps);
+        }
+
+        if (phase === 'playing' && stepNumber != null) {
+          if (this.lastPlayingStep !== stepNumber) {
+            this.analytics.track(AnalyticsEvent.StepStarted, {
+              ...this.goduProps(item),
+              stepNumber,
+              totalSteps,
+            });
+          }
+          this.lastPlayingStep = stepNumber;
         }
       });
 
@@ -322,6 +366,8 @@ export class ViewerPageComponent implements OnDestroy {
 
   replay(): void {
     this.startedAtMs = Date.now();
+    this.lastPlayingStep = null;
+    this.lastCompletedStep = null;
     void this.playback.restart();
   }
 
@@ -447,12 +493,30 @@ export class ViewerPageComponent implements OnDestroy {
       return;
     }
 
+    const totalSteps = activityEntries(item.steps).length;
+    if (this.lastPlayingStep != null) {
+      this.trackStepCompleted(item, this.lastPlayingStep, totalSteps);
+    }
+
     const elapsedSeconds =
       this.startedAtMs == null ? undefined : Math.max(0, Math.round((Date.now() - this.startedAtMs) / 1000));
     this.analytics.trackOnce(`completed:${item.id}`, AnalyticsEvent.GoduCompleted, {
       ...this.goduProps(item),
-      stepCount: activityEntries(item.steps).length,
+      stepCount: totalSteps,
       elapsedSeconds,
+    });
+  }
+
+  private trackStepCompleted(item: StepsItem, stepNumber: number, totalSteps: number): void {
+    if (this.lastCompletedStep === stepNumber) {
+      return;
+    }
+
+    this.lastCompletedStep = stepNumber;
+    this.analytics.track(AnalyticsEvent.StepCompleted, {
+      ...this.goduProps(item),
+      stepNumber,
+      totalSteps,
     });
   }
 

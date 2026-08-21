@@ -49,4 +49,12 @@ public sealed class AnalyticsSummaryResponse
     public int UsersUsingSecondGodu { get; init; }
 
     public double SecondUsageRate { get; init; }
+
+    public int CreationAbandoned { get; init; }
+
+    public double CreationAbandonRate { get; init; }
+
+    public int UsageAbandoned { get; init; }
+
+    public double UsageAbandonRate { get; init; }
 }

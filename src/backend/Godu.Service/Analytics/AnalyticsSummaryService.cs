@@ -53,6 +53,14 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
         var repeatCreators = createdByIdentity.Count(pair => pair.Value >= 2);
         var consumers = usedByIdentity.Count;
         var repeatConsumers = usedByIdentity.Count(pair => pair.Value >= 2);
+        var creationAbandoned = SessionsWithout(
+            visible,
+            AnalyticsEventNames.CreateStarted,
+            AnalyticsEventNames.GoduSaved);
+        var usageAbandoned = SessionsWithout(
+            visible,
+            AnalyticsEventNames.GoduStarted,
+            AnalyticsEventNames.GoduCompleted);
 
         return new AnalyticsSummaryResponse
         {
@@ -72,8 +80,7 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
             GodusStarted = startedSessions,
             GodusCompleted = completedSessions,
             CompletionRate = Rate(completedSessions, startedSessions),
-            Shares = Count(visible, AnalyticsEventNames.ShareClicked)
-                + Count(visible, AnalyticsEventNames.LinkCopied),
+            Shares = Count(visible, AnalyticsEventNames.ShareClicked),
             ReturningUsers = CountReturning(visible),
             RepeatCreators = repeatCreators,
             RepeatCreatorRate = Rate(repeatCreators, creators),
@@ -85,6 +92,10 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
             UsersUsingFirstGodu = usedByIdentity.Count(pair => pair.Value == 1),
             UsersUsingSecondGodu = usedByIdentity.Count(pair => pair.Value >= 2),
             SecondUsageRate = Rate(usedByIdentity.Count(pair => pair.Value >= 2), consumers),
+            CreationAbandoned = creationAbandoned,
+            CreationAbandonRate = Rate(creationAbandoned, createStartedSessions),
+            UsageAbandoned = usageAbandoned,
+            UsageAbandonRate = Rate(usageAbandoned, startedSessions),
         };
     }
 
@@ -115,6 +126,22 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
             .Select(item => item.SessionId)
             .Distinct(StringComparer.Ordinal)
             .Count();
+
+    private static int SessionsWithout(
+        IEnumerable<AnalyticsEventDocument> events,
+        string started,
+        string finished)
+    {
+        var startedSessions = events
+            .Where(item => item.EventName == started)
+            .Select(item => item.SessionId)
+            .ToHashSet(StringComparer.Ordinal);
+        var finishedSessions = events
+            .Where(item => item.EventName == finished)
+            .Select(item => item.SessionId)
+            .ToHashSet(StringComparer.Ordinal);
+        return startedSessions.Count(session => !finishedSessions.Contains(session));
+    }
 
     private static int DistinctGodus(IEnumerable<AnalyticsEventDocument> events, string name)
     {
