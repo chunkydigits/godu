@@ -30,6 +30,48 @@ export function publicCreatorPath(
   return `/${alias}/${handle}`;
 }
 
+export function viewerBackPath(options: {
+  provider?: string | null;
+  username?: string | null;
+  playId?: string | null;
+  isDemo?: boolean;
+}): string {
+  const creator = publicCreatorPath(options.provider, options.username);
+  if (creator) {
+    return creator;
+  }
+
+  if (options.playId && !options.isDemo) {
+    return '/my-steps';
+  }
+
+  return '/demos';
+}
+
+const PUBLIC_VIEWER = /^\/(t|tiktok|y|youtube|i|instagram|v|vimeo)\/([^/]+)(?:\/|$)/;
+const PLAY_VIEWER = /^\/play\/([^/]+)/;
+
+export function viewerBackPathFromUrl(
+  url: string,
+  isDemoId: (id: string) => boolean = () => false,
+): string {
+  const path = url.split('?')[0] || '/';
+  const publicMatch = PUBLIC_VIEWER.exec(path);
+  if (publicMatch) {
+    return publicCreatorPath(publicMatch[1], publicMatch[2]) ?? '/demos';
+  }
+
+  const playMatch = PLAY_VIEWER.exec(path);
+  if (playMatch) {
+    return viewerBackPath({
+      playId: decodeURIComponent(playMatch[1]),
+      isDemo: isDemoId(playMatch[1]),
+    });
+  }
+
+  return '/demos';
+}
+
 export interface PublicPathSource {
   publicPath?: string | null;
   slug?: string | null;

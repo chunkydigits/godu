@@ -271,6 +271,10 @@ export class DemoStepsService {
     return of(item);
   }
 
+  isDemo(id: string | null | undefined): boolean {
+    return !!id && DEMO_ITEMS.some((item) => item.id === id);
+  }
+
   /** Other demo items from the same platform username (Phase 1b stub). */
   getRelatedByCreator(item: StepsItem, limit = 3): Observable<StepsItem[]> {
     const username = item.video.creatorUsername?.toLowerCase();

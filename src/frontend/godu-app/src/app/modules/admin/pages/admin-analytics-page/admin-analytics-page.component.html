@@ -1,0 +1,159 @@
+<app-page-template
+  title="Analytics"
+  subtitle="Early Access product metrics. Internal traffic is excluded."
+>
+  @if (view$ | async; as view) {
+    <div class="toolbar">
+      <div class="ranges" role="group" aria-label="Date range">
+        @for (days of ranges; track days) {
+          <button
+            mat-stroked-button
+            type="button"
+            [color]="view.days === days ? 'primary' : undefined"
+            (click)="selectRange(days)"
+          >
+            {{ days }} days
+          </button>
+        }
+      </div>
+      @if (view.summary) {
+        <p class="meta">{{ view.summary.environment }}</p>
+      }
+    </div>
+
+    @if (view.loading) {
+      <div class="status-row">
+        <mat-progress-bar mode="indeterminate" />
+      </div>
+    } @else if (view.error) {
+      <p class="error">{{ view.error }}</p>
+    } @else if (view.summary; as summary) {
+      <section class="panel" aria-labelledby="headline-title">
+        <h2 id="headline-title">Headline</h2>
+        <div class="metrics">
+          <div class="metric">
+            <span class="metric__label">Unique visitors</span>
+            <span class="metric__value">{{ summary.uniqueVisitors | number: '1.0-0' }}</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Active users</span>
+            <span class="metric__value">{{ summary.activeUsers | number: '1.0-0' }}</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Godus created</span>
+            <span class="metric__value">{{ summary.godusCreated | number: '1.0-0' }}</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Godus used</span>
+            <span class="metric__value">{{ summary.godusStarted | number: '1.0-0' }}</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Completion rate</span>
+            <span class="metric__value">{{ summary.completionRate | number: '1.0-1' }}%</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Returning users</span>
+            <span class="metric__value">{{ summary.returningUsers | number: '1.0-0' }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="health-title">
+        <h2 id="health-title">Product health</h2>
+        <div class="metrics">
+          <div class="metric">
+            <span class="metric__label">Repeat consumers</span>
+            <span class="metric__value">{{ summary.repeatConsumers | number: '1.0-0' }}</span>
+            <span class="metric__hint">{{ summary.repeatConsumerRate | number: '1.0-1' }}%</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Repeat creators</span>
+            <span class="metric__value">{{ summary.repeatCreators | number: '1.0-0' }}</span>
+            <span class="metric__hint">{{ summary.repeatCreatorRate | number: '1.0-1' }}%</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Second Godu rate</span>
+            <span class="metric__value">{{ summary.secondCreationRate | number: '1.0-1' }}%</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">7-day return rate</span>
+            <span class="metric__value">{{ summary.returnRate7Day | number: '1.0-1' }}%</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Shares</span>
+            <span class="metric__value">{{ summary.shares | number: '1.0-0' }}</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Second use rate</span>
+            <span class="metric__value">{{ summary.secondUsageRate | number: '1.0-1' }}%</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="create-funnel-title">
+        <h2 id="create-funnel-title">Creation funnel</h2>
+        <p class="panel__copy">
+          {{ summary.creationAbandoned | number: '1.0-0' }} sessions started creating and did not save
+          ({{ summary.creationAbandonRate | number: '1.0-1' }}%).
+        </p>
+        <ol class="funnel">
+          @for (step of summary.creationFunnel; track step.eventName) {
+            <li class="funnel__step">
+              <div class="funnel__meta">
+                <span>{{ step.label }}</span>
+                <span>{{ step.count | number: '1.0-0' }}</span>
+              </div>
+              <div class="funnel__track">
+                <div class="funnel__bar" [style.width]="funnelWidth(step)"></div>
+              </div>
+            </li>
+          }
+        </ol>
+      </section>
+
+      <section class="panel" aria-labelledby="usage-funnel-title">
+        <h2 id="usage-funnel-title">Usage funnel</h2>
+        <p class="panel__copy">
+          {{ summary.usageAbandoned | number: '1.0-0' }} sessions started a Godu and did not complete
+          ({{ summary.usageAbandonRate | number: '1.0-1' }}%).
+        </p>
+        <ol class="funnel">
+          @for (step of summary.usageFunnel; track step.eventName) {
+            <li class="funnel__step">
+              <div class="funnel__meta">
+                <span>{{ step.label }}</span>
+                <span>{{ step.count | number: '1.0-0' }}</span>
+              </div>
+              <div class="funnel__track">
+                <div class="funnel__bar" [style.width]="funnelWidth(step)"></div>
+              </div>
+            </li>
+          }
+        </ol>
+      </section>
+
+      <section class="panel" aria-labelledby="trend-title">
+        <h2 id="trend-title">Daily trend</h2>
+        <ul class="legend">
+          <li><span class="swatch swatch--visitors"></span> Visitors</li>
+          <li><span class="swatch swatch--created"></span> Created</li>
+          <li><span class="swatch swatch--started"></span> Started</li>
+          <li><span class="swatch swatch--completed"></span> Completed</li>
+        </ul>
+        <div class="trend" role="img" [attr.aria-label]="'Daily visitors, created, started and completed for ' + view.days + ' days'">
+          @for (point of summary.daily; track point.date) {
+            <div class="trend__day" [attr.title]="point.date + ': ' + point.visitors + ' visitors'">
+              <div class="trend__bars">
+                <div class="trend__bar trend__bar--visitors" [style.height]="barHeight(point.visitors, summary)"></div>
+                <div class="trend__bar trend__bar--created" [style.height]="barHeight(point.godusCreated, summary)"></div>
+                <div class="trend__bar trend__bar--started" [style.height]="barHeight(point.godusStarted, summary)"></div>
+                <div class="trend__bar trend__bar--completed" [style.height]="barHeight(point.godusCompleted, summary)"></div>
+              </div>
+              <span class="trend__label">{{ dayLabel(point) }}</span>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  }
+</app-page-template>

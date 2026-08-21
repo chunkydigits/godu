@@ -85,6 +85,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'admin/analytics',
+    canActivate: [authGuardFn],
+    loadComponent: () =>
+      import('./modules/admin/pages/admin-analytics-page/admin-analytics-page.component').then(
+        (m) => m.AdminAnalyticsPageComponent,
+      ),
+  },
+  {
     path: 'tiktok/callback',
     loadComponent: () =>
       import('./modules/settings/pages/tiktok-oauth-callback/tiktok-oauth-callback.component').then(

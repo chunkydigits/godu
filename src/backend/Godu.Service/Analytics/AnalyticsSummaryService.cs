@@ -61,6 +61,10 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
             visible,
             AnalyticsEventNames.GoduStarted,
             AnalyticsEventNames.GoduCompleted);
+        var identities = visible
+            .Select(Identity)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
 
         return new AnalyticsSummaryResponse
         {
@@ -68,6 +72,7 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
             ToUtc = toUtcExclusive,
             Environment = env,
             UniqueVisitors = visible.Select(item => item.AnonymousId).Distinct(StringComparer.Ordinal).Count(),
+            ActiveUsers = identities,
             RegisteredUsers = visible
                 .Select(item => item.UserId)
                 .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -96,6 +101,21 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
             CreationAbandonRate = Rate(creationAbandoned, createStartedSessions),
             UsageAbandoned = usageAbandoned,
             UsageAbandonRate = Rate(usageAbandoned, startedSessions),
+            ReturnRate7Day = ReturnRateWithinDays(visible, 7),
+            CreationFunnel = Funnel(
+                visible,
+                (AnalyticsEventNames.LandingPageViewed, "Landing"),
+                (AnalyticsEventNames.CreateStarted, "Create started"),
+                (AnalyticsEventNames.VideoUrlSubmitted, "Video submitted"),
+                (AnalyticsEventNames.VideoLoaded, "Video loaded"),
+                (AnalyticsEventNames.GoduSaved, "Saved"),
+                (AnalyticsEventNames.GoduPublished, "Published")),
+            UsageFunnel = Funnel(
+                visible,
+                (AnalyticsEventNames.GoduViewed, "Viewed"),
+                (AnalyticsEventNames.GoduStarted, "Started"),
+                (AnalyticsEventNames.GoduCompleted, "Completed")),
+            Daily = DailyTrend(visible, fromUtc, toUtcExclusive),
         };
     }
 
@@ -185,6 +205,69 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
         return events
             .GroupBy(Identity, StringComparer.Ordinal)
             .Count(group => group.Select(item => item.Timestamp.Date).Distinct().Count() >= 2);
+    }
+
+    private static double ReturnRateWithinDays(IReadOnlyList<AnalyticsEventDocument> events, int days)
+    {
+        var identities = events.GroupBy(Identity, StringComparer.Ordinal).ToList();
+        var returned = identities.Count(group =>
+        {
+            var dates = group.Select(item => item.Timestamp.Date).Distinct().OrderBy(date => date).ToList();
+            if (dates.Count < 2)
+            {
+                return false;
+            }
+
+            var first = dates[0];
+            return dates.Skip(1).Any(date => (date - first).TotalDays <= days);
+        });
+        return Rate(returned, identities.Count);
+    }
+
+    private static IReadOnlyList<AnalyticsFunnelStepResponse> Funnel(
+        IReadOnlyList<AnalyticsEventDocument> events,
+        params (string EventName, string Label)[] steps)
+    {
+        var counts = steps.Select(step => Sessions(events, step.EventName)).ToArray();
+        var start = counts.FirstOrDefault(count => count > 0);
+        var result = new AnalyticsFunnelStepResponse[steps.Length];
+        for (var i = 0; i < steps.Length; i++)
+        {
+            var previous = i == 0 ? counts[i] : counts[i - 1];
+            result[i] = new AnalyticsFunnelStepResponse
+            {
+                EventName = steps[i].EventName,
+                Label = steps[i].Label,
+                Count = counts[i],
+                ConversionFromStart = Rate(counts[i], start),
+                ConversionFromPrevious = Rate(counts[i], previous == 0 ? counts[i] : previous),
+            };
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<AnalyticsDailyPointResponse> DailyTrend(
+        IReadOnlyList<AnalyticsEventDocument> events,
+        DateTime fromUtc,
+        DateTime toUtcExclusive)
+    {
+        var lastDay = toUtcExclusive.AddTicks(-1).Date;
+        var points = new List<AnalyticsDailyPointResponse>();
+        for (var day = fromUtc.Date; day <= lastDay; day = day.AddDays(1))
+        {
+            var slice = events.Where(item => item.Timestamp.Date == day).ToList();
+            points.Add(new AnalyticsDailyPointResponse
+            {
+                Date = day.ToString("yyyy-MM-dd"),
+                Visitors = slice.Select(item => item.AnonymousId).Distinct(StringComparer.Ordinal).Count(),
+                GodusCreated = DistinctGodus(slice, AnalyticsEventNames.GoduSaved),
+                GodusStarted = Sessions(slice, AnalyticsEventNames.GoduStarted),
+                GodusCompleted = Sessions(slice, AnalyticsEventNames.GoduCompleted),
+            });
+        }
+
+        return points;
     }
 
     private static string Identity(AnalyticsEventDocument item) =>

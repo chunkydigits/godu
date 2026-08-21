@@ -10,14 +10,15 @@
   </p>
 
   <div class="completion__icon-actions" role="group" aria-label="Session actions">
-    <a
+    <button
       mat-icon-button
       class="completion__icon-btn"
-      routerLink="/demos"
+      type="button"
+      (click)="home.emit()"
       aria-label="Home"
     >
       <mat-icon>home</mat-icon>
-    </a>
+    </button>
 
     <button
       mat-icon-button

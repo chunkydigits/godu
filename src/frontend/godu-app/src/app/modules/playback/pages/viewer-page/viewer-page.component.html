@@ -2,7 +2,7 @@
   @if (error$ | async; as error) {
     <div class="viewer-error">
       <p>{{ error }}</p>
-      <a mat-button [routerLink]="backLink()">Back</a>
+      <button mat-button type="button" (click)="goBack()">Back</button>
     </div>
   } @else if (item$ | async; as item) {
     <div
@@ -12,9 +12,9 @@
     >
       @if (state$ | async; as state) {
         <header class="viewer__header">
-          <a mat-icon-button [routerLink]="backLink()" aria-label="Back">
+          <button mat-icon-button type="button" (click)="goBack()" aria-label="Back">
             <mat-icon>arrow_back</mat-icon>
-          </a>
+          </button>
           <div class="viewer__heading">
             @if (creatorLink(item); as creator) {
               <a
@@ -143,6 +143,7 @@
             [completedStep]="state.selectedStep"
             [relatedSteps]="(related$ | async) ?? []"
             (replay)="replay()"
+            (home)="goBack()"
           />
         } @else {
           <section class="viewer__controls">

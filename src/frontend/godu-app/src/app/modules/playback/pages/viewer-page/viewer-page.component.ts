@@ -8,7 +8,7 @@ import {
   ViewChild,
   inject,
 } from '@angular/core';
-import { ActivatedRoute, ParamMap, RouterLink } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import {
   BehaviorSubject,
   Observable,
@@ -47,7 +47,7 @@ import {
 } from '../../services/step-playback.service';
 import { ViewerPreferencesService } from '../../services/viewer-preferences.service';
 import { UserSettingsService } from '../../../settings/services/user-settings.service';
-import { publicCreatorPath } from '../../models/public-path';
+import { viewerBackPathFromUrl } from '../../models/public-path';
 import { StepsVisibility } from '../../models/steps-visibility.enum';
 import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../../core/analytics/analytics.service';
@@ -57,7 +57,6 @@ import { AnalyticsService } from '../../../../core/analytics/analytics.service';
   imports: [
     PageTemplateComponent,
     MaterialModule,
-    RouterLink,
     AsyncPipe,
     VideoHostComponent,
     StepNavigatorComponent,
@@ -69,6 +68,7 @@ import { AnalyticsService } from '../../../../core/analytics/analytics.service';
 })
 export class ViewerPageComponent implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly demoSteps = inject(DemoStepsService);
   private readonly myStepsApi = inject(MyStepsApiService);
   private readonly publicStepsApi = inject(PublicStepsApiService);
@@ -473,9 +473,11 @@ export class ViewerPageComponent implements OnDestroy {
   }
 
   backLink(): string {
-    const username = this.route.snapshot.paramMap.get('username');
-    const provider = this.route.snapshot.data['provider'] as string | undefined;
-    return publicCreatorPath(provider, username) ?? '/demos';
+    return viewerBackPathFromUrl(this.router.url, (id) => this.demoSteps.isDemo(id));
+  }
+
+  goBack(): void {
+    void this.router.navigateByUrl(this.backLink());
   }
 
   private trackViewed(item: StepsItem): void {

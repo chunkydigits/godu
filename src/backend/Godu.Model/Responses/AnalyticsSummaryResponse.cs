@@ -10,6 +10,8 @@ public sealed class AnalyticsSummaryResponse
 
     public int UniqueVisitors { get; init; }
 
+    public int ActiveUsers { get; init; }
+
     public int RegisteredUsers { get; init; }
 
     public int GoduCreationStarted { get; init; }
@@ -57,4 +59,12 @@ public sealed class AnalyticsSummaryResponse
     public int UsageAbandoned { get; init; }
 
     public double UsageAbandonRate { get; init; }
+
+    public double ReturnRate7Day { get; init; }
+
+    public IReadOnlyList<AnalyticsFunnelStepResponse> CreationFunnel { get; init; } = [];
+
+    public IReadOnlyList<AnalyticsFunnelStepResponse> UsageFunnel { get; init; } = [];
+
+    public IReadOnlyList<AnalyticsDailyPointResponse> Daily { get; init; } = [];
 }

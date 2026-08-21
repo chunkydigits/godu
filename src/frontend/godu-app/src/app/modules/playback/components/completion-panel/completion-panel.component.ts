@@ -21,6 +21,7 @@ export class CompletionPanelComponent {
   @Input() relatedSteps: StepsItem[] = [];
 
   @Output() readonly replay = new EventEmitter<void>();
+  @Output() readonly home = new EventEmitter<void>();
 
   private readonly analytics = inject(AnalyticsService);
   copied = false;

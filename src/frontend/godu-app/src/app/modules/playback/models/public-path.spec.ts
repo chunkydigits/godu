@@ -5,6 +5,8 @@ import {
   publicCreatorPath,
   publicViewerPath,
   slugFromTitle,
+  viewerBackPath,
+  viewerBackPathFromUrl,
 } from './public-path';
 
 describe('public paths', () => {
@@ -15,6 +17,25 @@ describe('public paths', () => {
 
   it('builds a creator catalogue path', () => {
     expect(publicCreatorPath('tiktok', '@Coach')).toBe('/t/coach');
+  });
+
+  it('returns the creator catalogue from a public viewer route', () => {
+    expect(viewerBackPath({ provider: 'tiktok', username: 'coach' })).toBe('/t/coach');
+  });
+
+  it('returns my-steps from a library play route', () => {
+    expect(viewerBackPath({ playId: 'steps_abc', isDemo: false })).toBe('/my-steps');
+  });
+
+  it('returns demos from a demo play route', () => {
+    expect(viewerBackPath({ playId: 'steps_demo_fitness', isDemo: true })).toBe('/demos');
+  });
+
+  it('reads the current viewer url instead of navigation history', () => {
+    const isDemo = (id: string) => id.startsWith('steps_demo');
+    expect(viewerBackPathFromUrl('/play/steps_abc', isDemo)).toBe('/my-steps');
+    expect(viewerBackPathFromUrl('/play/steps_demo_fitness', isDemo)).toBe('/demos');
+    expect(viewerBackPathFromUrl('/t/adrb1984/morning-flow', isDemo)).toBe('/t/adrb1984');
   });
 
   it('prefers a stored public path', () => {

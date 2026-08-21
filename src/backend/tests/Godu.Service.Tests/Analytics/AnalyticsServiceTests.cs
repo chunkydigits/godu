@@ -173,6 +173,19 @@ public sealed class AnalyticsSummaryServiceTests
         summary.CreationAbandonRate.Should().Be(50);
         summary.UsageAbandoned.Should().Be(2);
         summary.UsageAbandonRate.Should().Be(66.7);
+        summary.ActiveUsers.Should().Be(4);
+        summary.ReturnRate7Day.Should().Be(50);
+        summary.CreationFunnel.Should().HaveCount(6);
+        summary.CreationFunnel[1].Count.Should().Be(2);
+        summary.CreationFunnel[4].Label.Should().Be("Saved");
+        summary.CreationFunnel[4].Count.Should().Be(2);
+        summary.UsageFunnel.Select(step => step.Count).Should().Equal(0, 3, 1);
+        summary.UsageFunnel[2].ConversionFromStart.Should().Be(33.3);
+        summary.Daily.Should().HaveCount(3);
+        summary.Daily[0].Date.Should().Be("2026-08-01");
+        summary.Daily[0].Visitors.Should().Be(3);
+        summary.Daily[1].GodusCreated.Should().Be(1);
+        summary.Daily[2].Visitors.Should().Be(0);
     }
 
     private async Task Seed(
