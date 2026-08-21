@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError, map } from 'rxjs';
+import { CATALOGUE_DEMOS } from '../models/demo-catalogue';
 import { DemoStepsItem } from '../models/demo-steps-item.model';
 import { StepsItem } from '../models/steps-item.model';
 import { StepsItemStatus } from '../models/steps-item-status.enum';
@@ -287,6 +288,7 @@ const DEMO_ITEMS: DemoStepsItem[] = [
     createdUtc: '2026-08-13T08:00:00Z',
     updatedUtc: '2026-08-13T08:00:00Z',
   },
+  ...CATALOGUE_DEMOS,
 ];
 
 @Injectable({ providedIn: 'root' })
