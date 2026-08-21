@@ -1,13 +1,16 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError, map } from 'rxjs';
+import { DemoStepsItem } from '../models/demo-steps-item.model';
 import { StepsItem } from '../models/steps-item.model';
 import { StepsItemStatus } from '../models/steps-item-status.enum';
 import { StepsVisibility } from '../models/steps-visibility.enum';
 import { VideoProvider } from '../models/video-provider.enum';
 
-const DEMO_ITEMS: StepsItem[] = [
+const DEMO_ITEMS: DemoStepsItem[] = [
   {
     id: 'steps_demo_fitness',
+    category: 'Fitness',
+    listed: true,
     createdByUserId: 'usr_demo',
     linkedPlatformAccountId: null,
     visibility: StepsVisibility.Private,
@@ -143,6 +146,8 @@ const DEMO_ITEMS: StepsItem[] = [
   },
   {
     id: 'steps_demo_fitness_core',
+    category: 'Fitness',
+    listed: false,
     createdByUserId: 'usr_demo',
     linkedPlatformAccountId: null,
     visibility: StepsVisibility.Private,
@@ -183,6 +188,8 @@ const DEMO_ITEMS: StepsItem[] = [
   },
   {
     id: 'steps_demo_recipe',
+    category: 'Cooking',
+    listed: true,
     createdByUserId: 'usr_demo',
     linkedPlatformAccountId: null,
     visibility: StepsVisibility.Private,
@@ -241,6 +248,8 @@ const DEMO_ITEMS: StepsItem[] = [
   },
   {
     id: 'steps_demo_recipe_sides',
+    category: 'Cooking',
+    listed: false,
     createdByUserId: 'usr_demo',
     linkedPlatformAccountId: null,
     visibility: StepsVisibility.Private,
@@ -282,11 +291,11 @@ const DEMO_ITEMS: StepsItem[] = [
 
 @Injectable({ providedIn: 'root' })
 export class DemoStepsService {
-  list(): Observable<StepsItem[]> {
-    return of(DEMO_ITEMS);
+  list(): Observable<DemoStepsItem[]> {
+    return of(DEMO_ITEMS.filter((item) => item.listed));
   }
 
-  getById(id: string): Observable<StepsItem> {
+  getById(id: string): Observable<DemoStepsItem> {
     const item = DEMO_ITEMS.find((x) => x.id === id);
     if (!item) {
       return throwError(() => new Error(`Demo StepsItem not found: ${id}`));

@@ -1,0 +1,41 @@
+<app-page-template
+  title="Godu’d"
+  subtitle="Godus you’ve started, most recent first. Opening one from a TikTok link counts too."
+>
+  @if (view$ | async; as view) {
+    @if (view.loading) {
+      <div class="status-row">
+        <mat-progress-bar mode="indeterminate" />
+      </div>
+    } @else if (view.error) {
+      <p class="error">{{ view.error }}</p>
+    } @else if (view.items.length === 0) {
+      <p class="empty">
+        Nothing here yet.
+        <a routerLink="/demos">Try a demo</a>
+        or open a public Godu from TikTok.
+      </p>
+    } @else {
+      <ul class="history-list">
+        @for (item of view.items; track item.goduId) {
+          <li class="history-item">
+            <div class="history-item__body">
+              <h2>{{ item.title }}</h2>
+              <p>
+                {{ sourceLabel(item.source) }}
+                @if (item.creatorDisplayName) {
+                  · {{ item.creatorDisplayName }}
+                }
+                · started {{ item.startedCount }}
+                @if (item.completedCount > 0) {
+                  · finished {{ item.completedCount }}
+                }
+              </p>
+            </div>
+            <a mat-stroked-button [routerLink]="item.playPath">Open</a>
+          </li>
+        }
+      </ul>
+    }
+  }
+</app-page-template>

@@ -40,6 +40,7 @@ import { isContinuousSoundtrackEnabled } from '../../models/continuous-soundtrac
 import { ControllableVideoPlayer } from '../../models/video-player.interface';
 import { DemoStepsService } from '../../services/demo-steps.service';
 import { MyStepsApiService } from '../../services/my-steps-api.service';
+import { PlayHistoryService } from '../../services/play-history.service';
 import { PublicStepsApiService } from '../../services/public-steps-api.service';
 import {
   PlaybackState,
@@ -72,6 +73,7 @@ export class ViewerPageComponent implements OnDestroy {
   private readonly demoSteps = inject(DemoStepsService);
   private readonly myStepsApi = inject(MyStepsApiService);
   private readonly publicStepsApi = inject(PublicStepsApiService);
+  private readonly playHistory = inject(PlayHistoryService);
   private readonly playback = inject(StepPlaybackService);
   private readonly preferences = inject(ViewerPreferencesService);
   private readonly userSettings = inject(UserSettingsService);
@@ -323,6 +325,7 @@ export class ViewerPageComponent implements OnDestroy {
     if (item) {
       this.startedAtMs = Date.now();
       this.analytics.trackOnce(`started:${item.id}`, AnalyticsEvent.GoduStarted, this.goduProps(item));
+      this.playHistory.record(item, 'started');
     }
     void this.playback.start();
   }
@@ -507,6 +510,7 @@ export class ViewerPageComponent implements OnDestroy {
       stepCount: totalSteps,
       elapsedSeconds,
     });
+    this.playHistory.record(item, 'completed');
   }
 
   private trackStepCompleted(item: StepsItem, stepNumber: number, totalSteps: number): void {

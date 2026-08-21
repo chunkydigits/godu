@@ -4,6 +4,7 @@ using Godu.Repository.Cosmos;
 using Godu.Repository.Creators;
 using Godu.Repository.ExternalIdentities;
 using Godu.Repository.LinkedPlatformAccounts;
+using Godu.Repository.PlayHistory;
 using Godu.Repository.StepsItems;
 using Godu.Repository.Users;
 
@@ -28,6 +29,7 @@ public static class RepositoryConfiguration
             services.AddSingleton<ICreatorRepository, InMemoryCreatorRepository>();
             services.AddSingleton<IUserRepository, InMemoryUserRepository>();
             services.AddSingleton<IAnalyticsEventRepository, InMemoryAnalyticsEventRepository>();
+            services.AddSingleton<IPlayHistoryRepository, InMemoryPlayHistoryRepository>();
             return services;
         }
 
@@ -38,6 +40,7 @@ public static class RepositoryConfiguration
         services.AddSingleton<ICreatorRepository, CosmosCreatorRepository>();
         services.AddSingleton<IUserRepository, CosmosUserRepository>();
         services.AddSingleton<IAnalyticsEventRepository, CosmosAnalyticsEventRepository>();
+        services.AddSingleton<IPlayHistoryRepository, CosmosPlayHistoryRepository>();
         return services;
     }
 }

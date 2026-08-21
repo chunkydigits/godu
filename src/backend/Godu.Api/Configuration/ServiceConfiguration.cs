@@ -1,6 +1,7 @@
 using Godu.Service.Analytics;
 using Godu.Service.Creators;
 using Godu.Service.Identity;
+using Godu.Service.PlayHistory;
 using Godu.Service.PlatformAccounts;
 using Godu.Service.StepsItems;
 using Godu.Service.TikTok;
@@ -25,6 +26,7 @@ public static class ServiceConfiguration
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<IAnalyticsIngestService, AnalyticsIngestService>();
         services.AddScoped<IAnalyticsSummaryService, AnalyticsSummaryService>();
+        services.AddScoped<IPlayHistoryService, PlayHistoryService>();
         services.AddSingleton<IPlatformOAuthStateStore, InMemoryPlatformOAuthStateStore>();
         services.AddSingleton<IPlatformTokenProtector, DataProtectionPlatformTokenProtector>();
         services.AddHttpClient<ITikTokOAuthClient, TikTokOAuthClient>(client =>

@@ -7,7 +7,7 @@
       @for (item of demos; track item.id) {
         <a class="demo-card" [routerLink]="['/play', item.id]">
           <div class="demo-card__meta">
-            <span class="demo-card__provider">TikTok</span>
+            <span class="demo-card__category">{{ item.category }}</span>
             <span class="demo-card__creator">{{ item.creatorDisplayName }}</span>
           </div>
           <h2 class="demo-card__title">{{ item.title }}</h2>

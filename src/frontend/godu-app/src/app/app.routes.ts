@@ -32,6 +32,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'history',
+    canActivate: [authGuardFn],
+    loadComponent: () =>
+      import('./modules/playback/pages/play-history-page/play-history-page.component').then(
+        (m) => m.PlayHistoryPageComponent,
+      ),
+  },
+  {
     path: 'my-steps/new',
     canActivate: [authGuardFn],
     loadComponent: () =>

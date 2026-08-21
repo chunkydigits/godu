@@ -1,0 +1,109 @@
+<div class="home">
+  <section class="welcome">
+    <p class="welcome__eyebrow">Your Godu</p>
+    <h1 class="welcome__title">
+      @if (profile$ | async; as profile) {
+        Welcome back{{ profile.displayName ? ', ' + profile.displayName : '' }}
+      } @else {
+        Welcome back
+      }
+    </h1>
+    <p class="welcome__lead">Pick up a Godu, or turn a TikTok into steps.</p>
+  </section>
+
+  <nav class="actions" aria-label="Shortcuts">
+    <a class="action" routerLink="/my-steps/new">
+      <mat-icon>add_circle</mat-icon>
+      <span class="action__label">Create Steps</span>
+      <span class="action__hint">Paste a TikTok and mark the moves</span>
+    </a>
+    <a class="action" routerLink="/my-steps">
+      <mat-icon>playlist_play</mat-icon>
+      <span class="action__label">My Steps</span>
+      <span class="action__hint">Your private library</span>
+    </a>
+    <a class="action" routerLink="/history">
+      <mat-icon>history</mat-icon>
+      <span class="action__label">Godu’d</span>
+      <span class="action__hint">Ones you’ve started</span>
+    </a>
+    <a class="action" routerLink="/demos">
+      <mat-icon>play_circle</mat-icon>
+      <span class="action__label">Demos</span>
+      <span class="action__hint">Try one without editing</span>
+    </a>
+  </nav>
+
+  @if (history$ | async; as history) {
+    <section class="recent">
+      <div class="recent__head">
+        <h2>Godu’d</h2>
+        <a routerLink="/history">See all</a>
+      </div>
+
+      @if (history.loading) {
+        <mat-progress-bar mode="indeterminate" />
+      } @else if (history.error) {
+        <p class="recent__error">{{ history.error }}</p>
+      } @else if (history.items.length === 0) {
+        <p class="recent__empty">
+          Start a Godu and it lands here — including ones you open from a creator’s TikTok.
+        </p>
+      } @else {
+        <ul class="recent__list">
+          @for (item of history.items; track item.goduId) {
+            <li class="recent__item">
+              <div class="recent__body">
+                <h3>{{ item.title }}</h3>
+                <p>
+                  {{ sourceLabel(item.source) }}
+                  @if (item.creatorDisplayName) {
+                    · {{ item.creatorDisplayName }}
+                  }
+                </p>
+              </div>
+              <div class="recent__cta">
+                <a mat-stroked-button [routerLink]="item.playPath">Open</a>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
+  @if (library$ | async; as library) {
+    <section class="recent">
+      <div class="recent__head">
+        <h2>Your Steps</h2>
+        <a routerLink="/my-steps">See all</a>
+      </div>
+
+      @if (library.loading) {
+        <mat-progress-bar mode="indeterminate" />
+      } @else if (library.error) {
+        <p class="recent__error">{{ library.error }}</p>
+      } @else if (library.items.length === 0) {
+        <p class="recent__empty">
+          Nothing saved yet.
+          <a routerLink="/my-steps/new">Create your first Godu</a>
+        </p>
+      } @else {
+        <ul class="recent__list">
+          @for (item of library.items; track item.id) {
+            <li class="recent__item">
+              <div class="recent__body">
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.status }} · {{ item.visibility }}</p>
+              </div>
+              <div class="recent__cta">
+                <a mat-stroked-button [routerLink]="['/play', item.id]">Open</a>
+                <a mat-button [routerLink]="['/my-steps', item.id, 'edit']">Edit</a>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>

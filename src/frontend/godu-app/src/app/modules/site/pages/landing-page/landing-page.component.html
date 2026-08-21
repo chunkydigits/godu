@@ -1,88 +1,119 @@
 <app-page-template>
-  <div class="landing">
-    <section class="hero">
-      <p class="hero__eyebrow">Instructional video, made followable</p>
-      <h1 class="hero__title">Turn a TikTok into steps you can actually do.</h1>
-      <p class="hero__lead">
-        Godu takes a workout, recipe, or how-to video and breaks it into timed,
-        repeatable steps — so you are not scrubbing the timeline with flour on your
-        hands or mid-plank.
-      </p>
-      <div class="hero__actions">
-        <a mat-flat-button color="primary" routerLink="/demos">Try a demo</a>
-        @if (isAuthenticated$ | async) {
-          <a mat-stroked-button routerLink="/my-steps">My Steps</a>
-        } @else {
-          <button mat-stroked-button type="button" (click)="login()">
-            Create a free account
-          </button>
-        }
+  @if (homeMode$ | async; as mode) {
+    @if (mode === 'loading') {
+      <div class="boot">
+        <mat-progress-bar mode="indeterminate" />
       </div>
-    </section>
+    } @else if (mode === 'app') {
+      <app-signed-in-home />
+    } @else {
+      <div class="landing">
+        <section class="hero">
+          <div class="hero__copy">
+            <p class="hero__eyebrow">Instructional video, made followable</p>
+            <h1 class="hero__title">Turn a TikTok into steps you can actually do.</h1>
+            <p class="hero__lead">
+              Paste a workout, recipe, or how-to. Mark the steps. Then follow along
+              without scrubbing the timeline.
+            </p>
+            <div class="hero__actions">
+              <a mat-flat-button color="primary" routerLink="/demos">Try a demo</a>
+              <button mat-stroked-button type="button" (click)="login()">
+                Create a free account
+              </button>
+            </div>
+          </div>
 
-    <section class="block">
-      <h2>What Godu is</h2>
-      <p>
-        Most instructional videos are made to watch. Godu is made to
-        <em>do</em>. You (or a creator) mark the logical steps inside a video —
-        “warm-up”, “set of squats”, “rest the dough” — with start and end times,
-        and an optional real-world timer.
-      </p>
-      <p>
-        During playback, Godu loops the clip for that step, counts you down if
-        the step is timed, and waits for you when it is not. Pause pauses the
-        video and the timer together. When you finish, you get a clear end screen,
-        not another autoplay.
-      </p>
-    </section>
+          <figure class="hero__stage">
+            <img
+              class="hero__image"
+              src="images/how-godu-works.png"
+              width="1280"
+              height="720"
+              alt="A phone showing an instructional video broken into numbered follow-along steps"
+            />
+            <ol class="hero__process">
+              <li>
+                <mat-icon>link</mat-icon>
+                <span>Paste a TikTok URL</span>
+              </li>
+              <li>
+                <mat-icon>format_list_numbered</mat-icon>
+                <span>Define the steps</span>
+              </li>
+              <li>
+                <mat-icon>play_circle</mat-icon>
+                <span>Follow along</span>
+              </li>
+            </ol>
+          </figure>
+        </section>
 
-    <section class="block">
-      <h2>How it works</h2>
-      <ol class="steps">
-        <li>
-          <strong>Paste a TikTok URL</strong>
-          Godu loads the video. TikTok stays the player; we add the structure.
-        </li>
-        <li>
-          <strong>Mark the steps</strong>
-          Name each section, set timestamps, and optionally give it a duration.
-        </li>
-        <li>
-          <strong>Save it privately</strong>
-          Your library lives on your Godu account. Publishing to the world comes
-          later, and only if you have verified you own the account.
-        </li>
-        <li>
-          <strong>Press Start when you are ready</strong>
-          Nothing autoplays. Video and timers begin together on your tap — then
-          your phone can stay awake while you work through the session.
-        </li>
-      </ol>
-    </section>
+        <section class="block">
+          <h2>What Godu is</h2>
+          <p>
+            Most instructional videos are made to watch. Godu is made to
+            <em>do</em>. You (or a creator) mark the logical steps inside a video —
+            “warm-up”, “set of squats”, “rest the dough” — with start and end times,
+            and an optional real-world timer.
+          </p>
+          <p>
+            During playback, Godu loops the clip for that step, counts you down if
+            the step is timed, and waits for you when it is not. Pause pauses the
+            video and the timer together. When you finish, you get a clear end screen,
+            not another autoplay.
+          </p>
+        </section>
 
-    <section class="block">
-      <h2>Built for doing, not watching</h2>
-      <ul class="features">
-        <li>Timed and untimed steps in the same session</li>
-        <li>Large controls aimed at a phone in portrait</li>
-        <li>Hide the video when you already know the moves</li>
-        <li>Sign in with Auth0 — TikTok is only linked if you want to prove ownership</li>
-      </ul>
-    </section>
+        <section class="block">
+          <h2>How it works</h2>
+          <ol class="steps">
+            <li>
+              <strong>Paste a TikTok URL</strong>
+              Godu loads the video. TikTok stays the player; we add the structure.
+            </li>
+            <li>
+              <strong>Mark the steps</strong>
+              Name each section, set timestamps, and optionally give it a duration.
+            </li>
+            <li>
+              <strong>Save it privately</strong>
+              Your library lives on your Godu account. Publishing to the world comes
+              later, and only if you have verified you own the account.
+            </li>
+            <li>
+              <strong>Press Start when you are ready</strong>
+              Nothing autoplays. Video and timers begin together on your tap — then
+              your phone can stay awake while you work through the session.
+            </li>
+          </ol>
+        </section>
 
-    <section class="block block--cta">
-      <h2>Try it in a minute</h2>
-      <p>
-        Demos work without an account. Create one when you want to save your own
-        Steps.
-      </p>
-      <a mat-flat-button color="primary" routerLink="/demos">Open demos</a>
-    </section>
+        <section class="block">
+          <h2>Built for doing, not watching</h2>
+          <ul class="features">
+            <li>Timed and untimed steps in the same session</li>
+            <li>Large controls aimed at a phone in portrait</li>
+            <li>Hide the video when you already know the moves</li>
+            <li>Sign in with Auth0 — TikTok is only linked if you want to prove ownership</li>
+          </ul>
+        </section>
 
-    <p class="landing__legal">
-      <a routerLink="/terms">Terms of Service</a>
-      ·
-      <a routerLink="/privacy">Privacy Policy</a>
-    </p>
-  </div>
+        <section class="block block--cta">
+          <h2>Try it in a minute</h2>
+          <p>
+            Demos work without an account. Create one when you want to save your own
+            Steps.
+          </p>
+          <a mat-flat-button color="primary" routerLink="/demos">Open demos</a>
+        </section>
+
+        <p class="landing__legal">
+          <a routerLink="/terms">Terms of Service</a>
+          ·
+          <a routerLink="/privacy">Privacy Policy</a>
+        </p>
+      </div>
+    }
+  }
 </app-page-template>
