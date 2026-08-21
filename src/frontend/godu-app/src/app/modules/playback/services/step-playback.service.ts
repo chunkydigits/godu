@@ -148,12 +148,14 @@ export class StepPlaybackService implements OnDestroy {
   setVoiceCuesEnabled(enabled: boolean): void {
     this.voiceCues.enabled = enabled;
     this.patch({ voiceCuesEnabled: enabled });
-    if (enabled) {
-      this.voiceCues.unlockFromUserGesture();
-    } else {
+    if (!enabled) {
       this.voiceCues.cancel();
     }
     this.applyAudioRouting();
+  }
+
+  unlockVoiceCuesFromUserGesture(): void {
+    this.voiceCues.unlockFromUserGesture();
   }
 
   toggleUserMuted(): void {
@@ -200,7 +202,14 @@ export class StepPlaybackService implements OnDestroy {
       }
     }
 
-    await this.selectStep(index, { activate: true, mediaAlreadyKickstarted: true });
+    // Speak in this tap so iOS unlocks TTS for later auto-advanced steps.
+    this.voiceCues.announceActivityStart(step.title, step.durationSeconds, null);
+
+    await this.selectStep(index, {
+      activate: true,
+      mediaAlreadyKickstarted: true,
+      skipVoiceAnnounce: true,
+    });
   }
 
   /** Selects by position among activity steps, as listed in the step navigator. */
@@ -210,6 +219,7 @@ export class StepPlaybackService implements OnDestroy {
     if (index == null) {
       return;
     }
+    this.voiceCues.unlockFromUserGesture();
     await this.selectStep(index);
   }
 
@@ -219,6 +229,7 @@ export class StepPlaybackService implements OnDestroy {
       activate?: boolean;
       mediaAlreadyKickstarted?: boolean;
       fromGapSeconds?: number | null;
+      skipVoiceAnnounce?: boolean;
     } = {},
   ): Promise<void> {
     const { stepsItem, phase } = this.snapshot;
@@ -308,20 +319,24 @@ export class StepPlaybackService implements OnDestroy {
       }
       this.setLoopArmed(true);
       this.startTimer(step.durationSeconds!, 'activity');
+      if (!options.skipVoiceAnnounce) {
+        this.voiceCues.announceActivityStart(
+          step.title,
+          step.durationSeconds,
+          options.fromGapSeconds ?? null,
+        );
+      }
+      return;
+    }
+
+    this.setLoopArmed(true);
+    if (!options.skipVoiceAnnounce) {
       this.voiceCues.announceActivityStart(
         step.title,
         step.durationSeconds,
         options.fromGapSeconds ?? null,
       );
-      return;
     }
-
-    this.setLoopArmed(true);
-    this.voiceCues.announceActivityStart(
-      step.title,
-      step.durationSeconds,
-      options.fromGapSeconds ?? null,
-    );
   }
 
   async next(): Promise<void> {
@@ -329,6 +344,8 @@ export class StepPlaybackService implements OnDestroy {
     if (!stepsItem) {
       return;
     }
+
+    this.voiceCues.unlockFromUserGesture();
 
     if (phase === 'gap' || gapActive) {
       await this.finishGap();
@@ -358,6 +375,7 @@ export class StepPlaybackService implements OnDestroy {
     if (previous == null) {
       return;
     }
+    this.voiceCues.unlockFromUserGesture();
     await this.selectStep(previous);
   }
 
@@ -383,6 +401,8 @@ export class StepPlaybackService implements OnDestroy {
     if (this.snapshot.phase !== 'paused') {
       return;
     }
+
+    this.voiceCues.unlockFromUserGesture();
 
     const { selectedStep, remainingSeconds, isTimedStep, stepsItem, gapActive } = this.snapshot;
     if (!selectedStep || !stepsItem) {

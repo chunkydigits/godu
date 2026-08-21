@@ -2,6 +2,7 @@ import { environment } from '../../../../environments/environment';
 
 /** ~160 words/minute, used to start long “Go” phrases so they land at timer start. */
 const WORDS_PER_SECOND = 2.6;
+const SPEECH_WATCH_MS = 4000;
 
 export function gapGoCueMaxSeconds(): number {
   const value = environment.playback.gapGoCueMaxSeconds;
@@ -58,25 +59,35 @@ export function estimateSpeechSeconds(text: string): number {
 
 /**
  * Beeps and spoken step cues. Uses Web Audio + speechSynthesis.
- * Unlock from a user gesture (Start) so browsers allow sound.
+ * iOS Safari ignores speak() unless TTS was primed in the same tap as Start;
+ * later steps then work without a gesture.
  */
 export class PlaybackVoiceCues {
   enabled = false;
   private audioContext: AudioContext | null = null;
   private timedGoStarted = false;
+  private pendingText: string | null = null;
+  private speakTimer: ReturnType<typeof setTimeout> | null = null;
+  private speechWatch: ReturnType<typeof setInterval> | null = null;
+  private voicesListenerAttached = false;
 
   unlockFromUserGesture(): void {
     if (!this.enabled || typeof window === 'undefined') {
       return;
     }
-    const context = this.ensureAudioContext();
-    if (context?.state === 'suspended') {
-      void context.resume();
-    }
+    this.primeAudioFromGesture();
+    this.primeSpeechFromGesture();
+    this.ensureVoicesListener();
   }
 
   cancel(): void {
     this.timedGoStarted = false;
+    this.pendingText = null;
+    if (this.speakTimer != null) {
+      clearTimeout(this.speakTimer);
+      this.speakTimer = null;
+    }
+    this.stopSpeechWatch();
     if (typeof window !== 'undefined') {
       window.speechSynthesis?.cancel();
     }
@@ -132,14 +143,124 @@ export class PlaybackVoiceCues {
     if (typeof window === 'undefined' || !window.speechSynthesis || !text.trim()) {
       return;
     }
+    this.pendingText = text.trim();
+    this.ensureVoicesListener();
+    this.queueSpeechFlush();
+  }
+
+  private queueSpeechFlush(): void {
+    if (this.speakTimer != null) {
+      clearTimeout(this.speakTimer);
+    }
+    // iOS drops speak() when it runs in the same turn as cancel().
+    this.speakTimer = setTimeout(() => {
+      this.speakTimer = null;
+      this.flushSpeech();
+    }, 50);
+  }
+
+  private flushSpeech(): void {
+    const text = this.pendingText;
+    const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
+    if (!text || !synth) {
+      return;
+    }
+
     try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text.trim());
+      synth.cancel();
+      if (synth.paused) {
+        synth.resume();
+      }
+      const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.05;
-      window.speechSynthesis.speak(utterance);
+      utterance.lang = preferredSpeechLang();
+      const voice = pickEnglishVoice(synth.getVoices());
+      if (voice) {
+        utterance.voice = voice;
+      }
+      utterance.onend = () => {
+        if (this.pendingText === text) {
+          this.pendingText = null;
+        }
+      };
+      synth.speak(utterance);
+      this.startSpeechWatch();
     } catch {
       // jsdom / restricted contexts
     }
+  }
+
+  private primeSpeechFromGesture(): void {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      return;
+    }
+    try {
+      window.speechSynthesis.getVoices();
+      const primer = new SpeechSynthesisUtterance(' ');
+      primer.volume = 0.01;
+      primer.rate = 2;
+      primer.lang = preferredSpeechLang();
+      window.speechSynthesis.speak(primer);
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  private primeAudioFromGesture(): void {
+    const context = this.ensureAudioContext();
+    if (!context) {
+      return;
+    }
+    try {
+      if (context.state === 'suspended') {
+        void context.resume();
+      }
+      const buffer = context.createBuffer(1, 1, context.sampleRate);
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(context.destination);
+      source.start(0);
+    } catch {
+      // AudioContext not fully available
+    }
+  }
+
+  private ensureVoicesListener(): void {
+    if (this.voicesListenerAttached || typeof window === 'undefined' || !window.speechSynthesis) {
+      return;
+    }
+    this.voicesListenerAttached = true;
+    window.speechSynthesis.addEventListener('voiceschanged', () => {
+      if (this.pendingText) {
+        this.queueSpeechFlush();
+      }
+    });
+  }
+
+  private startSpeechWatch(): void {
+    if (this.speechWatch != null || typeof window === 'undefined') {
+      return;
+    }
+    this.speechWatch = setInterval(() => {
+      const synth = window.speechSynthesis;
+      if (!synth?.speaking) {
+        return;
+      }
+      if (synth.paused) {
+        synth.resume();
+      }
+    }, SPEECH_WATCH_MS);
+  }
+
+  private stopSpeechWatch(): void {
+    if (this.speechWatch == null) {
+      return;
+    }
+    clearInterval(this.speechWatch);
+    this.speechWatch = null;
   }
 
   private beep(): void {
@@ -188,4 +309,22 @@ export class PlaybackVoiceCues {
     }
     return this.audioContext;
   }
+}
+
+function preferredSpeechLang(): string {
+  const lang = typeof navigator !== 'undefined' ? navigator.language : '';
+  return lang?.trim() || 'en-GB';
+}
+
+function pickEnglishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  if (!voices.length) {
+    return undefined;
+  }
+  const lang = preferredSpeechLang().toLowerCase();
+  return (
+    voices.find((voice) => voice.lang.toLowerCase() === lang) ??
+    voices.find((voice) => voice.lang.toLowerCase().startsWith(lang.slice(0, 2))) ??
+    voices.find((voice) => voice.lang.toLowerCase().startsWith('en')) ??
+    voices[0]
+  );
 }

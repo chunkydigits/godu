@@ -241,6 +241,10 @@ export class ViewerPageComponent implements OnDestroy {
       return;
     }
     this.userSettings.setUseVoiceCuesByDefault(enabled);
+    this.syncVoiceCuesToPlayback();
+    if (enabled) {
+      this.playback.unlockVoiceCuesFromUserGesture();
+    }
     this.onSettingsActivity();
   }
 
