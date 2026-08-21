@@ -62,15 +62,24 @@ public sealed class CreatorProfileService : ICreatorProfileService
         }
 
         var handle = username.Trim().TrimStart('@');
-        var account = await _accounts
-            .GetVerifiedByProviderAndUsernameAsync(provider, handle, cancellationToken)
+        var current = await _accounts
+            .GetVerifiedByCurrentUsernameAsync(provider, handle, cancellationToken)
             .ConfigureAwait(false);
-        if (account is null)
+        if (current is not null)
+        {
+            return await BuildProfileAsync(current.UserId, cancellationToken).ConfigureAwait(false);
+        }
+
+        var previous = await _accounts
+            .ListVerifiedByAliasAsync(provider, handle, cancellationToken)
+            .ConfigureAwait(false);
+        var alias = previous.FirstOrDefault();
+        if (alias is null)
         {
             throw new KeyNotFoundException("Creator not found.");
         }
 
-        return await BuildProfileAsync(account.UserId, cancellationToken).ConfigureAwait(false);
+        return await BuildProfileAsync(alias.UserId, cancellationToken).ConfigureAwait(false);
     }
 
     public Task<CreatorProfileResponse> GetMineAsync(CancellationToken cancellationToken = default) =>

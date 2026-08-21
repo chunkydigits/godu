@@ -83,6 +83,27 @@ export interface PublicPathSource {
   } | null;
 }
 
+export function normalizePublicPath(path: string | null | undefined): string | null {
+  const trimmed = path?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const withSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  const withoutQuery = withSlash.split('?')[0] ?? withSlash;
+  const stripped = withoutQuery.replace(/\/+$/, '');
+  return (stripped || '/').toLowerCase();
+}
+
+export function shouldReplaceCanonicalPath(
+  currentUrl: string,
+  canonicalPath: string | null | undefined,
+): boolean {
+  const current = normalizePublicPath(currentUrl);
+  const canonical = normalizePublicPath(canonicalPath);
+  return !!canonical && current !== canonical;
+}
+
 export function publicViewerPath(source: PublicPathSource): string | null {
   const stored = source.publicPath?.trim();
   if (stored) {

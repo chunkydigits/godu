@@ -2,6 +2,7 @@ using FluentAssertions;
 using Godu.Model.Configuration;
 using Godu.Model.Documents;
 using Godu.Repository.LinkedPlatformAccounts;
+using Godu.Repository.StepsItems;
 using Godu.Service.Identity;
 using Godu.Service.PlatformAccounts;
 using Godu.Service.TikTok;
@@ -14,6 +15,7 @@ namespace Godu.Service.Tests.PlatformAccounts;
 public sealed class LinkedPlatformAccountServiceTests
 {
     private readonly Mock<ILinkedPlatformAccountRepository> _repository = new();
+    private readonly Mock<IStepsItemRepository> _steps = new();
     private readonly CurrentUser _currentUser = new();
     private readonly Mock<ITikTokOAuthClient> _tikTok = new();
     private readonly InMemoryPlatformOAuthStateStore _stateStore = new();
@@ -31,8 +33,18 @@ public sealed class LinkedPlatformAccountServiceTests
             Scopes = "user.info.basic,user.info.profile,video.list",
         });
 
+        _steps
+            .Setup(r => r.RewriteCreatorHandleAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
         _sut = new LinkedPlatformAccountService(
             _repository.Object,
+            _steps.Object,
             _currentUser,
             _tikTok.Object,
             _stateStore,
@@ -215,6 +227,14 @@ public sealed class LinkedPlatformAccountServiceTests
         _repository.Verify(
             r => r.CreateAsync(It.IsAny<LinkedPlatformAccountDocument>(), It.IsAny<CancellationToken>()),
             Times.Never);
+        _steps.Verify(
+            r => r.RewriteCreatorHandleAsync(
+                "usr_owner",
+                "platform_1",
+                "oldname",
+                "therealjoe",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -329,6 +349,80 @@ public sealed class LinkedPlatformAccountServiceTests
         saved.Should().NotBeNull();
         saved!.AvatarUrl.Should().Be("https://example.com/new.png");
         saved.Bio.Should().Be("Updated TikTok bio");
+        _steps.Verify(
+            r => r.RewriteCreatorHandleAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task RefreshHandleAsync_WhenUsernameChanges_ThenRewritesPublishedGodus()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner");
+        existing.Username = "oldname";
+        existing.EncryptedAccessToken = "p:access-token";
+        existing.AccessTokenExpiresUtc = DateTime.UtcNow.AddHours(1);
+        _repository
+            .Setup(r => r.GetByIdAsync("platform_1", "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _tikTok
+            .Setup(c => c.GetUserInfoAsync("access-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ValidProfile());
+        _repository
+            .Setup(r => r.UpdateAsync(It.IsAny<LinkedPlatformAccountDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LinkedPlatformAccountDocument doc, CancellationToken _) => doc);
+        _steps
+            .Setup(r => r.RewriteCreatorHandleAsync(
+                "usr_owner",
+                "platform_1",
+                "oldname",
+                "therealjoe",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        var result = await _sut.RefreshHandleAsync("platform_1");
+
+        result.HandleChanged.Should().BeTrue();
+        result.PreviousUsername.Should().Be("oldname");
+        result.UpdatedStepsCount.Should().Be(2);
+        result.Account.Username.Should().Be("therealjoe");
+        result.Account.UsernameAliases.Should().Contain("oldname");
+    }
+
+    [Fact]
+    public async Task RefreshHandleAsync_WhenHandleUnchanged_ThenDoesNotRewrite()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner");
+        existing.EncryptedAccessToken = "p:access-token";
+        existing.AccessTokenExpiresUtc = DateTime.UtcNow.AddHours(1);
+        _repository
+            .Setup(r => r.GetByIdAsync("platform_1", "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _tikTok
+            .Setup(c => c.GetUserInfoAsync("access-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ValidProfile());
+        _repository
+            .Setup(r => r.UpdateAsync(It.IsAny<LinkedPlatformAccountDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LinkedPlatformAccountDocument doc, CancellationToken _) => doc);
+
+        var result = await _sut.RefreshHandleAsync("platform_1");
+
+        result.HandleChanged.Should().BeFalse();
+        result.UpdatedStepsCount.Should().Be(0);
+        _steps.Verify(
+            r => r.RewriteCreatorHandleAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -370,6 +464,7 @@ public sealed class LinkedPlatformAccountServiceTests
     {
         return new LinkedPlatformAccountService(
             _repository.Object,
+            _steps.Object,
             _currentUser,
             _tikTok.Object,
             _stateStore,

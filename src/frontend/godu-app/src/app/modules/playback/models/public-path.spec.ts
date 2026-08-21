@@ -4,6 +4,7 @@ import {
   publicAlias,
   publicCreatorPath,
   publicViewerPath,
+  shouldReplaceCanonicalPath,
   slugFromTitle,
   viewerBackPath,
   viewerBackPathFromUrl,
@@ -46,6 +47,12 @@ describe('public paths', () => {
         video: { provider: 'tiktok', creatorUsername: 'other' },
       }),
     ).toBe('/t/coach/morning');
+  });
+
+  it('replaces an alias viewer url with the current handle', () => {
+    expect(shouldReplaceCanonicalPath('/t/oldname/stretch', '/t/newname/stretch')).toBe(true);
+    expect(shouldReplaceCanonicalPath('/t/newname/stretch', '/t/newname/stretch')).toBe(false);
+    expect(shouldReplaceCanonicalPath('/t/oldname', '/t/newname')).toBe(true);
   });
 
   it('builds a viewer path from provider, handle and slug', () => {

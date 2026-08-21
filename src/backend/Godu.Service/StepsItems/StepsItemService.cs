@@ -168,10 +168,46 @@ public sealed class StepsItemService : IStepsItemService
         }
 
         var canonicalSlug = SlugUtilities.Canonicalise(slug);
-        var username = platformUsername.Trim().ToLowerInvariant();
+        var username = platformUsername.Trim().TrimStart('@').ToLowerInvariant();
         if (string.IsNullOrEmpty(canonicalSlug) || string.IsNullOrEmpty(username))
         {
             return null;
+        }
+
+        var currentOwner = await _platformAccounts
+            .GetVerifiedByCurrentUsernameAsync(provider, username, cancellationToken)
+            .ConfigureAwait(false);
+        if (currentOwner is not null)
+        {
+            var owned = await _repository
+                .GetPublicByAccountSlugAsync(
+                    currentOwner.UserId,
+                    currentOwner.Id,
+                    canonicalSlug,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (owned is not null)
+            {
+                return await ToResponseAsync(owned, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        var previousOwners = await _platformAccounts
+            .ListVerifiedByAliasAsync(provider, username, cancellationToken)
+            .ConfigureAwait(false);
+        foreach (var previous in previousOwners)
+        {
+            var inherited = await _repository
+                .GetPublicByAccountSlugAsync(
+                    previous.UserId,
+                    previous.Id,
+                    canonicalSlug,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (inherited is not null)
+            {
+                return await ToResponseAsync(inherited, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         var item = await _repository

@@ -36,6 +36,19 @@ public interface IStepsItemRepository
         string platformUsername,
         CancellationToken cancellationToken = default);
 
+    Task<StepsItemDocument?> GetPublicByAccountSlugAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string slug,
+        CancellationToken cancellationToken = default);
+
+    Task<int> RewriteCreatorHandleAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string fromUsername,
+        string toUsername,
+        CancellationToken cancellationToken = default);
+
     Task<bool> SlugTakenAsync(
         string createdByUserId,
         string linkedPlatformAccountId,

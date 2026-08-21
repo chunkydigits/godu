@@ -88,6 +88,32 @@ public sealed class MePlatformAccountsController : ControllerBase
         return Redirect(returnUrl);
     }
 
+    [HttpPost("{id}/refresh-handle")]
+    public async Task<IActionResult> RefreshHandleAsync(string id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return Ok(await _platformAccounts.RefreshHandleAsync(id, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Problem(detail: ex.Message, statusCode: StatusCodes.Status401Unauthorized);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to refresh handle for platform account {Id}.", id);
+            return Problem(detail: "Unexpected error.", statusCode: StatusCodes.Status500InternalServerError);
+        }
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> DisconnectAsync(string id, CancellationToken cancellationToken = default)
     {

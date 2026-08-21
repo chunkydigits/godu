@@ -20,6 +20,8 @@ public sealed class LinkedPlatformAccountResponse
 
     public string? Bio { get; init; }
 
+    public IReadOnlyList<string> UsernameAliases { get; init; } = [];
+
     public required bool IsVerified { get; init; }
 
     public DateTime? VerifiedUtc { get; init; }

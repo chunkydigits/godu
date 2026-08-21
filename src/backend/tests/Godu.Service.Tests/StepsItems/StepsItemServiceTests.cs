@@ -27,6 +27,18 @@ public sealed class StepsItemServiceTests
         _accounts
             .Setup(r => r.ListByUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
+        _accounts
+            .Setup(r => r.GetVerifiedByCurrentUsernameAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LinkedPlatformAccountDocument?)null);
+        _accounts
+            .Setup(r => r.ListVerifiedByAliasAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         _sut = new StepsItemService(
             _repository.Object,
             _accounts.Object,

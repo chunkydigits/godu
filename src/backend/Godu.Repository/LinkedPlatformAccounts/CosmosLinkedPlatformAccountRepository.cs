@@ -116,6 +116,57 @@ public sealed class CosmosLinkedPlatformAccountRepository : ILinkedPlatformAccou
         return null;
     }
 
+    public async Task<LinkedPlatformAccountDocument?> GetVerifiedByCurrentUsernameAsync(
+        string provider,
+        string username,
+        CancellationToken cancellationToken = default)
+    {
+        var handle = username.Trim().TrimStart('@').ToLowerInvariant();
+        const string sql =
+            """
+            SELECT * FROM c
+            WHERE c.provider = @provider
+              AND c.isVerified = true
+              AND c.username = @username
+            """;
+
+        return await QueryFirstAsync(
+                new QueryDefinition(sql)
+                    .WithParameter("@provider", provider.ToLowerInvariant())
+                    .WithParameter("@username", handle),
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<LinkedPlatformAccountDocument>> ListVerifiedByAliasAsync(
+        string provider,
+        string username,
+        CancellationToken cancellationToken = default)
+    {
+        var handle = username.Trim().TrimStart('@').ToLowerInvariant();
+        const string sql =
+            """
+            SELECT * FROM c
+            WHERE c.provider = @provider
+              AND c.isVerified = true
+              AND c.username != @username
+              AND ARRAY_CONTAINS(c.usernameAliases, @username, true)
+            """;
+
+        var query = new QueryDefinition(sql)
+            .WithParameter("@provider", provider.ToLowerInvariant())
+            .WithParameter("@username", handle);
+        var results = new List<LinkedPlatformAccountDocument>();
+        using var iterator = _container.GetItemQueryIterator<LinkedPlatformAccountDocument>(query);
+        while (iterator.HasMoreResults)
+        {
+            var page = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+            results.AddRange(page.Resource);
+        }
+
+        return results.OrderByDescending(x => x.UpdatedUtc).ToList();
+    }
+
     public async Task<LinkedPlatformAccountDocument> CreateAsync(
         LinkedPlatformAccountDocument account,
         CancellationToken cancellationToken = default)
@@ -154,5 +205,23 @@ public sealed class CosmosLinkedPlatformAccountRepository : ILinkedPlatformAccou
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
         }
+    }
+
+    private async Task<LinkedPlatformAccountDocument?> QueryFirstAsync(
+        QueryDefinition query,
+        CancellationToken cancellationToken)
+    {
+        using var iterator = _container.GetItemQueryIterator<LinkedPlatformAccountDocument>(query);
+        while (iterator.HasMoreResults)
+        {
+            var page = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+            var match = page.Resource.FirstOrDefault();
+            if (match is not null)
+            {
+                return match;
+            }
+        }
+
+        return null;
     }
 }

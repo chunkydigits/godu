@@ -65,6 +65,39 @@ public sealed class InMemoryLinkedPlatformAccountRepository : ILinkedPlatformAcc
         return Task.FromResult(match is null ? null : Clone(match));
     }
 
+    public Task<LinkedPlatformAccountDocument?> GetVerifiedByCurrentUsernameAsync(
+        string provider,
+        string username,
+        CancellationToken cancellationToken = default)
+    {
+        var handle = username.Trim().TrimStart('@');
+        var match = _store.Values.FirstOrDefault(x =>
+            x.IsVerified
+            && string.Equals(x.Provider, provider, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.Username, handle, StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(match is null ? null : Clone(match));
+    }
+
+    public Task<IReadOnlyList<LinkedPlatformAccountDocument>> ListVerifiedByAliasAsync(
+        string provider,
+        string username,
+        CancellationToken cancellationToken = default)
+    {
+        var handle = username.Trim().TrimStart('@');
+        var matches = _store.Values
+            .Where(x =>
+                x.IsVerified
+                && string.Equals(x.Provider, provider, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(x.Username, handle, StringComparison.OrdinalIgnoreCase)
+                && x.UsernameAliases.Contains(handle, StringComparer.OrdinalIgnoreCase))
+            .OrderByDescending(x => x.UpdatedUtc)
+            .Select(Clone)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<LinkedPlatformAccountDocument>>(matches);
+    }
+
     public Task<LinkedPlatformAccountDocument> CreateAsync(
         LinkedPlatformAccountDocument account,
         CancellationToken cancellationToken = default)

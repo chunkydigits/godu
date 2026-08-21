@@ -170,6 +170,12 @@
   font-size: 0.85rem;
 }
 
+.account__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 @media (min-width: 640px) {
   .account {
     flex-direction: row;

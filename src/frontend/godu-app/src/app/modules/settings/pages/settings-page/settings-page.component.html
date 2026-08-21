@@ -163,11 +163,12 @@
     <h2>Creator accounts</h2>
     <p class="panel__copy">
       Connect TikTok to prove you own that account. You will need a verified link before
-      publishing public Steps.
+      publishing public Steps. If you rename on TikTok, use Refresh handle so Godu URLs follow
+      the new @name. Old links still reach your Godus.
     </p>
 
     @if (view$ | async; as view) {
-      @if (view.loading || view.connecting) {
+      @if (view.loading || view.connecting || view.refreshing) {
         <div class="status-row">
           <mat-progress-bar mode="indeterminate" />
         </div>
@@ -185,7 +186,7 @@
             mat-flat-button
             color="primary"
             type="button"
-            [disabled]="view.connecting"
+            [disabled]="view.connecting || view.refreshing"
             (click)="connectTikTok()"
           >
             Connect TikTok
@@ -210,14 +211,30 @@
                     · {{ account.displayName }}
                   }
                 </p>
+                @if (account.usernameAliases?.length) {
+                  <p>Previously {{ formatAliases(account.usernameAliases) }}</p>
+                }
               </div>
-              <button
-                mat-button
-                type="button"
-                (click)="confirmDisconnect(account)"
-              >
-                Disconnect
-              </button>
+              <div class="account__actions">
+                @if (account.isVerified) {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="view.connecting || view.refreshing"
+                    (click)="refreshHandle(account)"
+                  >
+                    Refresh handle
+                  </button>
+                }
+                <button
+                  mat-button
+                  type="button"
+                  [disabled]="view.connecting || view.refreshing"
+                  (click)="confirmDisconnect(account)"
+                >
+                  Disconnect
+                </button>
+              </div>
             </li>
           }
         </ul>

@@ -22,4 +22,8 @@ public interface ILinkedPlatformAccountService
 
     Task<LinkedPlatformAccountResponse> RefreshVerifiedMetadataAsync(
         CancellationToken cancellationToken = default);
+
+    Task<RefreshHandleResponse> RefreshHandleAsync(
+        string id,
+        CancellationToken cancellationToken = default);
 }

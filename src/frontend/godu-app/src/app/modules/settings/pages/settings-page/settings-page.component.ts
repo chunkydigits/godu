@@ -23,13 +23,17 @@ import {
 } from '../../../creators/models/creator-profile.model';
 import { MineCreatorProfileApiService } from '../../../creators/services/mine-creator-profile-api.service';
 import { publicCreatorPath } from '../../../playback/models/public-path';
-import { LinkedPlatformAccount } from '../../models/linked-platform-account.model';
+import {
+  LinkedPlatformAccount,
+  RefreshHandleResult,
+} from '../../models/linked-platform-account.model';
 import { PlatformAccountsApiService } from '../../services/platform-accounts-api.service';
 import { UserSettingsService } from '../../services/user-settings.service';
 
 interface SettingsView {
   loading: boolean;
   connecting: boolean;
+  refreshing: boolean;
   accounts: LinkedPlatformAccount[];
   error: string | null;
   actionMessage: string | null;
@@ -59,8 +63,10 @@ export class SettingsPageComponent {
 
   private readonly connect$ = new Subject<void>();
   private readonly disconnectId$ = new Subject<string>();
+  private readonly refreshId$ = new Subject<string>();
   private readonly saveProfile$ = new Subject<void>();
   private readonly importProfile$ = new Subject<void>();
+  private readonly reloadProfile$ = new Subject<void>();
 
   displayName = '';
   bio = '';
@@ -96,6 +102,7 @@ export class SettingsPageComponent {
             (): SettingsView => ({
               loading: false,
               connecting: true,
+              refreshing: false,
               accounts: [],
               error: null,
               actionMessage: 'Redirecting to TikTok…',
@@ -104,6 +111,7 @@ export class SettingsPageComponent {
           startWith({
             loading: false,
             connecting: true,
+            refreshing: false,
             accounts: [],
             error: null,
             actionMessage: null,
@@ -121,6 +129,7 @@ export class SettingsPageComponent {
           startWith({
             loading: true,
             connecting: false,
+            refreshing: false,
             accounts: [] as LinkedPlatformAccount[],
             error: null,
             actionMessage: null,
@@ -129,10 +138,35 @@ export class SettingsPageComponent {
         ),
       ),
     ),
+    this.refreshId$.pipe(
+      switchMap((id) =>
+        this.platformAccounts.refreshHandle(id).pipe(
+          switchMap((result) =>
+            this.loadView(refreshHandleMessage(result)).pipe(
+              tap((view) => {
+                if (!view.loading && !view.error) {
+                  this.reloadProfile$.next();
+                }
+              }),
+            ),
+          ),
+          startWith({
+            loading: false,
+            connecting: false,
+            refreshing: true,
+            accounts: [] as LinkedPlatformAccount[],
+            error: null,
+            actionMessage: 'Checking TikTok for your current handle…',
+          }),
+          catchError((err: unknown) => of(toErrorView(err, 'Could not refresh handle.'))),
+        ),
+      ),
+    ),
   );
 
   readonly profileView$: Observable<ProfileEditorView> = merge(
     this.loadProfile(),
+    this.reloadProfile$.pipe(switchMap(() => this.loadProfile())),
     this.saveProfile$.pipe(switchMap(() => this.saveProfile())),
     this.importProfile$.pipe(switchMap(() => this.importProfile())),
   );
@@ -152,6 +186,10 @@ export class SettingsPageComponent {
     }
   }
 
+  refreshHandle(account: LinkedPlatformAccount): void {
+    this.refreshId$.next(account.id);
+  }
+
   savePublicProfile(): void {
     this.saveProfile$.next();
   }
@@ -163,6 +201,10 @@ export class SettingsPageComponent {
   publicPagePath(profile: CreatorProfile): string | null {
     const social = profile.socials[0];
     return social ? publicCreatorPath(social.provider, social.username) : null;
+  }
+
+  formatAliases(aliases: string[]): string {
+    return aliases.map((alias) => `@${alias}`).join(', ');
   }
 
   get previewImageSrc(): string | null {
@@ -181,6 +223,7 @@ export class SettingsPageComponent {
         (accounts): SettingsView => ({
           loading: false,
           connecting: false,
+          refreshing: false,
           accounts,
           error: null,
           actionMessage,
@@ -189,6 +232,7 @@ export class SettingsPageComponent {
       startWith({
         loading: true,
         connecting: false,
+        refreshing: false,
         accounts: [] as LinkedPlatformAccount[],
         error: null,
         actionMessage: null,
@@ -333,8 +377,22 @@ function toErrorView(err: unknown, fallback: string): SettingsView {
   return {
     loading: false,
     connecting: false,
+    refreshing: false,
     accounts: [],
     error: detail,
     actionMessage: null,
   };
+}
+
+function refreshHandleMessage(result: RefreshHandleResult): string {
+  const current = result.account.username ? `@${result.account.username}` : 'your TikTok handle';
+  if (!result.handleChanged) {
+    return `Handle is still ${current}.`;
+  }
+
+  const previous = result.previousUsername ? `@${result.previousUsername}` : 'the old handle';
+  const count = result.updatedStepsCount;
+  const rewritten =
+    count === 1 ? '1 Godu URL now uses' : `${count} Godu URLs now use`;
+  return `Handle updated from ${previous} to ${current}. ${rewritten} ${current}. Old links still work.`;
 }

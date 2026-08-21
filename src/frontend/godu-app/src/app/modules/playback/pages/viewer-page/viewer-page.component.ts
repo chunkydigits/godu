@@ -48,7 +48,7 @@ import {
 } from '../../services/step-playback.service';
 import { ViewerPreferencesService } from '../../services/viewer-preferences.service';
 import { UserSettingsService } from '../../../settings/services/user-settings.service';
-import { viewerBackPathFromUrl } from '../../models/public-path';
+import { viewerBackPathFromUrl, shouldReplaceCanonicalPath } from '../../models/public-path';
 import { StepsVisibility } from '../../models/steps-visibility.enum';
 import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../../core/analytics/analytics.service';
@@ -110,6 +110,9 @@ export class ViewerPageComponent implements OnDestroy {
           this.syncVoiceCuesToPlayback();
           this.trackViewed(item);
           void this.playback.load(item);
+          if (shouldReplaceCanonicalPath(this.router.url, item.publicPath)) {
+            void this.router.navigateByUrl(item.publicPath!, { replaceUrl: true });
+          }
         }),
         catchError((err: Error) => {
           this.error$.next(err.message || 'Steps item not found.');

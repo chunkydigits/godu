@@ -5,6 +5,7 @@ import { environment } from '../../../../environments/environment';
 import {
   LinkedPlatformAccount,
   PlatformConnectStart,
+  RefreshHandleResult,
 } from '../models/linked-platform-account.model';
 
 @Injectable({ providedIn: 'root' })
@@ -25,5 +26,12 @@ export class PlatformAccountsApiService {
 
   disconnect(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${encodeURIComponent(id)}`);
+  }
+
+  refreshHandle(id: string): Observable<RefreshHandleResult> {
+    return this.http.post<RefreshHandleResult>(
+      `${this.baseUrl}/${encodeURIComponent(id)}/refresh-handle`,
+      {},
+    );
   }
 }

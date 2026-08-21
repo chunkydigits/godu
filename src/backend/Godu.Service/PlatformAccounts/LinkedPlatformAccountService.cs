@@ -2,6 +2,7 @@ using Godu.Model.Configuration;
 using Godu.Model.Documents;
 using Godu.Model.Responses;
 using Godu.Repository.LinkedPlatformAccounts;
+using Godu.Repository.StepsItems;
 using Godu.Service.Identity;
 using Godu.Service.Mapping;
 using Godu.Service.TikTok;
@@ -14,6 +15,7 @@ namespace Godu.Service.PlatformAccounts;
 public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
 {
     private readonly ILinkedPlatformAccountRepository _repository;
+    private readonly IStepsItemRepository _steps;
     private readonly ICurrentUser _currentUser;
     private readonly ITikTokOAuthClient _tikTokOAuth;
     private readonly IPlatformOAuthStateStore _oauthState;
@@ -24,6 +26,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
 
     public LinkedPlatformAccountService(
         ILinkedPlatformAccountRepository repository,
+        IStepsItemRepository steps,
         ICurrentUser currentUser,
         ITikTokOAuthClient tikTokOAuth,
         IPlatformOAuthStateStore oauthState,
@@ -33,6 +36,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
         ILogger<LinkedPlatformAccountService> logger)
     {
         _repository = repository;
+        _steps = steps;
         _currentUser = currentUser;
         _tikTokOAuth = tikTokOAuth;
         _oauthState = oauthState;
@@ -177,10 +181,38 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
                 "TikTok did not return a username. Reconnect the account and try again.");
         }
 
+        var previousUsername = account.Username;
         ApplyLiveProfile(account, profile);
         account.UpdatedUtc = DateTime.UtcNow;
-        var updated = await _repository.UpdateAsync(account, cancellationToken).ConfigureAwait(false);
-        return LinkedPlatformAccountMapper.ToResponse(updated);
+        var updated = await PersistProfileChangeAsync(account, previousUsername, cancellationToken)
+            .ConfigureAwait(false);
+        return updated.Account;
+    }
+
+    public async Task<RefreshHandleResponse> RefreshHandleAsync(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = RequireUserId();
+        var account = await _repository.GetByIdAsync(id, userId, cancellationToken).ConfigureAwait(false)
+            ?? throw new KeyNotFoundException("Linked platform account not found.");
+        if (!account.IsVerified)
+        {
+            throw new InvalidOperationException("Connect a verified creator account first.");
+        }
+
+        var profile = await FetchLiveUserInfoAsync(account, cancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(profile.Username))
+        {
+            throw new InvalidOperationException(
+                "TikTok did not return a username. Reconnect the account and try again.");
+        }
+
+        var previousUsername = account.Username;
+        ApplyLiveProfile(account, profile);
+        account.UpdatedUtc = DateTime.UtcNow;
+        return await PersistProfileChangeAsync(account, previousUsername, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task<TikTokUserInfo> FetchLiveUserInfoAsync(
@@ -294,6 +326,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
             existing.UsernameAliases.Add(existing.Username);
         }
 
+        var previousUsername = existing.Username;
         existing.Username = username;
         existing.DisplayName = profile.DisplayName;
         existing.ProfileUrl = BuildProfileUrl(username);
@@ -308,7 +341,36 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
         existing.RefreshTokenExpiresUtc = ExpiresAt(now, tokens.RefreshExpiresInSeconds);
         existing.Scope = tokens.Scope;
 
-        await _repository.UpdateAsync(existing, cancellationToken).ConfigureAwait(false);
+        await PersistProfileChangeAsync(existing, previousUsername, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<RefreshHandleResponse> PersistProfileChangeAsync(
+        LinkedPlatformAccountDocument account,
+        string previousUsername,
+        CancellationToken cancellationToken)
+    {
+        var saved = await _repository.UpdateAsync(account, cancellationToken).ConfigureAwait(false);
+        var changed = !string.Equals(previousUsername, saved.Username, StringComparison.OrdinalIgnoreCase);
+        var updatedSteps = 0;
+        if (changed)
+        {
+            updatedSteps = await _steps
+                .RewriteCreatorHandleAsync(
+                    saved.UserId,
+                    saved.Id,
+                    previousUsername,
+                    saved.Username,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return new RefreshHandleResponse
+        {
+            Account = LinkedPlatformAccountMapper.ToResponse(saved),
+            HandleChanged = changed,
+            PreviousUsername = changed ? previousUsername : null,
+            UpdatedStepsCount = updatedSteps,
+        };
     }
 
     private string BuildAuthorizeUrl(string state)

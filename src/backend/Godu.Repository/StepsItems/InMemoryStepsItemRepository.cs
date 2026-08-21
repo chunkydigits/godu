@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Godu.Model.Documents;
 using Godu.Model.Enums;
+using Godu.Utility;
 
 namespace Godu.Repository.StepsItems;
 
@@ -99,6 +100,42 @@ public sealed class InMemoryStepsItemRepository : IStepsItemRepository
             .Select(Clone)
             .ToList();
         return Task.FromResult<IReadOnlyList<StepsItemDocument>>(items);
+    }
+
+    public Task<StepsItemDocument?> GetPublicByAccountSlugAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string slug,
+        CancellationToken cancellationToken = default)
+    {
+        var match = PublicOwned(createdByUserId).FirstOrDefault(x =>
+            string.Equals(x.LinkedPlatformAccountId, linkedPlatformAccountId, StringComparison.Ordinal)
+            && string.Equals(x.Slug, slug, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(match is null ? null : Clone(match));
+    }
+
+    public Task<int> RewriteCreatorHandleAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string fromUsername,
+        string toUsername,
+        CancellationToken cancellationToken = default)
+    {
+        var from = fromUsername.Trim().TrimStart('@').ToLowerInvariant();
+        var to = toUsername.Trim().TrimStart('@').ToLowerInvariant();
+        var count = 0;
+        foreach (var item in _store.Values.Where(x =>
+                     string.Equals(x.CreatedByUserId, createdByUserId, StringComparison.Ordinal)
+                     && (string.Equals(x.LinkedPlatformAccountId, linkedPlatformAccountId, StringComparison.Ordinal)
+                         || string.Equals(x.Video.CreatorUsername, from, StringComparison.OrdinalIgnoreCase))))
+        {
+            item.Video.CreatorUsername = to;
+            item.Video.SourceUrl = TikTokHandleUrls.RewriteSourceUrl(item.Video.SourceUrl, from, to);
+            item.UpdatedUtc = DateTime.UtcNow;
+            count++;
+        }
+
+        return Task.FromResult(count);
     }
 
     public Task<bool> SlugTakenAsync(

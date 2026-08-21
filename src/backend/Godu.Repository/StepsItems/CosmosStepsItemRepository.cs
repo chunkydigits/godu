@@ -1,5 +1,6 @@
 using Godu.Model.Documents;
 using Microsoft.Azure.Cosmos;
+using Godu.Utility;
 
 namespace Godu.Repository.StepsItems;
 
@@ -162,6 +163,72 @@ public sealed class CosmosStepsItemRepository : IStepsItemRepository
             .WithParameter("@username", platformUsername.ToLowerInvariant());
 
         return await QueryListAsync(query, partitionKey: null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<StepsItemDocument?> GetPublicByAccountSlugAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string slug,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql =
+            """
+            SELECT * FROM c
+            WHERE c.createdByUserId = @userId
+              AND c.linkedPlatformAccountId = @accountId
+              AND c.slug = @slug
+              AND c.status = 'published'
+              AND c.visibility = 'public'
+            """;
+
+        var items = await QueryListAsync(
+                new QueryDefinition(sql)
+                    .WithParameter("@userId", createdByUserId)
+                    .WithParameter("@accountId", linkedPlatformAccountId)
+                    .WithParameter("@slug", slug.ToLowerInvariant()),
+                new PartitionKey(createdByUserId),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return items.FirstOrDefault();
+    }
+
+    public async Task<int> RewriteCreatorHandleAsync(
+        string createdByUserId,
+        string linkedPlatformAccountId,
+        string fromUsername,
+        string toUsername,
+        CancellationToken cancellationToken = default)
+    {
+        var from = fromUsername.Trim().TrimStart('@').ToLowerInvariant();
+        var to = toUsername.Trim().TrimStart('@').ToLowerInvariant();
+        const string sql =
+            """
+            SELECT * FROM c
+            WHERE c.createdByUserId = @userId
+              AND (c.linkedPlatformAccountId = @accountId OR c.video.creatorUsername = @from)
+            """;
+
+        var items = await QueryListAsync(
+                new QueryDefinition(sql)
+                    .WithParameter("@userId", createdByUserId)
+                    .WithParameter("@accountId", linkedPlatformAccountId)
+                    .WithParameter("@from", from),
+                new PartitionKey(createdByUserId),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        var count = 0;
+        foreach (var item in items)
+        {
+            item.Video.CreatorUsername = to;
+            item.Video.SourceUrl = TikTokHandleUrls.RewriteSourceUrl(item.Video.SourceUrl, from, to);
+            item.UpdatedUtc = DateTime.UtcNow;
+            await UpdateAsync(item, cancellationToken).ConfigureAwait(false);
+            count++;
+        }
+
+        return count;
     }
 
     public async Task<bool> SlugTakenAsync(

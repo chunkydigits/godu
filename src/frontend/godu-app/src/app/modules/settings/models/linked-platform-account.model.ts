@@ -8,6 +8,7 @@ export interface LinkedPlatformAccount {
   profileUrl?: string | null;
   avatarUrl?: string | null;
   bio?: string | null;
+  usernameAliases?: string[];
   isVerified: boolean;
   verifiedUtc?: string | null;
   createdUtc: string;
@@ -17,4 +18,11 @@ export interface LinkedPlatformAccount {
 export interface PlatformConnectStart {
   provider: string;
   authorizationUrl: string;
+}
+
+export interface RefreshHandleResult {
+  account: LinkedPlatformAccount;
+  handleChanged: boolean;
+  previousUsername?: string | null;
+  updatedStepsCount: number;
 }

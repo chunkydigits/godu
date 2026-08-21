@@ -18,6 +18,7 @@ public static class LinkedPlatformAccountMapper
             ProfileUrl = document.ProfileUrl,
             AvatarUrl = document.AvatarUrl,
             Bio = document.Bio,
+            UsernameAliases = document.UsernameAliases ?? [],
             IsVerified = document.IsVerified,
             VerifiedUtc = document.VerifiedUtc,
             CreatedUtc = document.CreatedUtc,

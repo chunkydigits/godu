@@ -1,12 +1,17 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Observable, catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Observable, catchError, combineLatest, map, of, startWith, switchMap, tap } from 'rxjs';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
 import { MaterialModule } from '../../../../core/material.module';
 import { platformLabel } from '../../../playback/models/creator-link';
 import { PlatformMarkComponent } from '../../../playback/components/platform-mark/platform-mark.component';
-import { publicViewerPath } from '../../../playback/models/public-path';
+import {
+  publicAlias,
+  publicCreatorPath,
+  publicViewerPath,
+  shouldReplaceCanonicalPath,
+} from '../../../playback/models/public-path';
 import { CreatorProfile, PublicStepsSummary } from '../../models/creator-profile.model';
 import { CreatorProfileApiService } from '../../services/creator-profile-api.service';
 
@@ -24,6 +29,7 @@ interface CreatorProfileView {
 })
 export class CreatorProfilePageComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly api = inject(CreatorProfileApiService);
 
   readonly view$: Observable<CreatorProfileView> = combineLatest([
@@ -47,6 +53,7 @@ export class CreatorProfilePageComponent {
 
       return request$.pipe(
         map((profile) => ({ loading: false, profile, error: null })),
+        tap((view) => this.replaceAliasHandle(view.profile, provider, username)),
         startWith({ loading: true, profile: null, error: null }),
         catchError(() =>
           of({
@@ -70,5 +77,23 @@ export class CreatorProfilePageComponent {
 
   itemPath(item: PublicStepsSummary): string | null {
     return publicViewerPath(item);
+  }
+
+  private replaceAliasHandle(
+    profile: CreatorProfile | null,
+    provider: string,
+    username: string | null,
+  ): void {
+    if (!profile || !username) {
+      return;
+    }
+
+    const social =
+      profile.socials.find((item) => publicAlias(item.provider) === publicAlias(provider)) ??
+      profile.socials[0];
+    const canonical = social ? publicCreatorPath(social.provider, social.username) : null;
+    if (shouldReplaceCanonicalPath(this.router.url, canonical)) {
+      void this.router.navigateByUrl(canonical!, { replaceUrl: true });
+    }
   }
 }

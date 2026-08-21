@@ -23,6 +23,16 @@ public interface ILinkedPlatformAccountRepository
         string username,
         CancellationToken cancellationToken = default);
 
+    Task<LinkedPlatformAccountDocument?> GetVerifiedByCurrentUsernameAsync(
+        string provider,
+        string username,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LinkedPlatformAccountDocument>> ListVerifiedByAliasAsync(
+        string provider,
+        string username,
+        CancellationToken cancellationToken = default);
+
     Task<LinkedPlatformAccountDocument> CreateAsync(
         LinkedPlatformAccountDocument account,
         CancellationToken cancellationToken = default);

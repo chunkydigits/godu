@@ -122,6 +122,50 @@ public sealed class CreatorProfileServiceTests
     }
 
     [Fact]
+    public async Task GetPublicByHandleAsync_WhenCurrentOwnerExists_ThenPrefersCurrentHandle()
+    {
+        var current = TikTok("usr_b", "oldname");
+        _accounts
+            .Setup(r => r.GetVerifiedByCurrentUsernameAsync("tiktok", "oldname", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(current);
+        _users
+            .Setup(r => r.GetByIdAsync("usr_b", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(User("usr_b", "New Owner"));
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_b", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([current]);
+
+        var profile = await _sut.GetPublicByHandleAsync("t", "oldname");
+
+        profile.UserId.Should().Be("usr_b");
+        profile.Socials[0].Username.Should().Be("oldname");
+    }
+
+    [Fact]
+    public async Task GetPublicByHandleAsync_WhenOnlyAliasMatches_ThenReturnsPreviousOwner()
+    {
+        var previous = TikTok("usr_a", "newname");
+        previous.UsernameAliases = ["oldname"];
+        _accounts
+            .Setup(r => r.GetVerifiedByCurrentUsernameAsync("tiktok", "oldname", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LinkedPlatformAccountDocument?)null);
+        _accounts
+            .Setup(r => r.ListVerifiedByAliasAsync("tiktok", "oldname", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([previous]);
+        _users
+            .Setup(r => r.GetByIdAsync("usr_a", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(User("usr_a", "Previous"));
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_a", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([previous]);
+
+        var profile = await _sut.GetPublicByHandleAsync("t", "oldname");
+
+        profile.UserId.Should().Be("usr_a");
+        profile.Socials[0].Username.Should().Be("newname");
+    }
+
+    [Fact]
     public async Task GetMineAsync_WhenNotAuthenticated_ThenThrows()
     {
         _currentUser.SetupGet(c => c.IsAuthenticated).Returns(false);
