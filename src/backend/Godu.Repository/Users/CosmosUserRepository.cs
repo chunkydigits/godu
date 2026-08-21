@@ -27,6 +27,23 @@ public sealed class CosmosUserRepository : IUserRepository
         }
     }
 
+    public async Task<IReadOnlyList<UserDocument>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        const string sql = "SELECT * FROM c";
+        var results = new List<UserDocument>();
+        using var iterator = _container.GetItemQueryIterator<UserDocument>(sql);
+        while (iterator.HasMoreResults)
+        {
+            var page = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+            results.AddRange(page.Resource);
+        }
+
+        return results
+            .OrderBy(user => user.CreatedUtc)
+            .ThenBy(user => user.Id, StringComparer.Ordinal)
+            .ToList();
+    }
+
     public async Task<UserDocument> CreateAsync(UserDocument user, CancellationToken cancellationToken = default)
     {
         var response = await _container

@@ -1,5 +1,6 @@
 import { AsyncPipe, DecimalPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { BehaviorSubject, Observable, catchError, map, of, startWith, switchMap } from 'rxjs';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
 import { problemDetail } from '../../../../core/http-problem';
@@ -22,7 +23,7 @@ interface AnalyticsView {
 
 @Component({
   selector: 'app-admin-analytics-page',
-  imports: [PageTemplateComponent, MaterialModule, AsyncPipe, DecimalPipe],
+  imports: [PageTemplateComponent, MaterialModule, RouterLink, AsyncPipe, DecimalPipe],
   templateUrl: './admin-analytics-page.component.html',
   styleUrl: './admin-analytics-page.component.scss',
 })

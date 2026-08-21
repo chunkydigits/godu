@@ -11,16 +11,16 @@ namespace Godu.Service.Analytics;
 public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
 {
     private readonly IAnalyticsEventRepository _repository;
-    private readonly ICurrentUser _currentUser;
+    private readonly IAdminAccessService _admin;
     private readonly AnalyticsOptions _options;
 
     public AnalyticsSummaryService(
         IAnalyticsEventRepository repository,
-        ICurrentUser currentUser,
+        IAdminAccessService admin,
         IOptions<AnalyticsOptions> options)
     {
         _repository = repository;
-        _currentUser = currentUser;
+        _admin = admin;
         _options = options.Value;
     }
 
@@ -30,7 +30,7 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
         string? environment,
         CancellationToken cancellationToken = default)
     {
-        RequireAdmin();
+        await _admin.RequireAdminAsync(cancellationToken).ConfigureAwait(false);
         if (toUtcExclusive <= fromUtc)
         {
             throw new ArgumentException("The end date must be after the start date.");
@@ -117,21 +117,6 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
                 (AnalyticsEventNames.GoduCompleted, "Completed")),
             Daily = DailyTrend(visible, fromUtc, toUtcExclusive),
         };
-    }
-
-    private void RequireAdmin()
-    {
-        if (!_currentUser.IsAuthenticated || string.IsNullOrWhiteSpace(_currentUser.UserId))
-        {
-            throw new UnauthorizedAccessException("Authentication required.");
-        }
-
-        if (_options.IsAdminUser(_currentUser.UserId) || _options.AllowAnyAuthenticatedAdmin)
-        {
-            return;
-        }
-
-        throw new UnauthorizedAccessException("Admin access required.");
     }
 
     private string ResolveEnvironment() =>

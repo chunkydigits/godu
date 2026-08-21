@@ -20,6 +20,9 @@ public static class ServiceConfiguration
         services.AddScoped<ITikTokVideoOwnershipVerifier, TikTokVideoOwnershipVerifier>();
         services.AddScoped<IUserProvisioningService, UserProvisioningService>();
         services.AddScoped<IUserSettingsService, UserSettingsService>();
+        services.AddScoped<IAdminAccessService, AdminAccessService>();
+        services.AddScoped<IMeService, MeService>();
+        services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<IAnalyticsIngestService, AnalyticsIngestService>();
         services.AddScoped<IAnalyticsSummaryService, AnalyticsSummaryService>();
         services.AddSingleton<IPlatformOAuthStateStore, InMemoryPlatformOAuthStateStore>();

@@ -4,6 +4,7 @@ using Godu.Model.Configuration;
 using Godu.Model.Documents;
 using Godu.Model.Requests;
 using Godu.Repository.Analytics;
+using Godu.Repository.Users;
 using Godu.Service.Analytics;
 using Godu.Service.Identity;
 using Microsoft.Extensions.Options;
@@ -14,6 +15,7 @@ namespace Godu.Service.Tests.Analytics;
 public sealed class AnalyticsIngestServiceTests
 {
     private readonly InMemoryAnalyticsEventRepository _repository = new();
+    private readonly InMemoryUserRepository _users = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly AnalyticsOptions _options = new() { Environment = "Development" };
     private readonly AnalyticsIngestService _sut;
@@ -23,6 +25,7 @@ public sealed class AnalyticsIngestServiceTests
         _sut = new AnalyticsIngestService(
             _repository,
             _currentUser.Object,
+            _users,
             Options.Create(_options));
     }
 
@@ -100,7 +103,7 @@ public sealed class AnalyticsIngestServiceTests
 public sealed class AnalyticsSummaryServiceTests
 {
     private readonly InMemoryAnalyticsEventRepository _repository = new();
-    private readonly Mock<ICurrentUser> _currentUser = new();
+    private readonly Mock<IAdminAccessService> _admin = new();
     private readonly AnalyticsOptions _options = new()
     {
         Environment = "Development",
@@ -110,27 +113,23 @@ public sealed class AnalyticsSummaryServiceTests
 
     public AnalyticsSummaryServiceTests()
     {
-        _currentUser.SetupGet(c => c.IsAuthenticated).Returns(true);
-        _currentUser.SetupGet(c => c.UserId).Returns("usr_admin");
+        _admin
+            .Setup(a => a.RequireAdminAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         _sut = new AnalyticsSummaryService(
             _repository,
-            _currentUser.Object,
+            _admin.Object,
             Options.Create(_options));
     }
 
     [Fact]
     public async Task SummarizeAsync_WhenNotAdmin_ThenThrows()
     {
-        var sut = new AnalyticsSummaryService(
-            _repository,
-            _currentUser.Object,
-            Options.Create(new AnalyticsOptions
-            {
-                Environment = "Production",
-                AllowAnyAuthenticatedAdmin = false,
-            }));
+        _admin
+            .Setup(a => a.RequireAdminAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new UnauthorizedAccessException("Admin access required."));
 
-        var act = () => sut.SummarizeAsync(DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, "Production");
+        var act = () => _sut.SummarizeAsync(DateTime.UtcNow.AddDays(-7), DateTime.UtcNow, "Production");
 
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
     }

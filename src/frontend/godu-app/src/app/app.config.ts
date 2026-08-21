@@ -30,6 +30,7 @@ export const appConfig: ApplicationConfig = {
             uri: `${environment.apiBaseUrl}/api/analytics/*`,
             allowAnonymous: true,
           },
+          `${environment.apiBaseUrl}/api/me`,
           `${environment.apiBaseUrl}/api/me/*`,
           `${environment.apiBaseUrl}/api/creator/*`,
           `${environment.apiBaseUrl}/api/admin/*`,

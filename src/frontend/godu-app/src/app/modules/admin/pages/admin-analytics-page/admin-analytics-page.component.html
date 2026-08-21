@@ -4,6 +4,7 @@
 >
   @if (view$ | async; as view) {
     <div class="toolbar">
+      <a mat-stroked-button routerLink="/admin">Admin</a>
       <div class="ranges" role="group" aria-label="Date range">
         @for (days of ranges; track days) {
           <button

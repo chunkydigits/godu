@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuardFn } from '@auth0/auth0-angular';
+import { adminGuardFn } from './core/auth/admin.guard';
 
 export const routes: Routes = [
   {
@@ -86,10 +87,18 @@ export const routes: Routes = [
   },
   {
     path: 'admin/analytics',
-    canActivate: [authGuardFn],
+    canActivate: [authGuardFn, adminGuardFn],
     loadComponent: () =>
       import('./modules/admin/pages/admin-analytics-page/admin-analytics-page.component').then(
         (m) => m.AdminAnalyticsPageComponent,
+      ),
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuardFn, adminGuardFn],
+    loadComponent: () =>
+      import('./modules/admin/pages/admin-dashboard-page/admin-dashboard-page.component').then(
+        (m) => m.AdminDashboardPageComponent,
       ),
   },
   {

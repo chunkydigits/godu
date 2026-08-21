@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { AnalyticsEvent } from '../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../core/analytics/analytics.service';
+import { CurrentUserService } from '../../core/auth/current-user.service';
 import { MaterialModule } from '../../core/material.module';
 
 @Component({
@@ -15,6 +16,7 @@ import { MaterialModule } from '../../core/material.module';
 export class PageTemplateComponent {
   private readonly auth = inject(AuthService);
   private readonly analytics = inject(AnalyticsService);
+  private readonly currentUser = inject(CurrentUserService);
 
   @Input() title = '';
   @Input() subtitle = '';
@@ -23,6 +25,7 @@ export class PageTemplateComponent {
   @Input() lockContentScroll = false;
 
   readonly isAuthenticated$ = this.auth.isAuthenticated$;
+  readonly isAdmin$ = this.currentUser.isAdmin$;
 
   login(): void {
     this.auth.loginWithRedirect();

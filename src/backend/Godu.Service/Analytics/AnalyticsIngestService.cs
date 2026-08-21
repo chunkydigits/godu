@@ -4,6 +4,7 @@ using Godu.Model.Configuration;
 using Godu.Model.Documents;
 using Godu.Model.Requests;
 using Godu.Repository.Analytics;
+using Godu.Repository.Users;
 using Godu.Service.Identity;
 using Godu.Utility;
 using Microsoft.Extensions.Options;
@@ -28,15 +29,18 @@ public sealed class AnalyticsIngestService : IAnalyticsIngestService
 
     private readonly IAnalyticsEventRepository _repository;
     private readonly ICurrentUser _currentUser;
+    private readonly IUserRepository _users;
     private readonly AnalyticsOptions _options;
 
     public AnalyticsIngestService(
         IAnalyticsEventRepository repository,
         ICurrentUser currentUser,
+        IUserRepository users,
         IOptions<AnalyticsOptions> options)
     {
         _repository = repository;
         _currentUser = currentUser;
+        _users = users;
         _options = options.Value;
     }
 
@@ -55,6 +59,12 @@ public sealed class AnalyticsIngestService : IAnalyticsIngestService
         var sessionId = RequireId(request.SessionId, "sessionId");
         var timestamp = DateTime.UtcNow;
         var userId = _currentUser.IsAuthenticated ? _currentUser.UserId : null;
+        var isInternal = _options.IsInternalUser(userId);
+        if (!isInternal && !string.IsNullOrWhiteSpace(userId))
+        {
+            var user = await _users.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+            isInternal = user?.IsInternal == true;
+        }
 
         var document = new AnalyticsEventDocument
         {
@@ -73,7 +83,7 @@ public sealed class AnalyticsIngestService : IAnalyticsIngestService
             Path = Truncate(request.Path, 512),
             UserAgent = Truncate(userAgent, 256),
             Environment = ResolveEnvironment(),
-            IsInternal = _options.IsInternalUser(userId),
+            IsInternal = isInternal,
             Properties = SanitizeProperties(request.Properties),
         };
 

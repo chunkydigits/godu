@@ -34,6 +34,9 @@
   color: var(--steps-text-muted);
   font-size: 0.92rem;
   line-height: 1.4;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .demo-card__cta {

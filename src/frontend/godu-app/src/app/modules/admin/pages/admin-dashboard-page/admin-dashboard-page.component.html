@@ -1,0 +1,65 @@
+<app-page-template title="Admin" subtitle="User management and product metrics.">
+  <div class="action-bar">
+    <a mat-flat-button color="primary" routerLink="/admin/analytics">Analytics</a>
+  </div>
+
+  @if (view$ | async; as view) {
+    @if (view.loading) {
+      <div class="status-row">
+        <mat-progress-bar mode="indeterminate" />
+      </div>
+    } @else if (view.error) {
+      <p class="error">{{ view.error }}</p>
+    } @else {
+      <section class="panel">
+        <h2>Users</h2>
+        <p class="panel__copy">
+          Admin can open this dashboard and analytics. Internal users are excluded from analytics
+          reports.
+        </p>
+        @if (view.users.length === 0) {
+          <p class="empty">No users yet.</p>
+        } @else {
+          <ul class="user-list">
+            @for (user of view.users; track user.id) {
+              <li class="user-card">
+                <div class="user-card__body">
+                  <h3>
+                    {{ user.displayName }}
+                    @if ((me$ | async)?.userId === user.id) {
+                      <span class="you">you</span>
+                    }
+                  </h3>
+                  <p class="user-card__id">{{ user.id }}</p>
+                  <p class="user-card__meta">Joined {{ user.createdUtc | date: 'mediumDate' }}</p>
+                </div>
+                <div class="user-card__flags">
+                  <mat-slide-toggle
+                    [checked]="user.isAdmin"
+                    (change)="setAdmin(user, $event.checked)"
+                    aria-label="Admin"
+                  >
+                    Admin
+                  </mat-slide-toggle>
+                  @if (user.adminFromConfig) {
+                    <span class="hint">Also in server config</span>
+                  }
+                  <mat-slide-toggle
+                    [checked]="user.isInternal"
+                    (change)="setInternal(user, $event.checked)"
+                    aria-label="Internal"
+                  >
+                    Internal
+                  </mat-slide-toggle>
+                  @if (user.internalFromConfig) {
+                    <span class="hint">Also in server config</span>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  }
+</app-page-template>

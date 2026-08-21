@@ -13,6 +13,16 @@ public sealed class InMemoryUserRepository : IUserRepository
         return Task.FromResult(user is null ? null : Clone(user));
     }
 
+    public Task<IReadOnlyList<UserDocument>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        var users = _store.Values
+            .Select(Clone)
+            .OrderBy(user => user.CreatedUtc)
+            .ThenBy(user => user.Id, StringComparer.Ordinal)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<UserDocument>>(users);
+    }
+
     public Task<UserDocument> CreateAsync(UserDocument user, CancellationToken cancellationToken = default)
     {
         var stored = Clone(user);
@@ -42,6 +52,8 @@ public sealed class InMemoryUserRepository : IUserRepository
             Id = user.Id,
             DisplayName = user.DisplayName,
             UseVoiceCuesByDefault = user.UseVoiceCuesByDefault,
+            IsAdmin = user.IsAdmin,
+            IsInternal = user.IsInternal,
             CreatedUtc = user.CreatedUtc,
             UpdatedUtc = user.UpdatedUtc,
         };
