@@ -9,6 +9,7 @@ export interface ApiStepDefinition {
   endSeconds: number;
   durationSeconds?: number | null;
   autoAdvance: boolean;
+  loopVideo?: boolean;
   message?: string | null;
 }
 
@@ -41,6 +42,9 @@ export interface ApiStepsItem {
   continuousSoundtrack: boolean;
   gapSeconds?: number | null;
   gapMessage?: string | null;
+  playGapPriorToStart?: boolean;
+  startGapSeconds?: number | null;
+  startGapMessage?: string | null;
   video: ApiVideoReference;
   steps: ApiStepDefinition[];
   createdUtc: string;
@@ -59,6 +63,7 @@ export interface ApiStepDefinitionRequest {
   endSeconds: number;
   durationSeconds?: number | null;
   autoAdvance: boolean;
+  loopVideo?: boolean;
   message?: string | null;
 }
 
@@ -80,6 +85,9 @@ export interface CreateStepsItemRequest {
   continuousSoundtrack: boolean;
   gapSeconds?: number | null;
   gapMessage?: string | null;
+  playGapPriorToStart?: boolean;
+  startGapSeconds?: number | null;
+  startGapMessage?: string | null;
   video: ApiVideoReferenceRequest;
   steps: ApiStepDefinitionRequest[];
 }

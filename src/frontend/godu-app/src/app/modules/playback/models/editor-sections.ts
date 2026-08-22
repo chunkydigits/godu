@@ -37,10 +37,20 @@ export const EDITOR_SECTIONS = {
   gaps: {
     id: 'gaps',
     label: 'Gap configuration',
-    controls: ['noGaps', 'gapSeconds', 'gapMessage'],
+    controls: [
+      'noGaps',
+      'playGapPriorToStart',
+      'overrideStartGap',
+      'startGapSeconds',
+      'startGapMessage',
+      'gapSeconds',
+      'gapMessage',
+    ],
     tips: [
       'A gap is a rest that counts down before the next step starts. Set one here and it applies between every step.',
-      'Tick No gaps to run every step back to back. Gap entries you have added in Steps still play.',
+      'Play gap prior to start uses that same gap as a demo before the first timer.',
+      'Override start gap if the demo needs a different length or message. Leave it off to reuse the gap below.',
+      'Tick No gaps to run every step back to back, with no rest between the end of one step and the start of the next. Gap entries you have added in Steps still play.',
       `Add a Gap entry in Steps to override this default at a single point. Consecutive gap entries add together, and a gap after the last step is ignored. Either way a gap runs ${GAP_SECONDS_MIN}–${GAP_SECONDS_MAX} seconds.`,
       `Gaps of ${immediateGapSeconds} seconds or less keep the next clip playing throughout the rest. Longer gaps hold the video and start it ${prerollLeadSeconds} seconds before the gap ends.`,
       `With voice cues on, a gap announces the next step as it begins and says “Go” as the timer starts. Gaps under ${goCueMaxSeconds} seconds only say “Go”.`,
@@ -53,7 +63,8 @@ export const EDITOR_SECTIONS = {
     controls: ['steps'],
     tips: [
       'Each step loops a slice of the video: Start and End trim the clip, Duration is how long the step runs.',
-      'Leave Duration blank for an untimed step that waits for you to move on, and turn on Auto-advance to roll straight into the next step when the timer ends.',
+      'Leave Duration blank for an untimed step that waits for you to move on. Untimed clips can loop, or play once and then hold the step name and description on screen until Next.',
+      'Turn on Auto-advance to roll straight into the next step when the timer ends.',
       'The summary line shows the clip window, the length, and a fast-forward symbol when the step auto-advances.',
       'Use the arrow beside Add step to insert a gap. Gaps sit between steps and are not numbered.',
       'Drag the handle to reorder, and tap a summary line to fold a step away.',

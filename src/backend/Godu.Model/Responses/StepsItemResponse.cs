@@ -32,6 +32,12 @@ public sealed class StepsItemResponse
 
     public string? GapMessage { get; init; }
 
+    public bool PlayGapPriorToStart { get; init; }
+
+    public int? StartGapSeconds { get; init; }
+
+    public string? StartGapMessage { get; init; }
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; init; }

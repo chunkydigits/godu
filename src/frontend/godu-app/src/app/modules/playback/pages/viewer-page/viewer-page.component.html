@@ -116,6 +116,24 @@
             [externalVideoId]="item.video.externalVideoId"
             (playerReady)="onPlayerReady($event)"
           />
+          @if (state$ | async; as videoState) {
+            @if (videoState.clipHoldActive && videoState.selectedStep) {
+              <div class="viewer__clip-hold" aria-live="polite">
+                <h2 class="viewer__clip-hold-title">{{ videoState.selectedStep.title }}</h2>
+                @if (videoState.selectedStep.description) {
+                  <p class="viewer__clip-hold-copy">{{ videoState.selectedStep.description }}</p>
+                }
+                <button
+                  mat-flat-button
+                  color="primary"
+                  type="button"
+                  (click)="next()"
+                >
+                  Next
+                </button>
+              </div>
+            }
+          }
         </div>
 
         @if ((showVideo$ | async) === false) {
@@ -193,10 +211,11 @@
 
             @if (isGap(state)) {
               <p class="viewer__gap-countdown" aria-live="polite">
-                Get ready to go again in {{ state.remainingSeconds ?? 0 }}
+                Get ready to go{{ state.startGapActive ? '' : ' again' }} in
+                {{ state.remainingSeconds ?? 0 }}
                 {{ (state.remainingSeconds ?? 0) === 1 ? 'second' : 'seconds' }}
               </p>
-            } @else {
+            } @else if (!state.clipHoldActive) {
               <p
                 class="viewer__timer"
                 [class.viewer__timer--untimed]="!state.isTimedStep"
@@ -231,6 +250,17 @@
                     Starts the step timer (video is off).
                   }
                 </p>
+              </div>
+            } @else if (state.clipHoldActive) {
+              <div class="viewer__actions">
+                <button
+                  mat-flat-button
+                  color="primary"
+                  type="button"
+                  (click)="next()"
+                >
+                  Next
+                </button>
               </div>
             } @else {
               <div class="viewer__actions">

@@ -93,6 +93,13 @@ public sealed class StepsItemService : IStepsItemService
             ContinuousSoundtrack = request.ContinuousSoundtrack,
             GapSeconds = NormalizeGapSeconds(request.GapSeconds),
             GapMessage = NormalizeGapMessage(request.GapMessage, request.GapSeconds),
+            PlayGapPriorToStart = request.PlayGapPriorToStart,
+            StartGapSeconds = request.PlayGapPriorToStart
+                ? NormalizeGapSeconds(request.StartGapSeconds)
+                : null,
+            StartGapMessage = request.PlayGapPriorToStart
+                ? TrimGapMessage(request.StartGapMessage)
+                : null,
             Video = StepsItemMapper.ToVideoDocument(request.Video),
             Steps = StepsItemMapper.ToStepDocuments(request.Steps),
             CreatedUtc = now,
@@ -131,6 +138,13 @@ public sealed class StepsItemService : IStepsItemService
         existing.ContinuousSoundtrack = request.ContinuousSoundtrack;
         existing.GapSeconds = NormalizeGapSeconds(request.GapSeconds);
         existing.GapMessage = NormalizeGapMessage(request.GapMessage, request.GapSeconds);
+        existing.PlayGapPriorToStart = request.PlayGapPriorToStart;
+        existing.StartGapSeconds = request.PlayGapPriorToStart
+            ? NormalizeGapSeconds(request.StartGapSeconds)
+            : null;
+        existing.StartGapMessage = request.PlayGapPriorToStart
+            ? TrimGapMessage(request.StartGapMessage)
+            : null;
         existing.Slug = slug;
         existing.Video = StepsItemMapper.ToVideoDocument(request.Video);
         existing.Steps = StepsItemMapper.ToStepDocuments(request.Steps);
@@ -490,6 +504,11 @@ public sealed class StepsItemService : IStepsItemService
             return null;
         }
 
+        return TrimGapMessage(message);
+    }
+
+    private static string? TrimGapMessage(string? message)
+    {
         var trimmed = message?.Trim();
         if (string.IsNullOrEmpty(trimmed))
         {

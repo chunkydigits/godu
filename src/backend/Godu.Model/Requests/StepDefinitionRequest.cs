@@ -29,6 +29,9 @@ public sealed class StepDefinitionRequest
 
     public bool AutoAdvance { get; set; }
 
+    /// <summary>Null means loop (legacy payloads). False plays the clip once on untimed steps.</summary>
+    public bool? LoopVideo { get; set; }
+
     [MaxLength(StepEntryKinds.GapMessageMaxLength)]
     public string? Message { get; set; }
 }

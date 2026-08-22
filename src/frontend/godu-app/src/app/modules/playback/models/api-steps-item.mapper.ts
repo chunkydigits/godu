@@ -23,6 +23,9 @@ export function mapApiStepsItem(api: ApiStepsItem): StepsItem {
     continuousSoundtrack: api.continuousSoundtrack,
     gapSeconds: api.gapSeconds ?? null,
     gapMessage: api.gapMessage ?? undefined,
+    playGapPriorToStart: !!api.playGapPriorToStart,
+    startGapSeconds: api.startGapSeconds ?? null,
+    startGapMessage: api.startGapMessage ?? null,
     createdUtc: api.createdUtc,
     updatedUtc: api.updatedUtc,
     publishedUtc: api.publishedUtc ?? undefined,
@@ -55,6 +58,7 @@ function mapStep(step: ApiStepsItem['steps'][number]): StepDefinition {
     endSeconds: step.endSeconds,
     durationSeconds: step.durationSeconds ?? null,
     autoAdvance: step.autoAdvance,
+    loopVideo: step.loopVideo !== false,
     message: step.message ?? null,
   };
 }

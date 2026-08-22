@@ -30,6 +30,21 @@ public sealed class StepsItemDocument
 
     public string? GapMessage { get; set; }
 
+    /// <summary>
+    /// When true, Start plays a gap (the first clip as a demo) before the first timer.
+    /// </summary>
+    public bool PlayGapPriorToStart { get; set; }
+
+    /// <summary>
+    /// Optional start-gap length. When set, overrides <see cref="GapSeconds"/> for the intro.
+    /// </summary>
+    public int? StartGapSeconds { get; set; }
+
+    /// <summary>
+    /// Optional start-gap copy. When set, overrides <see cref="GapMessage"/> for the intro.
+    /// </summary>
+    public string? StartGapMessage { get; set; }
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; set; }

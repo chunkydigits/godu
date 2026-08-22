@@ -27,6 +27,9 @@ public static class StepsItemMapper
             ContinuousSoundtrack = document.ContinuousSoundtrack,
             GapSeconds = document.GapSeconds,
             GapMessage = document.GapMessage,
+            PlayGapPriorToStart = document.PlayGapPriorToStart,
+            StartGapSeconds = document.StartGapSeconds,
+            StartGapMessage = document.StartGapMessage,
             CreatedUtc = document.CreatedUtc,
             UpdatedUtc = document.UpdatedUtc,
             PublishedUtc = document.PublishedUtc,
@@ -57,6 +60,7 @@ public static class StepsItemMapper
                     EndSeconds = s.EndSeconds,
                     DurationSeconds = s.DurationSeconds,
                     AutoAdvance = s.AutoAdvance,
+                    LoopVideo = s.LoopVideo,
                     Message = s.Message,
                 })
                 .ToList(),
@@ -121,6 +125,7 @@ public static class StepsItemMapper
             EndSeconds = step.EndSeconds,
             DurationSeconds = step.DurationSeconds,
             AutoAdvance = step.AutoAdvance,
+            LoopVideo = step.LoopVideo ?? true,
         };
     }
 

@@ -6,10 +6,13 @@ import {
   activityIndexToEntryIndex,
   activityNumberAt,
   firstActivityIndex,
+  hasStartGapOverride,
   isGapEntry,
   normaliseGapMessage,
   normaliseGapSeconds,
   previousActivityIndex,
+  resolveStartGapMessage,
+  resolveStartGapSeconds,
   stepEntryKind,
 } from './step-entry';
 
@@ -65,5 +68,38 @@ describe('step entries', () => {
     expect(normaliseGapMessage('  Breathe  ')).toBe('Breathe');
     expect(normaliseGapMessage('   ')).toBeNull();
     expect(normaliseGapMessage('x'.repeat(300))).toHaveLength(256);
+  });
+
+  it('uses the between-step gap for the intro unless an override is set', () => {
+    expect(resolveStartGapSeconds({ playGapPriorToStart: false, gapSeconds: 10 })).toBe(0);
+    expect(resolveStartGapSeconds({ playGapPriorToStart: true, gapSeconds: 10 })).toBe(10);
+    expect(
+      resolveStartGapSeconds({
+        playGapPriorToStart: true,
+        gapSeconds: 10,
+        startGapSeconds: 4,
+      }),
+    ).toBe(4);
+    expect(resolveStartGapSeconds({ playGapPriorToStart: true })).toBe(0);
+  });
+
+  it('uses the start-gap message for the intro unless it is blank', () => {
+    expect(
+      resolveStartGapMessage({
+        playGapPriorToStart: true,
+        gapMessage: 'Rest',
+        startGapMessage: 'Watch the demo',
+      }),
+    ).toBe('Watch the demo');
+    expect(
+      resolveStartGapMessage({
+        playGapPriorToStart: true,
+        gapMessage: 'Rest',
+      }),
+    ).toBe('Rest');
+    expect(resolveStartGapMessage({ playGapPriorToStart: false, gapMessage: 'Rest' })).toBeNull();
+    expect(hasStartGapOverride({ startGapSeconds: 4 })).toBe(true);
+    expect(hasStartGapOverride({ startGapMessage: 'Watch' })).toBe(true);
+    expect(hasStartGapOverride({})).toBe(false);
   });
 });

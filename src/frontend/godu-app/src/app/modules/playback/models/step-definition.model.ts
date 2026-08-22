@@ -12,6 +12,11 @@ export interface StepDefinition {
   /** Activity length, or the rest length on a gap entry. */
   durationSeconds?: number | null;
   autoAdvance: boolean;
+  /**
+   * Untimed steps: loop the clip, or play it once then hold on the step copy.
+   * Timed steps always loop. Missing means loop.
+   */
+  loopVideo?: boolean;
   /** Gap entries only: copy shown while the gap counts down. */
   message?: string | null;
 }

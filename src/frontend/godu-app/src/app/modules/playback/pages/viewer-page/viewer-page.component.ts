@@ -31,21 +31,14 @@ import { VideoHostComponent } from '../../components/video-host/video-host.compo
 import { StepDefinition } from '../../models/step-definition.model';
 import { StepsItem } from '../../models/steps-item.model';
 import { activityEntries } from '../../models/step-entry';
-import {
-  TikTokCreatorLink,
-  creatorLabel,
-  tiktokCreatorLink,
-} from '../../models/creator-link';
+import { TikTokCreatorLink, creatorLabel, tiktokCreatorLink } from '../../models/creator-link';
 import { isContinuousSoundtrackEnabled } from '../../models/continuous-soundtrack.feature';
 import { ControllableVideoPlayer } from '../../models/video-player.interface';
 import { DemoStepsService } from '../../services/demo-steps.service';
 import { MyStepsApiService } from '../../services/my-steps-api.service';
 import { PlayHistoryService } from '../../services/play-history.service';
 import { PublicStepsApiService } from '../../services/public-steps-api.service';
-import {
-  PlaybackState,
-  StepPlaybackService,
-} from '../../services/step-playback.service';
+import { PlaybackState, StepPlaybackService } from '../../services/step-playback.service';
 import { ViewerPreferencesService } from '../../services/viewer-preferences.service';
 import { UserSettingsService } from '../../../settings/services/user-settings.service';
 import { viewerBackPathFromUrl, shouldReplaceCanonicalPath } from '../../models/public-path';
@@ -204,11 +197,7 @@ export class ViewerPageComponent implements OnDestroy {
           this.trackStepCompleted(item, this.lastPlayingStep, totalSteps);
         }
 
-        if (
-          this.lastPlayingStep != null &&
-          remainingSeconds === 0 &&
-          phase !== 'gap'
-        ) {
+        if (this.lastPlayingStep != null && remainingSeconds === 0 && phase !== 'gap') {
           this.trackStepCompleted(item, this.lastPlayingStep, totalSteps);
         }
 
@@ -327,7 +316,11 @@ export class ViewerPageComponent implements OnDestroy {
     const item = this.playback.snapshot.stepsItem;
     if (item) {
       this.startedAtMs = Date.now();
-      this.analytics.trackOnce(`started:${item.id}`, AnalyticsEvent.GoduStarted, this.goduProps(item));
+      this.analytics.trackOnce(
+        `started:${item.id}`,
+        AnalyticsEvent.GoduStarted,
+        this.goduProps(item),
+      );
       this.playHistory.record(item, 'started');
     }
     void this.playback.start();
@@ -343,7 +336,9 @@ export class ViewerPageComponent implements OnDestroy {
     const item = this.playback.snapshot.stepsItem;
     if (item && activityIndex !== current) {
       const event =
-        activityIndex > current ? AnalyticsEvent.NextStepClicked : AnalyticsEvent.PreviousStepClicked;
+        activityIndex > current
+          ? AnalyticsEvent.NextStepClicked
+          : AnalyticsEvent.PreviousStepClicked;
       this.analytics.track(event, {
         ...this.goduProps(item),
         fromStep: current + 1,
@@ -370,6 +365,10 @@ export class ViewerPageComponent implements OnDestroy {
     return state.phase === 'gap' || (state.phase === 'paused' && state.gapActive);
   }
 
+  next(): void {
+    void this.playback.next();
+  }
+
   replay(): void {
     this.startedAtMs = Date.now();
     this.lastPlayingStep = null;
@@ -379,7 +378,7 @@ export class ViewerPageComponent implements OnDestroy {
 
   formatRemaining(seconds: number | null): string {
     if (seconds == null) {
-      return 'Untimed';
+      return '';
     }
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -466,13 +465,12 @@ export class ViewerPageComponent implements OnDestroy {
     const username = item.video.creatorUsername;
     const slug = item.slug;
     const isPublic =
-      item.visibility === StepsVisibility.Public ||
-      !!this.route.snapshot.paramMap.get('slug');
+      item.visibility === StepsVisibility.Public || !!this.route.snapshot.paramMap.get('slug');
 
     if (isPublic && provider && username && slug) {
-      return this.publicStepsApi.getRelatedAsStepsItems(provider, username, slug).pipe(
-        catchError(() => of([])),
-      );
+      return this.publicStepsApi
+        .getRelatedAsStepsItems(provider, username, slug)
+        .pipe(catchError(() => of([])));
     }
 
     return this.demoSteps.getRelatedByCreator(item);
@@ -507,7 +505,9 @@ export class ViewerPageComponent implements OnDestroy {
     }
 
     const elapsedSeconds =
-      this.startedAtMs == null ? undefined : Math.max(0, Math.round((Date.now() - this.startedAtMs) / 1000));
+      this.startedAtMs == null
+        ? undefined
+        : Math.max(0, Math.round((Date.now() - this.startedAtMs) / 1000));
     this.analytics.trackOnce(`completed:${item.id}`, AnalyticsEvent.GoduCompleted, {
       ...this.goduProps(item),
       stepCount: totalSteps,

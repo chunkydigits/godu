@@ -22,6 +22,8 @@ public sealed class StepDefinitionResponse
 
     public bool AutoAdvance { get; init; }
 
+    public bool LoopVideo { get; init; }
+
     /// <summary>Gap entries only: copy shown while the gap counts down.</summary>
     public string? Message { get; init; }
 }

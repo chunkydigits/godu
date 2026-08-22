@@ -57,6 +57,10 @@ describe('mapApiStepsItem', () => {
     expect(item.steps[0].description).toBeUndefined();
     expect(item.gapSeconds).toBe(15);
     expect(item.gapMessage).toBe('Active recovery — keep moving');
+    expect(item.playGapPriorToStart).toBe(false);
+    expect(item.startGapSeconds).toBeNull();
+    expect(item.startGapMessage).toBeNull();
+    expect(item.steps[0].loopVideo).toBe(true);
     expect(item.publicPath).toBe('/t/coach/mobility');
   });
 

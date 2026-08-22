@@ -130,6 +130,63 @@ export function normaliseGapSeconds(value: number | null | undefined): number {
   return Math.min(GAP_SECONDS_MAX, Math.floor(value));
 }
 
+/** Clip window length in whole seconds, or 0 when the window is invalid. */
+export function clipDurationSeconds(step: {
+  startSeconds: number;
+  endSeconds: number;
+}): number {
+  const length = step.endSeconds - step.startSeconds;
+  if (!Number.isFinite(length) || length <= 0) {
+    return 0;
+  }
+  return Math.max(1, Math.round(length));
+}
+
+/** Intro gap length: optional override, otherwise the between-step gap. */
+export function resolveStartGapSeconds(item: {
+  playGapPriorToStart?: boolean;
+  startGapSeconds?: number | null;
+  gapSeconds?: number | null;
+}): number {
+  if (!item.playGapPriorToStart) {
+    return 0;
+  }
+  const override = normaliseGapSeconds(item.startGapSeconds);
+  return override > 0 ? override : normaliseGapSeconds(item.gapSeconds);
+}
+
+/** True when a custom start-gap length or message is stored. */
+export function hasStartGapOverride(item: {
+  startGapSeconds?: number | null;
+  startGapMessage?: string | null;
+}): boolean {
+  return (
+    normaliseGapSeconds(item.startGapSeconds) > 0 ||
+    !!normaliseGapMessage(item.startGapMessage)
+  );
+}
+
+/** Intro copy: optional override, otherwise the between-step gap message. */
+export function resolveStartGapMessage(item: {
+  playGapPriorToStart?: boolean;
+  startGapMessage?: string | null;
+  gapMessage?: string | null;
+}): string | null {
+  if (!item.playGapPriorToStart) {
+    return null;
+  }
+  return normaliseGapMessage(item.startGapMessage) ?? normaliseGapMessage(item.gapMessage);
+}
+
+/** Timed steps always loop. Untimed steps loop unless loopVideo is false. */
+export function shouldLoopVideo(step: {
+  durationSeconds?: number | null;
+  loopVideo?: boolean;
+}): boolean {
+  const timed = step.durationSeconds != null && step.durationSeconds > 0;
+  return timed || step.loopVideo !== false;
+}
+
 export function normaliseGapMessage(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   if (!trimmed) {

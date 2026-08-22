@@ -46,25 +46,72 @@
 
     @if (isSectionOpen('gaps')) {
       <div class="section__body">
-        <mat-checkbox formControlName="noGaps">No gaps</mat-checkbox>
+        <div class="field-block">
+          <mat-checkbox formControlName="noGaps">No gaps</mat-checkbox>
+          <p class="field-hint">
+            The video will continue with no gaps between the end of the previous step and the
+            start of the next step.
+          </p>
+        </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Between-step gap (seconds)</mat-label>
-          <input matInput type="number" formControlName="gapSeconds" min="1" max="600" />
-          <mat-hint>Default rest between steps. A gap entry replaces it at that point.</mat-hint>
-        </mat-form-field>
+        @if (!form.get('noGaps')?.value) {
+          <div class="field-block">
+            <mat-checkbox formControlName="playGapPriorToStart">Play gap prior to start</mat-checkbox>
+            <p class="field-hint">
+              Useful when you want the video to play and give a demo before the timer starts.
+              Uses the gap and gap message below unless you override them.
+            </p>
+          </div>
 
-        <mat-form-field appearance="outline" class="full">
-          <mat-label>Gap message</mat-label>
-          <textarea
-            matInput
-            rows="2"
-            formControlName="gapMessage"
-            maxlength="200"
-            placeholder="Active recovery — keep moving"
-          ></textarea>
-          <mat-hint>Shown with the “get ready” countdown. Leave blank for the countdown only.</mat-hint>
-        </mat-form-field>
+          @if (form.get('playGapPriorToStart')?.value) {
+            <div class="field-block">
+              <mat-checkbox formControlName="overrideStartGap">Override start gap</mat-checkbox>
+              <p class="field-hint">
+                Set a different length or message for the demo before the first timer.
+              </p>
+            </div>
+
+            @if (form.get('overrideStartGap')?.value) {
+              <div class="gap-fields">
+                <mat-form-field appearance="outline">
+                  <mat-label>Start gap (seconds)</mat-label>
+                  <input matInput type="number" formControlName="startGapSeconds" min="1" max="600" />
+                  <mat-hint>Leave blank to keep the gap length below.</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full">
+                  <mat-label>Start gap message</mat-label>
+                  <textarea
+                    matInput
+                    rows="2"
+                    formControlName="startGapMessage"
+                    maxlength="200"
+                    placeholder="Watch the demo"
+                  ></textarea>
+                  <mat-hint>Leave blank to keep the gap message below.</mat-hint>
+                </mat-form-field>
+              </div>
+            }
+          }
+
+          <mat-form-field appearance="outline">
+            <mat-label>Gap (seconds)</mat-label>
+            <input matInput type="number" formControlName="gapSeconds" min="1" max="600" />
+            <mat-hint>Default rest between steps. A gap entry replaces it at that point.</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Gap message</mat-label>
+            <textarea
+              matInput
+              rows="2"
+              formControlName="gapMessage"
+              maxlength="200"
+              placeholder="Active recovery — keep moving"
+            ></textarea>
+            <mat-hint>Shown with the “get ready” countdown. Leave blank for the countdown only.</mat-hint>
+          </mat-form-field>
+        }
       </div>
     }
   </section>
@@ -213,6 +260,20 @@
                   </div>
 
                   <mat-checkbox formControlName="autoAdvance">Auto-advance</mat-checkbox>
+
+                  @if (isUntimed(i)) {
+                    <div class="field-block">
+                      <span class="field-label">Video</span>
+                      <mat-radio-group formControlName="loopVideo" class="clip-mode">
+                        <mat-radio-button [value]="true">Loop</mat-radio-button>
+                        <mat-radio-button [value]="false">Play once</mat-radio-button>
+                      </mat-radio-group>
+                      <p class="field-hint">
+                        Loop repeats the clip. Play once shows the step name and description over
+                        the video until Next.
+                      </p>
+                    </div>
+                  }
                 }
               }
             </div>

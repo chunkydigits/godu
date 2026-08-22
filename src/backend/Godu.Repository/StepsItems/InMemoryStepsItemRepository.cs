@@ -204,6 +204,9 @@ public sealed class InMemoryStepsItemRepository : IStepsItemRepository
             ContinuousSoundtrack = item.ContinuousSoundtrack,
             GapSeconds = item.GapSeconds,
             GapMessage = item.GapMessage,
+            PlayGapPriorToStart = item.PlayGapPriorToStart,
+            StartGapSeconds = item.StartGapSeconds,
+            StartGapMessage = item.StartGapMessage,
             CreatedUtc = item.CreatedUtc,
             UpdatedUtc = item.UpdatedUtc,
             PublishedUtc = item.PublishedUtc,
@@ -229,6 +232,7 @@ public sealed class InMemoryStepsItemRepository : IStepsItemRepository
                     EndSeconds = s.EndSeconds,
                     DurationSeconds = s.DurationSeconds,
                     AutoAdvance = s.AutoAdvance,
+                    LoopVideo = s.LoopVideo,
                     Message = s.Message,
                 })
                 .ToList(),

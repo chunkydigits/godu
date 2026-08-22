@@ -111,6 +111,11 @@ export class StepsEditorFormComponent {
     return !!this.entryAt(index)?.autoAdvance;
   }
 
+  isUntimed(index: number): boolean {
+    const duration = toNumber(this.entryAt(index)?.durationSeconds);
+    return duration == null || duration <= 0;
+  }
+
   gapSummary(index: number): string {
     const entry = this.entryAt(index);
     const seconds = toNumber(entry?.durationSeconds);

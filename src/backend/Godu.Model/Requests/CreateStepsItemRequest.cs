@@ -22,6 +22,14 @@ public sealed class CreateStepsItemRequest
     [MaxLength(200)]
     public string? GapMessage { get; set; }
 
+    public bool PlayGapPriorToStart { get; set; }
+
+    [Range(0, 600)]
+    public int? StartGapSeconds { get; set; }
+
+    [MaxLength(200)]
+    public string? StartGapMessage { get; set; }
+
     [Required]
     public required VideoReferenceRequest Video { get; set; }
 

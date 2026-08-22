@@ -21,6 +21,9 @@ import {
   activityNumberAt,
   firstActivityIndex,
   previousActivityIndex,
+  resolveStartGapSeconds,
+  resolveStartGapMessage,
+  shouldLoopVideo,
 } from '../models/step-entry';
 import { StepTransition, resolveStepTransition } from '../models/step-transition';
 import { isContinuousSoundtrackEnabled } from '../models/continuous-soundtrack.feature';
@@ -46,8 +49,12 @@ export interface PlaybackState {
   continuousSoundtrackActive: boolean;
   /** True while a between-step gap is running or paused mid-gap. */
   gapActive: boolean;
+  /** True when the running gap is the demo before the first timer. */
+  startGapActive: boolean;
   /** Copy to show during the running gap, from the gap entry or the item default. */
   gapMessage: string | null;
+  /** Untimed play-once: clip finished, step copy is held over the video. */
+  clipHoldActive: boolean;
 }
 
 const initialState: PlaybackState = {
@@ -63,7 +70,9 @@ const initialState: PlaybackState = {
   voiceCuesEnabled: false,
   continuousSoundtrackActive: false,
   gapActive: false,
+  startGapActive: false,
   gapMessage: null,
+  clipHoldActive: false,
 };
 
 const MEDIA_POLL_MS = 500;
@@ -131,7 +140,9 @@ export class StepPlaybackService implements OnDestroy {
       isTimedStep: false,
       continuousSoundtrackActive: false,
       gapActive: false,
+      startGapActive: false,
       gapMessage: null,
+      clipHoldActive: false,
     });
 
     const first = firstActivityIndex(stepsItem.steps);
@@ -186,6 +197,30 @@ export class StepPlaybackService implements OnDestroy {
 
     const timed = step.durationSeconds != null && step.durationSeconds > 0;
     const useSoundtrack = isContinuousSoundtrackEnabled(stepsItem) && timed;
+    const introSeconds = resolveStartGapSeconds(stepsItem);
+
+    if (introSeconds > 0) {
+      if (!this.visualSuspended) {
+        this.soundtrackPlayer?.pause();
+        this.player?.kickstartFromUserGesture(step.startSeconds, {
+          muted: this.clipAudioMuted(),
+        });
+      }
+
+      await this.beginGap(
+        {
+          nextIndex: index,
+          gapSeconds: introSeconds,
+          gapMessage: resolveStartGapMessage(stepsItem),
+        },
+        {
+          startMediaImmediately: true,
+          mediaAlreadyKickstarted: !this.visualSuspended,
+          isStartGap: true,
+        },
+      );
+      return;
+    }
 
     // Synchronous kickstarts — preserve user activation
     if (!this.visualSuspended) {
@@ -266,7 +301,9 @@ export class StepPlaybackService implements OnDestroy {
         remainingSeconds: isTimed ? step.durationSeconds! : null,
         continuousSoundtrackActive: false,
         gapActive: false,
+        startGapActive: false,
         gapMessage: null,
+        clipHoldActive: false,
       });
 
       if (this.player) {
@@ -287,7 +324,9 @@ export class StepPlaybackService implements OnDestroy {
       remainingSeconds: isTimed ? step.durationSeconds! : null,
       continuousSoundtrackActive,
       gapActive: false,
+      startGapActive: false,
       gapMessage: null,
+      clipHoldActive: false,
     });
 
     if (!options.mediaAlreadyKickstarted) {
@@ -404,8 +443,14 @@ export class StepPlaybackService implements OnDestroy {
 
     this.voiceCues.unlockFromUserGesture();
 
-    const { selectedStep, remainingSeconds, isTimedStep, stepsItem, gapActive } = this.snapshot;
+    const { selectedStep, remainingSeconds, isTimedStep, stepsItem, gapActive, clipHoldActive } =
+      this.snapshot;
     if (!selectedStep || !stepsItem) {
+      return;
+    }
+
+    if (clipHoldActive) {
+      this.patch({ phase: 'playing' });
       return;
     }
 
@@ -490,7 +535,9 @@ export class StepPlaybackService implements OnDestroy {
       remainingSeconds: 0,
       continuousSoundtrackActive: false,
       gapActive: false,
+      startGapActive: false,
       gapMessage: null,
+      clipHoldActive: false,
     });
   }
 
@@ -568,7 +615,14 @@ export class StepPlaybackService implements OnDestroy {
     await this.detachVisualPlayer();
   }
 
-  private async beginGap(transition: StepTransition): Promise<void> {
+  private async beginGap(
+    transition: StepTransition,
+    options: {
+      startMediaImmediately?: boolean;
+      mediaAlreadyKickstarted?: boolean;
+      isStartGap?: boolean;
+    } = {},
+  ): Promise<void> {
     const { stepsItem } = this.snapshot;
     const nextIndex = transition.nextIndex;
     const nextStep = nextIndex == null ? undefined : stepsItem?.steps[nextIndex];
@@ -586,9 +640,9 @@ export class StepPlaybackService implements OnDestroy {
     this.gapMediaStarted = false;
     this.gapTotalSeconds = gapSeconds;
 
-    if (this.player) {
+    if (!options.mediaAlreadyKickstarted && this.player) {
       await this.player.seek(nextStep.startSeconds);
-      if (gapSeconds > gapPrerollImmediateMaxSeconds()) {
+      if (!options.startMediaImmediately && gapSeconds > gapPrerollImmediateMaxSeconds()) {
         await this.player.pause();
       }
     }
@@ -604,10 +658,19 @@ export class StepPlaybackService implements OnDestroy {
       remainingSeconds: gapSeconds,
       continuousSoundtrackActive: false,
       gapActive: true,
+      startGapActive: !!options.isStartGap,
       gapMessage: transition.gapMessage,
+      clipHoldActive: false,
     });
 
-    if (gapSeconds <= gapPrerollImmediateMaxSeconds()) {
+    if (options.mediaAlreadyKickstarted) {
+      this.gapMediaStarted = true;
+      this.setLoopArmed(true);
+      this.applyAudioRouting();
+    } else if (
+      options.startMediaImmediately ||
+      gapSeconds <= gapPrerollImmediateMaxSeconds()
+    ) {
       await this.startGapMedia();
     }
 
@@ -762,6 +825,10 @@ export class StepPlaybackService implements OnDestroy {
     }
 
     if (currentTime >= selectedStep.endSeconds) {
+      if (!shouldLoopVideo(selectedStep)) {
+        void this.enterClipHold();
+        return;
+      }
       this.loopSeekPending = true;
       this.lastLoopSeekAt = Date.now();
       void this.player.seek(selectedStep.startSeconds);
@@ -866,6 +933,17 @@ export class StepPlaybackService implements OnDestroy {
     if (clearRemaining) {
       // remaining handled by callers when needed
     }
+  }
+
+  private async enterClipHold(): Promise<void> {
+    this.setLoopArmed(false);
+    if (this.player) {
+      await this.player.pause();
+    }
+    if (this.soundtrackPlayer) {
+      await this.soundtrackPlayer.pause();
+    }
+    this.patch({ clipHoldActive: true, remainingSeconds: null });
   }
 
   private async onGapElapsed(): Promise<void> {

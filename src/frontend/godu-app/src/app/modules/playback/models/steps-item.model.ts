@@ -26,6 +26,12 @@ export interface StepsItem {
   gapSeconds?: number | null;
   /** Optional copy shown with the between-step countdown. */
   gapMessage?: string | null;
+  /** Play a demo gap (first clip) before the first step timer starts. */
+  playGapPriorToStart?: boolean;
+  /** Optional start-gap length. When set, overrides the between-step gap for the intro. */
+  startGapSeconds?: number | null;
+  /** Optional start-gap copy. When set, overrides the between-step message for the intro. */
+  startGapMessage?: string | null;
   createdUtc: string;
   updatedUtc?: string;
   publishedUtc?: string;

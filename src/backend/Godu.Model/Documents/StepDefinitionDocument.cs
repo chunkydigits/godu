@@ -26,6 +26,12 @@ public sealed class StepDefinitionDocument
 
     public bool AutoAdvance { get; set; }
 
+    /// <summary>
+    /// Untimed steps only. When false, the clip plays once then holds on the step copy.
+    /// Defaults to true (loop). Timed steps always loop the clip while the timer runs.
+    /// </summary>
+    public bool LoopVideo { get; set; } = true;
+
     /// <summary>Gap entries only: copy shown while the gap counts down.</summary>
     public string? Message { get; set; }
 }

@@ -396,6 +396,7 @@ describe('StepPlaybackService', () => {
     await vi.advanceTimersByTimeAsync(1100);
     expect(service.snapshot.phase).toBe('gap');
     expect(service.snapshot.gapActive).toBe(true);
+    expect(service.snapshot.startGapActive).toBe(false);
     expect(service.snapshot.selectedIndex).toBe(1);
     expect(service.snapshot.selectedStep?.title).toBe('Two');
     expect(service.snapshot.remainingSeconds).toBe(2);
@@ -702,5 +703,106 @@ describe('StepPlaybackService', () => {
 
     await service.resume();
     expect(service.snapshot.phase).toBe('gap');
+  });
+
+  it('plays a demo gap before the first timer when playGapPriorToStart is on', async () => {
+    const { player, kickstartFromUserGesture } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        playGapPriorToStart: true,
+        gapSeconds: 2,
+        gapMessage: 'Watch the demo',
+      }),
+    );
+    await service.start();
+
+    expect(kickstartFromUserGesture).toHaveBeenCalledWith(0, { muted: false });
+    expect(service.snapshot.phase).toBe('gap');
+    expect(service.snapshot.gapActive).toBe(true);
+    expect(service.snapshot.startGapActive).toBe(true);
+    expect(service.snapshot.selectedIndex).toBe(0);
+    expect(service.snapshot.gapMessage).toBe('Watch the demo');
+    expect(service.snapshot.remainingSeconds).toBe(2);
+
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.gapActive).toBe(false);
+    expect(service.snapshot.isTimedStep).toBe(true);
+  });
+
+  it('uses startGapSeconds for the intro when it is set', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        playGapPriorToStart: true,
+        gapSeconds: 2,
+        startGapSeconds: 8,
+      }),
+    );
+    await service.start();
+
+    expect(service.snapshot.phase).toBe('gap');
+    expect(service.snapshot.remainingSeconds).toBe(8);
+  });
+
+  it('uses the start gap message for the intro when it is set', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        playGapPriorToStart: true,
+        gapSeconds: 2,
+        gapMessage: 'Between steps',
+        startGapSeconds: 8,
+        startGapMessage: 'Watch the demo',
+      }),
+    );
+    await service.start();
+
+    expect(service.snapshot.phase).toBe('gap');
+    expect(service.snapshot.remainingSeconds).toBe(8);
+    expect(service.snapshot.gapMessage).toBe('Watch the demo');
+  });
+
+  it('skips the intro when playGapPriorToStart is on but no gap length is set', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem({ playGapPriorToStart: true }));
+    await service.start();
+
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.gapActive).toBe(false);
+  });
+
+  it('holds an untimed play-once clip after it ends', async () => {
+    const { player, pause } = createMockPlayer();
+    vi.mocked(player.getCurrentTime).mockResolvedValue(6);
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Dice',
+            description: 'Keep the pieces even.',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: null,
+            autoAdvance: false,
+            loopVideo: false,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.clipHoldActive).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(500);
+    expect(service.snapshot.clipHoldActive).toBe(true);
+    expect(pause).toHaveBeenCalled();
   });
 });

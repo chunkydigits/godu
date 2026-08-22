@@ -43,6 +43,7 @@ import {
   GAP_SECONDS_MIN,
   StepEntryKind,
   activityCount,
+  hasStartGapOverride,
   normaliseGapMessage,
   normaliseGapSeconds,
   stepEntryKind,
@@ -74,6 +75,7 @@ interface StepEntryFormValue {
   endSeconds?: number | string;
   durationSeconds?: number | string | null;
   autoAdvance?: boolean;
+  loopVideo?: boolean;
   message?: string;
 }
 
@@ -145,6 +147,13 @@ export class StepsEditorPageComponent {
       [Validators.min(1), Validators.max(600)],
     ],
     gapMessage: [{ value: '', disabled: true }, [Validators.maxLength(200)]],
+    playGapPriorToStart: [false],
+    overrideStartGap: [{ value: false, disabled: true }],
+    startGapSeconds: [
+      { value: null as number | null, disabled: true },
+      [Validators.min(1), Validators.max(600)],
+    ],
+    startGapMessage: [{ value: '', disabled: true }, [Validators.maxLength(200)]],
     steps: this.fb.array<FormGroup>([this.createStepGroup(1)]),
   });
 
@@ -154,6 +163,20 @@ export class StepsEditorPageComponent {
       tap((noGaps) => this.applyNoGaps(noGaps)),
     ),
     { initialValue: true },
+  );
+
+  private readonly playGapLock = toSignal(
+    this.form.controls.playGapPriorToStart.valueChanges.pipe(
+      tap((enabled) => this.applyPlayGapPriorToStart(enabled)),
+    ),
+    { initialValue: false },
+  );
+
+  private readonly overrideStartGapLock = toSignal(
+    this.form.controls.overrideStartGap.valueChanges.pipe(
+      tap((enabled) => this.applyOverrideStartGap(enabled)),
+    ),
+    { initialValue: false },
   );
 
   readonly previewVideoId = toSignal(
@@ -230,11 +253,16 @@ export class StepsEditorPageComponent {
                 continuousSoundtrack: item.continuousSoundtrack,
                 gapSeconds: item.gapSeconds ?? null,
                 gapMessage: item.gapMessage ?? '',
+                playGapPriorToStart: !!item.playGapPriorToStart,
+                overrideStartGap: hasStartGapOverride(item),
+                startGapSeconds: item.startGapSeconds ?? null,
+                startGapMessage: item.startGapMessage ?? '',
                 noGaps,
               },
               { emitEvent: true },
             );
             this.applyNoGaps(noGaps);
+            this.applyPlayGapPriorToStart(!!item.playGapPriorToStart);
             this.steps.clear();
             this.collapsedEntries.clear();
             for (const step of [...item.steps].sort((a, b) => a.order - b.order)) {
@@ -253,6 +281,7 @@ export class StepsEditorPageComponent {
                       endSeconds: step.endSeconds,
                       durationSeconds: step.durationSeconds ?? null,
                       autoAdvance: step.autoAdvance,
+                      loopVideo: step.loopVideo !== false,
                     });
               this.steps.push(group);
               // Saved entries start collapsed so the whole run is visible at once.
@@ -342,6 +371,29 @@ export class StepsEditorPageComponent {
     }
     gapSeconds.enable({ emitEvent: false });
     gapMessage.enable({ emitEvent: false });
+  }
+
+  private applyPlayGapPriorToStart(enabled: boolean): void {
+    const { overrideStartGap } = this.form.controls;
+    if (!enabled) {
+      overrideStartGap.setValue(false, { emitEvent: false });
+      overrideStartGap.disable({ emitEvent: false });
+      this.applyOverrideStartGap(false);
+      return;
+    }
+    overrideStartGap.enable({ emitEvent: false });
+    this.applyOverrideStartGap(!!overrideStartGap.value);
+  }
+
+  private applyOverrideStartGap(enabled: boolean): void {
+    const { startGapSeconds, startGapMessage } = this.form.controls;
+    if (!enabled) {
+      startGapSeconds.disable({ emitEvent: false });
+      startGapMessage.disable({ emitEvent: false });
+      return;
+    }
+    startGapSeconds.enable({ emitEvent: false });
+    startGapMessage.enable({ emitEvent: false });
   }
 
   toggleSection(id: EditorSectionId): void {
@@ -516,6 +568,7 @@ export class StepsEditorPageComponent {
       endSeconds?: number;
       durationSeconds?: number | null;
       autoAdvance?: boolean;
+      loopVideo?: boolean;
     },
   ) {
     return this.fb.nonNullable.group({
@@ -528,6 +581,7 @@ export class StepsEditorPageComponent {
       endSeconds: [values?.endSeconds ?? 5, [Validators.required, Validators.min(0)]],
       durationSeconds: [values?.durationSeconds ?? (null as number | null)],
       autoAdvance: [values?.autoAdvance ?? true],
+      loopVideo: [values?.loopVideo ?? true],
     });
   }
 
@@ -605,6 +659,7 @@ export class StepsEditorPageComponent {
         durationSeconds:
           duration != null && Number.isFinite(duration) && duration > 0 ? duration : null,
         autoAdvance: !!entry.autoAdvance,
+        loopVideo: entry.loopVideo !== false,
         message: null,
       };
     });
@@ -631,6 +686,17 @@ export class StepsEditorPageComponent {
     }
     const gapMessage =
       gapSeconds != null ? raw.gapMessage.trim().slice(0, 200) || null : null;
+    const playGapPriorToStart = !!raw.playGapPriorToStart;
+    const overrideStartGap = playGapPriorToStart && !!raw.overrideStartGap;
+    const startGapSeconds = overrideStartGap
+      ? parseOptionalGapSeconds(raw.startGapSeconds as number | string | null)
+      : null;
+    if (startGapSeconds != null && (startGapSeconds < 1 || startGapSeconds > 600)) {
+      return null;
+    }
+    const startGapMessage = overrideStartGap
+      ? String(raw.startGapMessage ?? '').trim().slice(0, 200) || null
+      : null;
 
     return {
       title: raw.title.trim(),
@@ -641,6 +707,9 @@ export class StepsEditorPageComponent {
         : false,
       gapSeconds,
       gapMessage,
+      playGapPriorToStart,
+      startGapSeconds,
+      startGapMessage,
       video: {
         provider: 'tiktok',
         externalVideoId: parsed.videoId,
@@ -651,6 +720,17 @@ export class StepsEditorPageComponent {
       steps,
     };
   }
+}
+
+function parseOptionalGapSeconds(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  return Math.floor(parsed);
 }
 
 function readVideoOnEnd(): boolean {

@@ -14,6 +14,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSliderModule } from '@angular/material/slider';
+import { MatRadioModule } from '@angular/material/radio';
 
 const materialModules = [
   MatButtonModule,
@@ -31,6 +32,7 @@ const materialModules = [
   MatDividerModule,
   MatSlideToggleModule,
   MatSliderModule,
+  MatRadioModule,
 ];
 
 
