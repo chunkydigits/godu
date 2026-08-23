@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildTikTokSourceUrl,
+  canonicalTikTokShortUrl,
   formatCreatorDisplayName,
   parseTikTokVideo,
   parseTikTokVideoId,
@@ -28,9 +29,10 @@ describe('parseTikTokVideoId', () => {
     ).toBe('7667587928620600609');
   });
 
-  it('returns null for blank or invalid input', () => {
+  it('returns null for blank, invalid, or mobile share links', () => {
     expect(parseTikTokVideoId('')).toBeNull();
     expect(parseTikTokVideoId('not-a-video')).toBeNull();
+    expect(parseTikTokVideoId('https://vm.tiktok.com/ZN8Nemy3d/')).toBeNull();
   });
 });
 
@@ -60,6 +62,36 @@ describe('buildTikTokSourceUrl', () => {
     expect(buildTikTokSourceUrl('12345', '@coach')).toBe(
       'https://www.tiktok.com/@coach/video/12345',
     );
+  });
+});
+
+describe('canonicalTikTokShortUrl', () => {
+  it('accepts mobile vm.tiktok.com share links', () => {
+    expect(canonicalTikTokShortUrl('https://vm.tiktok.com/ZN8Nemy3d/')).toBe(
+      'https://vm.tiktok.com/ZN8Nemy3d/',
+    );
+    expect(canonicalTikTokShortUrl('https://vm.tiktok.com/ZN8Nemy3d')).toBe(
+      'https://vm.tiktok.com/ZN8Nemy3d/',
+    );
+  });
+
+  it('accepts vt.tiktok.com and /t/ share links', () => {
+    expect(canonicalTikTokShortUrl('https://vt.tiktok.com/ZSabc123/')).toBe(
+      'https://vt.tiktok.com/ZSabc123/',
+    );
+    expect(canonicalTikTokShortUrl('https://www.tiktok.com/t/ZT9xyz')).toBe(
+      'https://www.tiktok.com/t/ZT9xyz/',
+    );
+  });
+
+  it('rejects watch URLs and junk', () => {
+    expect(
+      canonicalTikTokShortUrl(
+        'https://www.tiktok.com/@lagomchef/video/7667587928620600609',
+      ),
+    ).toBeNull();
+    expect(canonicalTikTokShortUrl('https://vm.tiktok.com/')).toBeNull();
+    expect(canonicalTikTokShortUrl('https://evil.example/ZN8Nemy3d/')).toBeNull();
   });
 });
 

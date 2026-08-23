@@ -29,7 +29,7 @@ export const EDITOR_SECTIONS = {
       'continuousSoundtrack',
     ],
     tips: [
-      'Paste a TikTok link or a bare video ID. Creator, title and description autofill from TikTok where it allows it, and anything you have typed yourself is left alone.',
+      'Paste a TikTok link or a bare video ID — including mobile share links like vm.tiktok.com. Creator, title and description autofill from TikTok where it allows it, and anything you have typed yourself is left alone.',
       'Title and description are what people see in listings and above the player.',
       'Creator display name credits the original creator and becomes the profile link in the player header, so keep it as their TikTok handle.',
     ],

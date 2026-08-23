@@ -61,6 +61,55 @@ export function buildTikTokSourceUrl(videoId: string, username?: string | null):
   return `https://www.tiktok.com/@${handle}/video/${videoId}`;
 }
 
+const SHORT_LINK_HOSTS = new Set([
+  'vm.tiktok.com',
+  'vt.tiktok.com',
+  'www.vm.tiktok.com',
+  'www.vt.tiktok.com',
+]);
+
+const SHORT_CODE = /^[A-Za-z0-9]{5,32}$/;
+
+function isTikTokWatchHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return h === 'tiktok.com' || h === 'www.tiktok.com' || h === 'm.tiktok.com';
+}
+
+/**
+ * Mobile share links (vm.tiktok.com / vt.tiktok.com / tiktok.com/t/…) have no
+ * video id in the path. Returns a canonical short URL to send to oEmbed, or null.
+ */
+export function canonicalTikTokShortUrl(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    const host = url.hostname.toLowerCase();
+    const segments = url.pathname.split('/').filter(Boolean);
+
+    if (SHORT_LINK_HOSTS.has(host) && segments.length === 1 && SHORT_CODE.test(segments[0])) {
+      const canonHost = host.replace(/^www\./, '');
+      return `https://${canonHost}/${segments[0]}/`;
+    }
+
+    if (
+      isTikTokWatchHost(host) &&
+      segments.length === 2 &&
+      segments[0].toLowerCase() === 't' &&
+      SHORT_CODE.test(segments[1])
+    ) {
+      return `https://www.tiktok.com/t/${segments[1]}/`;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 /** Suggested Steps title when only the creator handle is known. */
 export function suggestTitleFromTikTok(username: string | null): string | null {
   if (!username) {

@@ -58,18 +58,24 @@ public sealed partial class TikTokOEmbedService : ITikTokOEmbedService
             return null;
         }
 
+        var authorUniqueId = string.IsNullOrWhiteSpace(payload.AuthorUniqueId)
+            ? null
+            : payload.AuthorUniqueId.Trim();
+        var videoId = FirstNonEmpty(
+            payload.EmbedProductId,
+            VideoIdFromHtml(payload.Html));
+        var watchUrl = videoId is null
+            ? sourceUrl
+            : CanonicalWatchUrl(videoId, authorUniqueId);
+
         return new TikTokVideoMetadataResponse
         {
             Caption = payload.Title.Trim(),
             AuthorName = string.IsNullOrWhiteSpace(payload.AuthorName) ? null : payload.AuthorName.Trim(),
-            AuthorUniqueId = string.IsNullOrWhiteSpace(payload.AuthorUniqueId)
-                ? null
-                : payload.AuthorUniqueId.Trim(),
+            AuthorUniqueId = authorUniqueId,
             ThumbnailUrl = string.IsNullOrWhiteSpace(payload.ThumbnailUrl) ? null : payload.ThumbnailUrl.Trim(),
-            ExternalVideoId = string.IsNullOrWhiteSpace(payload.EmbedProductId)
-                ? null
-                : payload.EmbedProductId.Trim(),
-            SourceUrl = sourceUrl,
+            ExternalVideoId = videoId,
+            SourceUrl = watchUrl,
         };
     }
 
@@ -84,7 +90,7 @@ public sealed partial class TikTokOEmbedService : ITikTokOEmbedService
 
         if (BareVideoIdRegex().IsMatch(trimmed))
         {
-            sourceUrl = $"https://www.tiktok.com/@video/video/{trimmed}";
+            sourceUrl = CanonicalWatchUrl(trimmed, null);
             return true;
         }
 
@@ -98,15 +104,60 @@ public sealed partial class TikTokOEmbedService : ITikTokOEmbedService
             return false;
         }
 
-        var match = VideoPathRegex().Match(uri.AbsolutePath);
-        if (!match.Success)
+        var watchMatch = VideoPathRegex().Match(uri.AbsolutePath);
+        if (watchMatch.Success)
+        {
+            sourceUrl = CanonicalWatchUrl(watchMatch.Groups["id"].Value, watchMatch.Groups["user"].Value);
+            return true;
+        }
+
+        if (TryCanonicalShortUrl(uri, out sourceUrl))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static string CanonicalWatchUrl(string videoId, string? username)
+    {
+        var handle = string.IsNullOrWhiteSpace(username) ? "video" : username.Trim().TrimStart('@');
+        if (string.IsNullOrEmpty(handle))
+        {
+            handle = "video";
+        }
+
+        return $"https://www.tiktok.com/@{handle}/video/{videoId}";
+    }
+
+    private static bool TryCanonicalShortUrl(Uri uri, out string sourceUrl)
+    {
+        sourceUrl = string.Empty;
+        var host = uri.Host;
+        var path = uri.AbsolutePath;
+
+        if (IsShortLinkHost(host))
+        {
+            var match = ShortCodePathRegex().Match(path);
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            var canonHost = host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                ? host[4..]
+                : host;
+            sourceUrl = $"https://{canonHost.ToLowerInvariant()}/{match.Groups["code"].Value}/";
+            return true;
+        }
+
+        var tMatch = ShareTPathRegex().Match(path);
+        if (!tMatch.Success)
         {
             return false;
         }
 
-        var username = match.Groups["user"].Value;
-        var videoId = match.Groups["id"].Value;
-        sourceUrl = $"https://www.tiktok.com/@{username}/video/{videoId}";
+        sourceUrl = $"https://www.tiktok.com/t/{tMatch.Groups["code"].Value}/";
         return true;
     }
 
@@ -114,13 +165,52 @@ public sealed partial class TikTokOEmbedService : ITikTokOEmbedService
         host.Equals("tiktok.com", StringComparison.OrdinalIgnoreCase)
         || host.Equals("www.tiktok.com", StringComparison.OrdinalIgnoreCase)
         || host.Equals("m.tiktok.com", StringComparison.OrdinalIgnoreCase)
-        || host.Equals("vm.tiktok.com", StringComparison.OrdinalIgnoreCase);
+        || IsShortLinkHost(host);
+
+    private static bool IsShortLinkHost(string host) =>
+        host.Equals("vm.tiktok.com", StringComparison.OrdinalIgnoreCase)
+        || host.Equals("www.vm.tiktok.com", StringComparison.OrdinalIgnoreCase)
+        || host.Equals("vt.tiktok.com", StringComparison.OrdinalIgnoreCase)
+        || host.Equals("www.vt.tiktok.com", StringComparison.OrdinalIgnoreCase);
+
+    private static string? VideoIdFromHtml(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return null;
+        }
+
+        var match = HtmlVideoIdRegex().Match(html);
+        return match.Success ? match.Groups["id"].Value : null;
+    }
+
+    private static string? FirstNonEmpty(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value.Trim();
+            }
+        }
+
+        return null;
+    }
 
     [GeneratedRegex(@"^\d{5,}$")]
     private static partial Regex BareVideoIdRegex();
 
     [GeneratedRegex(@"^/@(?<user>[^/]+)/video/(?<id>\d{5,})/?$", RegexOptions.IgnoreCase)]
     private static partial Regex VideoPathRegex();
+
+    [GeneratedRegex(@"^/(?<code>[A-Za-z0-9]{5,32})/?$")]
+    private static partial Regex ShortCodePathRegex();
+
+    [GeneratedRegex(@"^/t/(?<code>[A-Za-z0-9]{5,32})/?$", RegexOptions.IgnoreCase)]
+    private static partial Regex ShareTPathRegex();
+
+    [GeneratedRegex(@"data-video-id=""(?<id>\d{5,})""", RegexOptions.IgnoreCase)]
+    private static partial Regex HtmlVideoIdRegex();
 
     private sealed class TikTokOEmbedPayload
     {
@@ -138,5 +228,8 @@ public sealed partial class TikTokOEmbedService : ITikTokOEmbedService
 
         [JsonPropertyName("embed_product_id")]
         public string? EmbedProductId { get; set; }
+
+        [JsonPropertyName("html")]
+        public string? Html { get; set; }
     }
 }

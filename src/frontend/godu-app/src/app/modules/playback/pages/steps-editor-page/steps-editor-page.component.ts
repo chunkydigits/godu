@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import {
@@ -17,6 +17,7 @@ import {
   catchError,
   debounceTime,
   distinctUntilChanged,
+  finalize,
   map,
   of,
   startWith,
@@ -51,6 +52,7 @@ import {
 } from '../../models/step-entry';
 import {
   buildTikTokSourceUrl,
+  canonicalTikTokShortUrl,
   formatCreatorDisplayName,
   parseTikTokVideo,
   suggestTitleFromTikTok,
@@ -180,35 +182,63 @@ export class StepsEditorPageComponent {
     { initialValue: false },
   );
 
-  readonly previewVideoId = toSignal(
+  private readonly videoInputValue = toSignal(
     this.form.controls.videoInput.valueChanges.pipe(
       startWith(this.form.controls.videoInput.value),
-      map((value) => parseTikTokVideo(value)?.videoId ?? null),
-      distinctUntilChanged(),
     ),
-    { initialValue: null as string | null },
+    { initialValue: this.form.controls.videoInput.value },
   );
+
+  private readonly resolvedVideoId = signal<string | null>(null);
+  private videoLookupEpoch = 0;
+  readonly videoLookupPending = signal(false);
+
+  readonly previewVideoId = computed(() => {
+    const value = this.videoInputValue() ?? this.form.controls.videoInput.value;
+    return parseTikTokVideo(value)?.videoId ?? this.resolvedVideoId();
+  });
 
   /** Keeps autofill subscribed for the component lifetime. */
   private readonly videoAutofill = toSignal(
     this.form.controls.videoInput.valueChanges.pipe(
+      tap((value) => {
+        const canLookup = !!(parseTikTokVideo(value) || canonicalTikTokShortUrl(value));
+        this.videoLookupEpoch += 1;
+        this.videoLookupPending.set(canLookup);
+        if (!canLookup) {
+          this.resolvedVideoId.set(null);
+        }
+      }),
       debounceTime(350),
       distinctUntilChanged(),
       switchMap((value) => {
         const parsed = parseTikTokVideo(value);
+        const shortUrl = canonicalTikTokShortUrl(value);
         this.applyUrlAutofill(parsed?.username ?? null);
+        const epoch = this.videoLookupEpoch;
 
-        if (!parsed) {
+        if (!parsed && !shortUrl) {
+          this.resolvedVideoId.set(null);
+          if (epoch === this.videoLookupEpoch) {
+            this.videoLookupPending.set(false);
+          }
           return of(null);
         }
 
-        const isNewSubmission = parsed.videoId !== this.lastTrackedVideoId;
+        if (parsed) {
+          this.resolvedVideoId.set(parsed.videoId);
+        } else {
+          this.resolvedVideoId.set(null);
+        }
+
+        const trackId = parsed?.videoId ?? shortUrl ?? '';
+        const isNewSubmission = trackId !== this.lastTrackedVideoId;
         if (isNewSubmission) {
-          this.lastTrackedVideoId = parsed.videoId;
+          this.lastTrackedVideoId = trackId;
           this.analytics.track(AnalyticsEvent.VideoUrlSubmitted, { platform: 'tiktok' });
         }
 
-        const lookupKey = value.trim().startsWith('http') ? value.trim() : parsed.sourceUrl;
+        const lookupKey = shortUrl ?? (value.trim().startsWith('http') ? value.trim() : parsed!.sourceUrl);
         return this.myStepsApi.lookupTikTokMetadata(lookupKey).pipe(
           tap((metadata) => {
             this.applyOEmbedAutofill(metadata);
@@ -224,6 +254,11 @@ export class StepsEditorPageComponent {
               });
             }
             return of(null);
+          }),
+          finalize(() => {
+            if (epoch === this.videoLookupEpoch) {
+              this.videoLookupPending.set(false);
+            }
           }),
         );
       }),
@@ -521,6 +556,7 @@ export class StepsEditorPageComponent {
 
   private applyOEmbedAutofill(metadata: TikTokVideoMetadata): void {
     const patch: {
+      videoInput?: string;
       description?: string;
       creatorDisplayName?: string;
       title?: string;
@@ -552,6 +588,20 @@ export class StepsEditorPageComponent {
         patch.title = suggestedTitle;
         this.lastAutoTitle = suggestedTitle;
       }
+    }
+
+    const resolvedId =
+      metadata.externalVideoId?.trim() ||
+      parseTikTokVideo(metadata.sourceUrl)?.videoId ||
+      null;
+    if (resolvedId) {
+      this.resolvedVideoId.set(resolvedId);
+      this.lastTrackedVideoId = resolvedId;
+    }
+
+    const currentInput = this.form.controls.videoInput.value.trim();
+    if (canonicalTikTokShortUrl(currentInput) && metadata.sourceUrl) {
+      patch.videoInput = metadata.sourceUrl;
     }
 
     if (Object.keys(patch).length > 0) {
@@ -619,12 +669,13 @@ export class StepsEditorPageComponent {
 
     const raw = this.form.getRawValue();
     const parsed = parseTikTokVideo(raw.videoInput);
-    if (!parsed) {
+    const videoId = parsed?.videoId ?? this.resolvedVideoId();
+    if (!videoId) {
       return null;
     }
 
     const username =
-      raw.creatorDisplayName.replace(/^@/, '').trim() || parsed.username || null;
+      raw.creatorDisplayName.replace(/^@/, '').trim() || parsed?.username || null;
     const entries = raw.steps as StepEntryFormValue[];
     const steps = entries.map((entry, index) => {
       const order = index + 1;
@@ -713,8 +764,8 @@ export class StepsEditorPageComponent {
       startGapMessage,
       video: {
         provider: 'tiktok',
-        externalVideoId: parsed.videoId,
-        sourceUrl: buildTikTokSourceUrl(parsed.videoId, username),
+        externalVideoId: videoId,
+        sourceUrl: buildTikTokSourceUrl(videoId, username),
         creatorUsername: username,
         durationSeconds: null,
       },

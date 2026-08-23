@@ -8,6 +8,15 @@
   width: 100%;
 }
 
+.full mat-spinner {
+  display: inline-block;
+  margin-right: 1rem;
+}
+
+.lookup-status {
+  color: var(--steps-accent);
+}
+
 .section {
   display: flex;
   flex-direction: column;

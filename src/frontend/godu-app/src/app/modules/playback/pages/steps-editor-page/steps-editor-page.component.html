@@ -31,7 +31,10 @@
           (ngSubmit)="submit()"
         >
           <aside class="editor-shell__preview">
-            <app-steps-editor-preview [externalVideoId]="previewVideoId()" />
+            <app-steps-editor-preview
+              [externalVideoId]="previewVideoId()"
+              [lookupPending]="videoLookupPending()"
+            />
           </aside>
 
           <div class="editor-shell__form">
@@ -41,6 +44,7 @@
               [activityStepCount]="activityStepCount"
               [collapsedEntries]="collapsedEntries"
               [openSection]="openSection()"
+              [videoLookupPending]="videoLookupPending()"
               (addEntry)="addEntry($event)"
               (removeEntry)="removeEntry($event)"
               (toggleEntry)="toggleEntry($event)"

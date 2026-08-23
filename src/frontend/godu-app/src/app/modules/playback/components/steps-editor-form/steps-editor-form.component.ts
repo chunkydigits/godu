@@ -35,6 +35,8 @@ export class StepsEditorFormComponent {
   @Input() collapsedEntries = new Set<AbstractControl>();
   /** The one open section, if any: the panels act as an accordion. */
   @Input() openSection: EditorSectionId | null = null;
+  /** True while TikTok oEmbed is resolving the pasted URL. */
+  @Input() videoLookupPending = false;
 
   @Output() readonly addEntry = new EventEmitter<StepEntryKind>();
   @Output() readonly removeEntry = new EventEmitter<number>();

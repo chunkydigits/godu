@@ -23,9 +23,14 @@
       </div>
     </div>
   } @else {
-    <div class="preview__empty">
-      <mat-icon>smart_display</mat-icon>
-      <p>Paste a TikTok URL to preview the video while you set timestamps.</p>
+    <div class="preview__empty" [attr.aria-busy]="lookupPending">
+      @if (lookupPending) {
+        <mat-spinner diameter="36" />
+        <p aria-live="polite">Looking up this TikTok…</p>
+      } @else {
+        <mat-icon>smart_display</mat-icon>
+        <p>Paste a TikTok URL to preview the video while you set timestamps.</p>
+      }
     </div>
   }
 </div>

@@ -13,8 +13,22 @@
             formControlName="videoInput"
             required
             placeholder="https://www.tiktok.com/@user/video/…"
+            [attr.aria-busy]="videoLookupPending"
           />
-          <mat-hint>Paste a link to autofill creator, title, and description (TikTok oEmbed).</mat-hint>
+          @if (videoLookupPending) {
+            <mat-spinner
+              matSuffix
+              diameter="20"
+              aria-hidden="true"
+            />
+          }
+          <mat-hint>
+            @if (videoLookupPending) {
+              <span class="lookup-status" aria-live="polite">Looking up this TikTok…</span>
+            } @else {
+              Paste a link to autofill creator, title, and description. Mobile share links (vm.tiktok.com) work too.
+            }
+          </mat-hint>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full">
