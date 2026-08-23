@@ -25,6 +25,11 @@ export const appConfig: ApplicationConfig = {
         redirect_uri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4300',
         audience: environment.auth0.audience,
       },
+      // Memory cache + silent iframes drop the session on Safari / PWA / tab
+      // restarts. Refresh tokens in localStorage keep you signed in.
+      cacheLocation: 'localstorage',
+      useRefreshTokens: true,
+      useRefreshTokensFallback: true,
       httpInterceptor: {
         allowedList: [
           {
