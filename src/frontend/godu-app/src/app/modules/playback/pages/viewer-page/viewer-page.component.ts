@@ -309,6 +309,14 @@ export class ViewerPageComponent implements OnDestroy {
     this.onSettingsActivity();
   }
 
+  onLoopAllChange(enabled: boolean): void {
+    this.playback.setLoopAll(enabled);
+    if (enabled && this.playback.snapshot.clipHoldActive) {
+      void this.playback.replayCurrentClip();
+    }
+    this.onSettingsActivity();
+  }
+
   toggleMute(): void {
     this.setMuted(!this.playback.snapshot.userMuted);
   }
@@ -392,6 +400,18 @@ export class ViewerPageComponent implements OnDestroy {
     this.lastPlayingStep = null;
     this.lastCompletedStep = null;
     void this.playback.restart();
+  }
+
+  replayClip(): void {
+    const item = this.playback.snapshot.stepsItem;
+    const stepNumber = this.playback.snapshot.stepNumber;
+    if (item && stepNumber != null) {
+      this.analytics.track(AnalyticsEvent.StepRepeated, {
+        ...this.goduProps(item),
+        stepNumber,
+      });
+    }
+    void this.playback.replayCurrentClip();
   }
 
   formatRemaining(seconds: number | null): string {

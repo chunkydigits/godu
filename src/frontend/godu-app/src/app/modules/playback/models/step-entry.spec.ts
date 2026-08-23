@@ -13,6 +13,7 @@ import {
   previousActivityIndex,
   resolveStartGapMessage,
   resolveStartGapSeconds,
+  shouldLoopVideo,
   stepEntryKind,
 } from './step-entry';
 
@@ -101,5 +102,12 @@ describe('step entries', () => {
     expect(hasStartGapOverride({ startGapSeconds: 4 })).toBe(true);
     expect(hasStartGapOverride({ startGapMessage: 'Watch' })).toBe(true);
     expect(hasStartGapOverride({})).toBe(false);
+  });
+
+  it('loops timed steps and untimed steps unless play-once or loop-all', () => {
+    expect(shouldLoopVideo({ durationSeconds: 10, loopVideo: false })).toBe(true);
+    expect(shouldLoopVideo({ durationSeconds: null })).toBe(true);
+    expect(shouldLoopVideo({ durationSeconds: null, loopVideo: false })).toBe(false);
+    expect(shouldLoopVideo({ durationSeconds: null, loopVideo: false }, true)).toBe(true);
   });
 });

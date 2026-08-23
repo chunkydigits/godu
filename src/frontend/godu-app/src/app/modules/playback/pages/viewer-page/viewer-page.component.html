@@ -112,6 +112,14 @@
                         aria-label="Voice cues"
                       />
                     </div>
+                    <div class="viewer__settings-row">
+                      <span>Loop all</span>
+                      <mat-slide-toggle
+                        [checked]="state.loopAll"
+                        (change)="onLoopAllChange($event.checked)"
+                        aria-label="Loop all"
+                      />
+                    </div>
                   </div>
                 }
               </div>
@@ -137,14 +145,15 @@
                 @if (videoState.selectedStep.description) {
                   <p class="viewer__clip-hold-copy">{{ videoState.selectedStep.description }}</p>
                 }
-                <button
-                  mat-flat-button
-                  color="primary"
-                  type="button"
-                  (click)="next()"
-                >
-                  Next
-                </button>
+                <div class="viewer__clip-hold-actions">
+                  <button mat-stroked-button type="button" (click)="replayClip()">
+                    <mat-icon>replay</mat-icon>
+                    Replay
+                  </button>
+                  <button mat-flat-button color="primary" type="button" (click)="next()">
+                    Next
+                  </button>
+                </div>
               </div>
             }
           }
@@ -267,12 +276,11 @@
               </div>
             } @else if (state.clipHoldActive) {
               <div class="viewer__actions">
-                <button
-                  mat-flat-button
-                  color="primary"
-                  type="button"
-                  (click)="next()"
-                >
+                <button mat-stroked-button type="button" (click)="replayClip()">
+                  <mat-icon>replay</mat-icon>
+                  Replay
+                </button>
+                <button mat-flat-button color="primary" type="button" (click)="next()">
                   Next
                 </button>
               </div>

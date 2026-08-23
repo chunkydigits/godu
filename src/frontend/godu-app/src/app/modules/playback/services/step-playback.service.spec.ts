@@ -805,4 +805,81 @@ describe('StepPlaybackService', () => {
     expect(service.snapshot.clipHoldActive).toBe(true);
     expect(pause).toHaveBeenCalled();
   });
+
+  it('replays a play-once clip from the start after it holds', async () => {
+    const { player, seek, play } = createMockPlayer();
+    vi.mocked(player.getCurrentTime).mockResolvedValue(6);
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Dice',
+            startSeconds: 1,
+            endSeconds: 5,
+            durationSeconds: null,
+            autoAdvance: false,
+            loopVideo: false,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(service.snapshot.clipHoldActive).toBe(true);
+
+    vi.mocked(player.getCurrentTime).mockResolvedValue(1);
+    seek.mockClear();
+    play.mockClear();
+    await service.replayCurrentClip();
+
+    expect(service.snapshot.clipHoldActive).toBe(false);
+    expect(service.snapshot.phase).toBe('playing');
+    expect(seek).toHaveBeenCalledWith(1);
+    expect(play).toHaveBeenCalled();
+  });
+
+  it('loops untimed play-once clips when loop-all is on', async () => {
+    const { player, seek } = createMockPlayer();
+    vi.mocked(player.getCurrentTime).mockResolvedValue(6);
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Dice',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: null,
+            autoAdvance: false,
+            loopVideo: false,
+          },
+        ],
+      }),
+    );
+    service.setLoopAll(true);
+    await service.start();
+    seek.mockClear();
+
+    await vi.advanceTimersByTimeAsync(500);
+    expect(service.snapshot.clipHoldActive).toBe(false);
+    expect(seek).toHaveBeenCalledWith(0);
+  });
+
+  it('keeps loop-all when the same Godu is loaded again', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    const item = createDemoItem();
+    await service.load(item);
+    service.setLoopAll(true);
+    await service.load(item);
+    expect(service.snapshot.loopAll).toBe(true);
+
+    await service.load(createDemoItem({ id: 'steps_other' }));
+    expect(service.snapshot.loopAll).toBe(false);
+  });
 });

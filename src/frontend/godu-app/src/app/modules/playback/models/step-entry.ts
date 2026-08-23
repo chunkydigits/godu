@@ -179,10 +179,16 @@ export function resolveStartGapMessage(item: {
 }
 
 /** Timed steps always loop. Untimed steps loop unless loopVideo is false. */
-export function shouldLoopVideo(step: {
-  durationSeconds?: number | null;
-  loopVideo?: boolean;
-}): boolean {
+export function shouldLoopVideo(
+  step: {
+    durationSeconds?: number | null;
+    loopVideo?: boolean;
+  },
+  loopAll = false,
+): boolean {
+  if (loopAll) {
+    return true;
+  }
   const timed = step.durationSeconds != null && step.durationSeconds > 0;
   return timed || step.loopVideo !== false;
 }

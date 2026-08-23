@@ -55,6 +55,8 @@ export interface PlaybackState {
   gapMessage: string | null;
   /** Untimed play-once: clip finished, step copy is held over the video. */
   clipHoldActive: boolean;
+  /** Session-only: loop every step clip, including untimed play-once steps. */
+  loopAll: boolean;
 }
 
 const initialState: PlaybackState = {
@@ -73,6 +75,7 @@ const initialState: PlaybackState = {
   startGapActive: false,
   gapMessage: null,
   clipHoldActive: false,
+  loopAll: false,
 };
 
 const MEDIA_POLL_MS = 500;
@@ -131,6 +134,8 @@ export class StepPlaybackService implements OnDestroy {
     this.gapMediaStarted = false;
     this.gapTotalSeconds = 0;
     this.voiceCues.cancel();
+    const loopAll =
+      this.snapshot.stepsItem?.id === stepsItem.id ? this.snapshot.loopAll : false;
     this.patch({
       stepsItem,
       selectedStep: null,
@@ -143,6 +148,7 @@ export class StepPlaybackService implements OnDestroy {
       startGapActive: false,
       gapMessage: null,
       clipHoldActive: false,
+      loopAll,
     });
 
     const first = firstActivityIndex(stepsItem.steps);
@@ -154,6 +160,24 @@ export class StepPlaybackService implements OnDestroy {
   setUserMuted(muted: boolean): void {
     this.patch({ userMuted: muted });
     this.applyAudioRouting();
+  }
+
+  setLoopAll(enabled: boolean): void {
+    this.patch({ loopAll: enabled });
+  }
+
+  /** Replay the current step clip from the start (play-once hold, or mid-step). */
+  async replayCurrentClip(): Promise<void> {
+    const { stepsItem, selectedIndex, selectedStep, phase } = this.snapshot;
+    if (!stepsItem || !selectedStep || selectedIndex < 0) {
+      return;
+    }
+    if (phase === 'idle' || phase === 'ready' || phase === 'completed' || phase === 'gap') {
+      return;
+    }
+
+    this.voiceCues.unlockFromUserGesture();
+    await this.selectStep(selectedIndex, { skipVoiceAnnounce: true });
   }
 
   setVoiceCuesEnabled(enabled: boolean): void {
@@ -825,7 +849,7 @@ export class StepPlaybackService implements OnDestroy {
     }
 
     if (currentTime >= selectedStep.endSeconds) {
-      if (!shouldLoopVideo(selectedStep)) {
+      if (!shouldLoopVideo(selectedStep, this.snapshot.loopAll)) {
         void this.enterClipHold();
         return;
       }

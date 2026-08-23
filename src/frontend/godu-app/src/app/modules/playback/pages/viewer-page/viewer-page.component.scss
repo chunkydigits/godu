@@ -153,6 +153,18 @@
   color: rgba(255, 255, 255, 0.88);
 }
 
+.viewer__clip-hold-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.15rem;
+}
+
+.viewer__clip-hold-actions [mat-stroked-button] {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
 .viewer__video app-video-host {
   display: block;
   height: 100%;
@@ -415,6 +427,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin: 0.15rem 0 0.3rem;
 }
 
