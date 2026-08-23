@@ -5,7 +5,7 @@ import { Observable, Subject, catchError, map, merge, of, startWith, switchMap }
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
 import { problemDetail } from '../../../../core/http-problem';
 import { MaterialModule } from '../../../../core/material.module';
-import { AnalyticsService } from '../../../../core/analytics/analytics.service';
+import { ShareGoduService } from '../../../playback/services/share-godu.service';
 import { ApiStepsItem } from '../../../playback/models/api-steps-item.model';
 import { publicViewerPath } from '../../../playback/models/public-path';
 import { CreatorStepsApiService } from '../../services/creator-steps-api.service';
@@ -25,7 +25,7 @@ interface CreatorDashboardView {
 })
 export class CreatorDashboardPageComponent {
   private readonly api = inject(CreatorStepsApiService);
-  private readonly analytics = inject(AnalyticsService);
+  private readonly shareGodu = inject(ShareGoduService);
   private readonly reload$ = new Subject<string | null>();
   private readonly unpublishId$ = new Subject<string>();
 
@@ -59,24 +59,18 @@ export class CreatorDashboardPageComponent {
     return publicViewerPath(item);
   }
 
-  copyPublicUrl(item: ApiStepsItem): void {
-    const path = publicViewerPath(item);
-    if (!path || typeof navigator === 'undefined' || !navigator.clipboard) {
+  async sharePublicUrl(item: ApiStepsItem): Promise<void> {
+    const method = await this.shareGodu.share(item);
+    if (method !== 'copy-link') {
       return;
     }
-    void navigator.clipboard.writeText(`${window.location.origin}${path}`).then(() => {
-      this.copiedId = item.id;
-      this.analytics.trackShare('copy-link', {
-        goduId: item.id,
-        platform: item.video.provider || 'tiktok',
-      });
-      if (this.copiedTimer) {
-        clearTimeout(this.copiedTimer);
-      }
-      this.copiedTimer = setTimeout(() => {
-        this.copiedId = null;
-      }, 2000);
-    });
+    this.copiedId = item.id;
+    if (this.copiedTimer) {
+      clearTimeout(this.copiedTimer);
+    }
+    this.copiedTimer = setTimeout(() => {
+      this.copiedId = null;
+    }, 2000);
   }
 
   confirmUnpublish(item: ApiStepsItem): void {

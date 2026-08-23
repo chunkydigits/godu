@@ -24,6 +24,7 @@ import {
   tap,
 } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+import { problemDetail } from '../../../../core/http-problem';
 import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../../core/analytics/analytics.service';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
@@ -290,10 +291,10 @@ export class StepsEditorPageComponent {
           }),
           map(() => ({ loading: false, error: null as string | null })),
           startWith({ loading: true, error: null as string | null }),
-          catchError((err: Error) =>
+          catchError((err: unknown) =>
             of({
               loading: false,
-              error: err.message || 'Could not load Steps item.',
+              error: problemDetail(err, 'Could not load this Godu.'),
             }),
           ),
         );
@@ -324,10 +325,10 @@ export class StepsEditorPageComponent {
         }),
         map(() => ({ saving: false, error: null as string | null })),
         startWith({ saving: true, error: null as string | null }),
-        catchError((err: Error) =>
+        catchError((err: unknown) =>
           of({
             saving: false,
-            error: err.message || 'Save failed.',
+            error: problemDetail(err, 'Save failed.'),
           }),
         ),
       );

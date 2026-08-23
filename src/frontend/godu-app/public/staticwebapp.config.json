@@ -1,6 +1,12 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/*.{css,js,ico,png,svg,woff,woff2,webp,map}"]
+    "exclude": [
+      "/assets/*",
+      "/ngsw.json",
+      "/ngsw-worker.js",
+      "/safety-worker.js",
+      "/*.{css,js,ico,png,svg,woff,woff2,webp,map,webmanifest,json}"
+    ]
   }
 }

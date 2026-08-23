@@ -37,8 +37,8 @@
               <div class="dash-item__actions">
                 @if (publicHref(item); as href) {
                   <a mat-stroked-button [routerLink]="href">Open</a>
-                  <button mat-button type="button" (click)="copyPublicUrl(item)">
-                    {{ copiedId === item.id ? 'Copied' : 'Copy URL' }}
+                  <button mat-button type="button" (click)="sharePublicUrl(item)">
+                    {{ copiedId === item.id ? 'Copied' : 'Share' }}
                   </button>
                 }
                 <a mat-button [routerLink]="['/my-steps', item.id, 'edit']">Edit</a>

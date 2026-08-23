@@ -22,6 +22,7 @@ import { CreatorStepsApiService } from '../../../creators/services/creator-steps
 import { PlatformAccountsApiService } from '../../../settings/services/platform-accounts-api.service';
 import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../../core/analytics/analytics.service';
+import { ShareGoduService } from '../../services/share-godu.service';
 import { ApiStepsItem } from '../../models/api-steps-item.model';
 import { isValidSlug, publicViewerPath, slugFromTitle } from '../../models/public-path';
 import { activityCount } from '../../models/step-entry';
@@ -63,6 +64,7 @@ export class MyStepsPageComponent {
   private readonly creatorSteps = inject(CreatorStepsApiService);
   private readonly platformAccounts = inject(PlatformAccountsApiService);
   private readonly analytics = inject(AnalyticsService);
+  private readonly shareGodu = inject(ShareGoduService);
 
   private readonly actions$ = new Subject<MyStepsAction>();
 
@@ -126,24 +128,18 @@ export class MyStepsPageComponent {
     return publicViewerPath(item);
   }
 
-  copyPublicUrl(item: ApiStepsItem): void {
-    const path = publicViewerPath(item);
-    if (!path || typeof navigator === 'undefined' || !navigator.clipboard) {
+  async sharePublicUrl(item: ApiStepsItem): Promise<void> {
+    const method = await this.shareGodu.share(item);
+    if (method !== 'copy-link') {
       return;
     }
-    void navigator.clipboard.writeText(`${window.location.origin}${path}`).then(() => {
-      this.copiedId = item.id;
-      this.analytics.trackShare('copy-link', {
-        goduId: item.id,
-        platform: item.video.provider || 'tiktok',
-      });
-      if (this.copiedTimer) {
-        clearTimeout(this.copiedTimer);
-      }
-      this.copiedTimer = setTimeout(() => {
-        this.copiedId = null;
-      }, 2000);
-    });
+    this.copiedId = item.id;
+    if (this.copiedTimer) {
+      clearTimeout(this.copiedTimer);
+    }
+    this.copiedTimer = setTimeout(() => {
+      this.copiedId = null;
+    }, 2000);
   }
 
   private runAction(action: MyStepsAction): Observable<MyStepsView> {

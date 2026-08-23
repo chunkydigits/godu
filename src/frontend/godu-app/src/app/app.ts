@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AnalyticsService } from './core/analytics/analytics.service';
 import { CurrentUserService } from './core/auth/current-user.service';
+import { ServiceWorkerUpdateService } from './core/pwa/service-worker-update.service';
 import { PlayHistoryService } from './modules/playback/services/play-history.service';
 
 @Component({
@@ -15,5 +16,6 @@ export class App {
     inject(AnalyticsService).initialize();
     inject(CurrentUserService).initialize();
     inject(PlayHistoryService).initialize();
+    inject(ServiceWorkerUpdateService).initialize();
   }
 }

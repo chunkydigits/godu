@@ -1,10 +1,15 @@
 <app-page-template [showHeader]="false" [lockContentScroll]="true">
-  @if (error$ | async; as error) {
-    <div class="viewer-error">
-      <p>{{ error }}</p>
-      <button mat-button type="button" (click)="goBack()">Back</button>
-    </div>
-  } @else if (item$ | async; as item) {
+  @if (view$ | async; as view) {
+    @if (view.loading) {
+      <div class="viewer-status">
+        <mat-progress-bar mode="indeterminate" />
+      </div>
+    } @else if (view.error) {
+      <div class="viewer-error">
+        <p>{{ view.error }}</p>
+        <button mat-button type="button" (click)="goBack()">Back</button>
+      </div>
+    } @else if (view.item; as item) {
     <div
       class="viewer"
       [class.viewer--video-off]="(showVideo$ | async) === false"
@@ -41,6 +46,15 @@
                   [attr.aria-label]="state.userMuted ? 'Unmute' : 'Mute'"
                 >
                   <mat-icon>{{ state.userMuted ? 'volume_off' : 'volume_up' }}</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="viewer__share"
+                  (click)="share(item)"
+                  [attr.aria-label]="shareCopied ? 'Link copied' : 'Share'"
+                >
+                  <mat-icon>{{ shareCopied ? 'check' : 'share' }}</mat-icon>
                 </button>
               }
 
@@ -289,5 +303,6 @@
         }
       }
     </div>
+    }
   }
 </app-page-template>

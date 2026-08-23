@@ -12,6 +12,10 @@ export const environment = {
      * See specifications/field-feedback.md §5.
      */
     continuousSoundtrack: false,
+    /**
+     * App-shell service worker. Also needs a production build so ngsw-worker.js exists.
+     */
+    serviceWorker: true,
   },
   playback: {
     /**

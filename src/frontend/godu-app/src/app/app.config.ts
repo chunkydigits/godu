@@ -2,6 +2,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideServiceWorker } from '@angular/service-worker';
 import { authHttpInterceptorFn, provideAuth0 } from '@auth0/auth0-angular';
 
 import { routes } from './app.routes';
@@ -13,6 +14,10 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([authHttpInterceptorFn])),
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: environment.features.serviceWorker,
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
     provideAuth0({
       domain: environment.auth0.domain,
       clientId: environment.auth0.clientId,

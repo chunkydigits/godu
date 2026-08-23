@@ -63,8 +63,13 @@
   margin-right: 0.15rem;
 }
 
-.viewer__mute {
+.viewer__mute,
+.viewer__share {
   flex: 0 0 auto;
+}
+
+.viewer-status {
+  padding: 2rem 1.25rem;
 }
 
 .viewer__settings {

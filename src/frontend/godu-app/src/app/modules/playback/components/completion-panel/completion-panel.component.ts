@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AnalyticsService } from '../../../../core/analytics/analytics.service';
+import { ShareGoduService } from '../../services/share-godu.service';
 import { MaterialModule } from '../../../../core/material.module';
 import { publicViewerPath } from '../../models/public-path';
 import { StepsItem } from '../../models/steps-item.model';
@@ -23,7 +23,7 @@ export class CompletionPanelComponent {
   @Output() readonly replay = new EventEmitter<void>();
   @Output() readonly home = new EventEmitter<void>();
 
-  private readonly analytics = inject(AnalyticsService);
+  private readonly shareGodu = inject(ShareGoduService);
   copied = false;
   private copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -36,42 +36,17 @@ export class CompletionPanelComponent {
     return publicViewerPath(item) ?? `/play/${item.id}`;
   }
 
-  share(): void {
-    const url = this.shareUrl();
-    const props = {
-      goduId: this.stepsItem.id,
-      platform: this.stepsItem.video.provider ?? 'tiktok',
-    };
-
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-      this.analytics.trackShare('native', props);
-      void navigator.share({ title: this.stepsItem.title, url }).catch(() => {
-        // User cancelled or the share sheet failed; the click is still recorded.
-      });
+  async share(): Promise<void> {
+    const method = await this.shareGodu.share(this.stepsItem);
+    if (method !== 'copy-link') {
       return;
     }
-
-    if (typeof navigator === 'undefined' || !navigator.clipboard) {
-      return;
+    this.copied = true;
+    if (this.copiedTimer) {
+      clearTimeout(this.copiedTimer);
     }
-
-    void navigator.clipboard.writeText(url).then(() => {
-      this.copied = true;
-      this.analytics.trackShare('copy-link', props);
-      if (this.copiedTimer) {
-        clearTimeout(this.copiedTimer);
-      }
-      this.copiedTimer = setTimeout(() => {
-        this.copied = false;
-      }, 2000);
-    });
-  }
-
-  private shareUrl(): string {
-    if (typeof window === 'undefined') {
-      return this.viewerLink(this.stepsItem);
-    }
-
-    return `${window.location.origin}${this.viewerLink(this.stepsItem)}`;
+    this.copiedTimer = setTimeout(() => {
+      this.copied = false;
+    }, 2000);
   }
 }

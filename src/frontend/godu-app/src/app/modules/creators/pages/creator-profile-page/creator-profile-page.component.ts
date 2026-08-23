@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, catchError, combineLatest, map, of, startWith, switchMap, tap } from 'rxjs';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
+import { problemDetail } from '../../../../core/http-problem';
 import { MaterialModule } from '../../../../core/material.module';
 import { platformLabel } from '../../../playback/models/creator-link';
 import { PlatformMarkComponent } from '../../../playback/components/platform-mark/platform-mark.component';
@@ -55,11 +56,11 @@ export class CreatorProfilePageComponent {
         map((profile) => ({ loading: false, profile, error: null })),
         tap((view) => this.replaceAliasHandle(view.profile, provider, username)),
         startWith({ loading: true, profile: null, error: null }),
-        catchError(() =>
+        catchError((err: unknown) =>
           of({
             loading: false,
             profile: null,
-            error: 'This creator profile is not available yet.',
+            error: problemDetail(err, 'This creator profile is not available yet.'),
           }),
         ),
       );

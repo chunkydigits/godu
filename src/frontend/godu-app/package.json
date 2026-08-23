@@ -23,6 +23,7 @@
     "@angular/material": "^22.1.2",
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
+    "@angular/service-worker": "^22.1.1",
     "@auth0/auth0-angular": "^2.11.0",
     "@capacitor/cli": "^8.5.0",
     "@capacitor/core": "^8.5.0",

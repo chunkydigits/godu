@@ -3,6 +3,10 @@
   color: var(--steps-text-muted);
 }
 
+.status-row {
+  padding: 0 1.25rem 1.5rem;
+}
+
 .status.error {
   color: var(--steps-danger);
 }

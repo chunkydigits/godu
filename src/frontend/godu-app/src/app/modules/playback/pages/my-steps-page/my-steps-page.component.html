@@ -51,8 +51,8 @@
                 @if (isPublic(item)) {
                   @if (publicHref(item); as href) {
                     <a mat-button [routerLink]="href">Public page</a>
-                    <button mat-button type="button" (click)="copyPublicUrl(item)">
-                      {{ copiedId === item.id ? 'Copied' : 'Copy URL' }}
+                    <button mat-button type="button" (click)="sharePublicUrl(item)">
+                      {{ copiedId === item.id ? 'Copied' : 'Share' }}
                     </button>
                   }
                   <button mat-button type="button" (click)="confirmUnpublish(item)">

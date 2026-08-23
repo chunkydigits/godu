@@ -10,20 +10,22 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import {
-  BehaviorSubject,
   Observable,
   Subject,
   catchError,
   distinctUntilChanged,
   map,
   of,
+  startWith,
   switchMap,
   takeUntil,
   tap,
   throwError,
 } from 'rxjs';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
+import { problemDetail } from '../../../../core/http-problem';
 import { MaterialModule } from '../../../../core/material.module';
+import { ShareGoduService } from '../../services/share-godu.service';
 import { ScreenWakeLockService } from '../../../../core/services/screen-wake-lock.service';
 import { CompletionPanelComponent } from '../../components/completion-panel/completion-panel.component';
 import { StepNavigatorComponent } from '../../components/step-navigator/step-navigator.component';
@@ -45,6 +47,12 @@ import { viewerBackPathFromUrl, shouldReplaceCanonicalPath } from '../../models/
 import { StepsVisibility } from '../../models/steps-visibility.enum';
 import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../../core/analytics/analytics.service';
+
+interface ViewerLoadView {
+  loading: boolean;
+  item: StepsItem | null;
+  error: string | null;
+}
 
 @Component({
   selector: 'app-viewer-page',
@@ -72,6 +80,7 @@ export class ViewerPageComponent implements OnDestroy {
   private readonly userSettings = inject(UserSettingsService);
   private readonly wakeLock = inject(ScreenWakeLockService);
   private readonly analytics = inject(AnalyticsService);
+  private readonly shareGodu = inject(ShareGoduService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
   private startedAtMs: number | null = null;
@@ -84,21 +93,22 @@ export class ViewerPageComponent implements OnDestroy {
   private settingsIdleTimer: ReturnType<typeof setTimeout> | null = null;
 
   settingsOpen = false;
+  shareCopied = false;
   descriptionMarquee = false;
   descriptionMarqueeDuration = '14s';
+  private shareCopiedTimer: ReturnType<typeof setTimeout> | null = null;
 
-  readonly error$ = new BehaviorSubject<string | null>(null);
   readonly showVideo$ = this.preferences.showVideo$;
   readonly voiceCues$ = this.userSettings.voiceCues$;
 
-  readonly item$: Observable<StepsItem | null> = this.route.paramMap.pipe(
+  readonly view$: Observable<ViewerLoadView> = this.route.paramMap.pipe(
     switchMap((params) =>
       this.resolveItem(params).pipe(
         tap((item) => {
           this.pendingItem = item;
           this.lastPlayingStep = null;
           this.lastCompletedStep = null;
-          this.error$.next(null);
+          this.shareCopied = false;
           this.playback.setUserMuted(this.preferences.muted);
           this.syncVoiceCuesToPlayback();
           this.trackViewed(item);
@@ -107,17 +117,22 @@ export class ViewerPageComponent implements OnDestroy {
             void this.router.navigateByUrl(item.publicPath!, { replaceUrl: true });
           }
         }),
-        catchError((err: Error) => {
-          this.error$.next(err.message || 'Steps item not found.');
-          return of(null);
-        }),
+        map((item) => ({ loading: false, item, error: null as string | null })),
+        startWith({ loading: true, item: null, error: null as string | null }),
+        catchError((err: unknown) =>
+          of({
+            loading: false,
+            item: null,
+            error: problemDetail(err, 'This Godu is not available.'),
+          }),
+        ),
       ),
     ),
     takeUntil(this.destroy$),
   );
 
-  readonly related$: Observable<StepsItem[]> = this.item$.pipe(
-    switchMap((item) => (item ? this.resolveRelated(item) : of([]))),
+  readonly related$: Observable<StepsItem[]> = this.view$.pipe(
+    switchMap((view) => (view.item ? this.resolveRelated(view.item) : of([]))),
   );
 
   readonly state$: Observable<PlaybackState> = this.playback.state$;
@@ -227,6 +242,9 @@ export class ViewerPageComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.closeSettingsPanel();
+    if (this.shareCopiedTimer) {
+      clearTimeout(this.shareCopiedTimer);
+    }
     this.destroy$.next();
     this.destroy$.complete();
     void this.wakeLock.release();
@@ -482,6 +500,20 @@ export class ViewerPageComponent implements OnDestroy {
 
   goBack(): void {
     void this.router.navigateByUrl(this.backLink());
+  }
+
+  async share(item: StepsItem): Promise<void> {
+    const method = await this.shareGodu.share(item);
+    if (method !== 'copy-link') {
+      return;
+    }
+    this.shareCopied = true;
+    if (this.shareCopiedTimer) {
+      clearTimeout(this.shareCopiedTimer);
+    }
+    this.shareCopiedTimer = setTimeout(() => {
+      this.shareCopied = false;
+    }, 2000);
   }
 
   private trackViewed(item: StepsItem): void {

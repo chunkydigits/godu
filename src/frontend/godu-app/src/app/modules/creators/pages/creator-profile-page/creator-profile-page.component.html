@@ -1,7 +1,9 @@
 <app-page-template title="Creator">
   @if (view$ | async; as view) {
     @if (view.loading) {
-      <p class="status">Loading…</p>
+      <div class="status-row">
+        <mat-progress-bar mode="indeterminate" />
+      </div>
     } @else if (view.error) {
       <p class="status error">{{ view.error }}</p>
       <a mat-button routerLink="/demos">Back to demos</a>
