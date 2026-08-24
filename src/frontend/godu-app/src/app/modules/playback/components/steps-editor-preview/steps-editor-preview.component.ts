@@ -1,14 +1,6 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, Input, OnDestroy } from '@angular/core';
-import {
-  BehaviorSubject,
-  Observable,
-  Subject,
-  map,
-  of,
-  switchMap,
-  takeUntil,
-} from 'rxjs';
+import { Component, Input, NgZone, OnDestroy, inject } from '@angular/core';
+import { BehaviorSubject, Observable, Subject, takeUntil } from 'rxjs';
 import { MaterialModule } from '../../../../core/material.module';
 import { VideoProvider } from '../../models/video-provider.enum';
 import {
@@ -25,11 +17,17 @@ import { VideoHostComponent } from '../video-host/video-host.component';
 })
 export class StepsEditorPreviewComponent implements OnDestroy {
   readonly provider = VideoProvider.TikTok;
+  private readonly ngZone = inject(NgZone);
 
   private readonly destroy$ = new Subject<void>();
-  private readonly player$ = new BehaviorSubject<ControllableVideoPlayer | null>(null);
   private player: ControllableVideoPlayer | null = null;
   private lastUpdate: VideoPlayerTimeUpdate = { currentTime: 0, duration: 0 };
+  private clipStartSeconds = 0;
+  private stopAtSeconds: number | null = null;
+  private readonly clockSubject = new BehaviorSubject<{ current: string; duration: string }>({
+    current: '0:00',
+    duration: '0:00',
+  });
 
   videoId: string | null = null;
   @Input() lookupPending = false;
@@ -38,22 +36,8 @@ export class StepsEditorPreviewComponent implements OnDestroy {
     this.videoId = value?.trim() || null;
   }
 
-  readonly clock$: Observable<{ current: string; duration: string }> = this.player$.pipe(
-    switchMap((player) => {
-      if (!player) {
-        return of({ current: '0:00', duration: '0:00' });
-      }
-      return player.timeUpdates.pipe(
-        map((update) => {
-          this.lastUpdate = update;
-          return {
-            current: formatClock(update.currentTime),
-            duration: formatClock(update.duration),
-          };
-        }),
-      );
-    }),
-  );
+  readonly clock$: Observable<{ current: string; duration: string }> =
+    this.clockSubject.asObservable();
 
   ngOnDestroy(): void {
     this.destroy$.next();
@@ -67,30 +51,89 @@ export class StepsEditorPreviewComponent implements OnDestroy {
       await this.player.destroy();
     }
     this.player = player;
-    this.player$.next(player);
     await player.initialise();
     player.timeUpdates.pipe(takeUntil(this.destroy$)).subscribe((update) => {
       this.lastUpdate = update;
+      this.ngZone.run(() => this.publishClock(update));
+      this.maybeStopAtEnd(update.currentTime);
     });
   }
 
   play(): void {
+    this.clearClipStop();
+    this.playFrom(this.lastUpdate.currentTime || 0);
+  }
+
+  playFrom(seconds: number, stopAtSeconds?: number): void {
     if (!this.player) {
       return;
     }
-    this.player.kickstartFromUserGesture(this.lastUpdate.currentTime || 0);
+    const start = Math.max(0, seconds);
+    this.clipStartSeconds = start;
+    this.stopAtSeconds =
+      stopAtSeconds != null && stopAtSeconds > start ? stopAtSeconds : null;
+    this.lastUpdate = { ...this.lastUpdate, currentTime: start };
+    this.publishClock(this.lastUpdate);
+    this.player.kickstartFromUserGesture(start);
   }
 
   pause(): void {
+    this.clearClipStop();
     void this.player?.pause();
   }
 
   seekBack(): void {
-    void this.player?.seek(Math.max(0, this.lastUpdate.currentTime - 1));
+    void this.seekBy(-1);
   }
 
   seekForward(): void {
-    void this.player?.seek(this.lastUpdate.currentTime + 1);
+    void this.seekBy(1);
+  }
+
+  private async seekBy(delta: number): Promise<void> {
+    if (!this.player) {
+      return;
+    }
+    this.clearClipStop();
+
+    const current = await this.player.getCurrentTime();
+    const duration = this.lastUpdate.duration;
+    let next = current + delta;
+    if (next < 0) {
+      next = 0;
+    }
+    if (duration > 0 && next > duration) {
+      next = duration;
+    }
+
+    await this.player.seek(next);
+    this.lastUpdate = { ...this.lastUpdate, currentTime: next };
+    this.publishClock(this.lastUpdate);
+  }
+
+  private maybeStopAtEnd(currentTime: number): void {
+    if (this.stopAtSeconds == null || !this.player) {
+      return;
+    }
+    if (currentTime + 0.05 < this.clipStartSeconds) {
+      return;
+    }
+    if (currentTime < this.stopAtSeconds) {
+      return;
+    }
+    this.clearClipStop();
+    void this.player.pause();
+  }
+
+  private clearClipStop(): void {
+    this.stopAtSeconds = null;
+  }
+
+  private publishClock(update: VideoPlayerTimeUpdate): void {
+    this.clockSubject.next({
+      current: formatClock(update.currentTime),
+      duration: formatClock(update.duration),
+    });
   }
 }
 

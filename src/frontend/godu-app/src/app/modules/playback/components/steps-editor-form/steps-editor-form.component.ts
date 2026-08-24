@@ -43,6 +43,8 @@ export class StepsEditorFormComponent {
   @Output() readonly toggleEntry = new EventEmitter<number>();
   @Output() readonly toggleSection = new EventEmitter<EditorSectionId>();
   @Output() readonly entryDropped = new EventEmitter<CdkDragDrop<unknown>>();
+  /** Preview this step clip and stop at its end. */
+  @Output() readonly previewFrom = new EventEmitter<StepPreviewRange>();
 
   readonly sections = EDITOR_SECTIONS;
   readonly entryKinds = STEP_ENTRY_KINDS;
@@ -118,6 +120,22 @@ export class StepsEditorFormComponent {
     return duration == null || duration <= 0;
   }
 
+  playFromStart(index: number): void {
+    this.previewFrom.emit(this.previewRange(index, toNumber(this.entryAt(index)?.startSeconds) ?? 0));
+  }
+
+  playFromBeforeEnd(index: number): void {
+    const end = toNumber(this.entryAt(index)?.endSeconds) ?? 0;
+    this.previewFrom.emit(this.previewRange(index, Math.max(0, end - 1)));
+  }
+
+  private previewRange(index: number, startSeconds: number): StepPreviewRange {
+    return {
+      startSeconds: Math.max(0, startSeconds),
+      endSeconds: Math.max(0, toNumber(this.entryAt(index)?.endSeconds) ?? 0),
+    };
+  }
+
   gapSummary(index: number): string {
     const entry = this.entryAt(index);
     const seconds = toNumber(entry?.durationSeconds);
@@ -138,6 +156,11 @@ export class StepsEditorFormComponent {
   private toEntry(value: unknown): StepEntrySummary {
     return (value ?? {}) as StepEntrySummary;
   }
+}
+
+export interface StepPreviewRange {
+  startSeconds: number;
+  endSeconds: number;
 }
 
 interface StepEntrySummary {

@@ -137,36 +137,6 @@
 
     @if (isSectionOpen('steps')) {
       <div class="section__body">
-        <div class="steps-header">
-          <div class="steps-header__add" role="group" aria-label="Add an entry">
-            <button
-              mat-stroked-button
-              type="button"
-              class="steps-header__add-main"
-              (click)="addEntry.emit(defaultKind)"
-            >
-              Add step
-            </button>
-            <button
-              mat-stroked-button
-              type="button"
-              class="steps-header__add-toggle"
-              [matMenuTriggerFor]="addMenu"
-              aria-label="Choose what to add"
-            >
-              <mat-icon>arrow_drop_down</mat-icon>
-            </button>
-            <mat-menu #addMenu="matMenu" xPosition="before">
-              @for (option of entryKinds; track option.kind) {
-                <button mat-menu-item type="button" (click)="addEntry.emit(option.kind)">
-                  <mat-icon>{{ option.icon }}</mat-icon>
-                  <span>{{ option.label }}</span>
-                </button>
-              }
-            </mat-menu>
-          </div>
-        </div>
-
         <div
           formArrayName="steps"
           class="steps"
@@ -259,18 +229,42 @@
                   </mat-form-field>
 
                   <div class="step__nums">
-                    <mat-form-field appearance="outline">
-                      <mat-label>Start (s)</mat-label>
-                      <input matInput type="number" formControlName="startSeconds" />
-                    </mat-form-field>
-                    <mat-form-field appearance="outline">
-                      <mat-label>End (s)</mat-label>
-                      <input matInput type="number" formControlName="endSeconds" />
-                    </mat-form-field>
-                    <mat-form-field appearance="outline">
-                      <mat-label>Duration (s)</mat-label>
-                      <input matInput type="number" formControlName="durationSeconds" />
-                    </mat-form-field>
+                    <div class="step__num">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Start (s)</mat-label>
+                        <input matInput type="number" formControlName="startSeconds" />
+                      </mat-form-field>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="step__num-action"
+                        (click)="playFromStart(i)"
+                        aria-label="Play from start"
+                      >
+                        <mat-icon>play_arrow</mat-icon>
+                      </button>
+                    </div>
+                    <div class="step__num">
+                      <mat-form-field appearance="outline">
+                        <mat-label>End (s)</mat-label>
+                        <input matInput type="number" formControlName="endSeconds" />
+                      </mat-form-field>
+                      <button
+                        mat-stroked-button
+                        type="button"
+                        class="step__num-action step__num-action--label"
+                        (click)="playFromBeforeEnd(i)"
+                        aria-label="Play from 1 second before end"
+                      >
+                        -1s
+                      </button>
+                    </div>
+                    <div class="step__num">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Duration (s)</mat-label>
+                        <input matInput type="number" formControlName="durationSeconds" />
+                      </mat-form-field>
+                    </div>
                   </div>
 
                   <mat-checkbox formControlName="autoAdvance">Auto-advance</mat-checkbox>
@@ -292,6 +286,36 @@
               }
             </div>
           }
+        </div>
+
+        <div class="steps-footer">
+          <div class="steps-header__add" role="group" aria-label="Add an entry">
+            <button
+              mat-stroked-button
+              type="button"
+              class="steps-header__add-main"
+              (click)="addEntry.emit(defaultKind)"
+            >
+              Add step
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              class="steps-header__add-toggle"
+              [matMenuTriggerFor]="addMenu"
+              aria-label="Choose what to add"
+            >
+              <mat-icon>arrow_drop_down</mat-icon>
+            </button>
+            <mat-menu #addMenu="matMenu">
+              @for (option of entryKinds; track option.kind) {
+                <button mat-menu-item type="button" (click)="addEntry.emit(option.kind)">
+                  <mat-icon>{{ option.icon }}</mat-icon>
+                  <span>{{ option.label }}</span>
+                </button>
+              }
+            </mat-menu>
+          </div>
         </div>
       </div>
     }

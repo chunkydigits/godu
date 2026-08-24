@@ -104,6 +104,27 @@ describe('TikTokVideoPlayer', () => {
     expect(seen).toEqual([false, true, false]);
   });
 
+  it('forwards current time so editor seek buttons can step from now', async () => {
+    const seen: { currentTime: number; duration: number }[] = [];
+    player.timeUpdates.subscribe((update) => seen.push(update));
+    const iframe = host.querySelector('iframe')!;
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: {
+          'x-tiktok-player': true,
+          type: 'onCurrentTime',
+          value: { currentTime: 12.4, duration: 40 },
+        },
+        origin: TIKTOK_ORIGIN,
+        source: iframe.contentWindow,
+      }),
+    );
+
+    expect(seen).toEqual([{ currentTime: 12.4, duration: 40 }]);
+    await expect(player.getCurrentTime()).resolves.toBe(12.4);
+  });
+
   it('ignores messages that are not from the embed', () => {
     const iframe = host.querySelector('iframe')!;
     const seen: boolean[] = [];

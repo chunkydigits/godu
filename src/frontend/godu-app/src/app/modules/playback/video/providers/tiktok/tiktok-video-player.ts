@@ -107,6 +107,7 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     this.currentTimeSeconds = seconds;
     this.seekPostedAt = Date.now();
     this.post('seekTo', seconds);
+    this.emitTimeUpdate();
   }
 
   async getCurrentTime(): Promise<number> {
@@ -272,11 +273,19 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
         }
         this.currentTimeSeconds = nextTime;
         this.durationSeconds = value.duration ?? this.durationSeconds;
+        this.emitTimeUpdate();
         break;
       }
       default:
         break;
     }
+  }
+
+  private emitTimeUpdate(): void {
+    this.timeUpdatesSubject.next({
+      currentTime: this.currentTimeSeconds,
+      duration: this.durationSeconds,
+    });
   }
 
   private setPlaying(playing: boolean): void {

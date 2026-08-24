@@ -50,6 +50,7 @@
               (toggleEntry)="toggleEntry($event)"
               (toggleSection)="toggleSection($event)"
               (entryDropped)="entryDropped($event)"
+              (previewFrom)="previewFrom($event)"
             />
 
             @if (saveState$ | async; as saveState) {
@@ -63,6 +64,9 @@
 
             <div class="actions">
               <button mat-flat-button color="primary" type="submit">Save</button>
+              @if (goduId(); as id) {
+                <a mat-stroked-button [routerLink]="['/play', id]">Open Godu</a>
+              }
               <a mat-button routerLink="/my-steps">Cancel</a>
             </div>
           </div>

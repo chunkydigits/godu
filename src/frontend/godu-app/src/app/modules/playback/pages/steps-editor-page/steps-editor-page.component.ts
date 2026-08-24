@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ViewChild, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import {
@@ -30,9 +30,13 @@ import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../../core/analytics/analytics.service';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
 import { MaterialModule } from '../../../../core/material.module';
-import { StepsEditorFormComponent } from '../../components/steps-editor-form/steps-editor-form.component';
+import {
+  StepPreviewRange,
+  StepsEditorFormComponent,
+} from '../../components/steps-editor-form/steps-editor-form.component';
 import { StepsEditorPreviewComponent } from '../../components/steps-editor-preview/steps-editor-preview.component';
 import {
+  ApiStepsItem,
   CreateStepsItemRequest,
   UpdateStepsItemRequest,
 } from '../../models/api-steps-item.model';
@@ -116,6 +120,11 @@ export class StepsEditorPageComponent {
   readonly continuousSoundtrackEnabled = environment.features.continuousSoundtrack;
   readonly editId$ = this.route.paramMap.pipe(map((p) => p.get('id')));
   readonly isEditMode = !!this.route.snapshot.paramMap.get('id');
+  readonly goduId = toSignal(this.editId$, {
+    initialValue: this.route.snapshot.paramMap.get('id'),
+  });
+
+  @ViewChild(StepsEditorPreviewComponent) private preview?: StepsEditorPreviewComponent;
 
   constructor() {
     if (!this.isEditMode) {
@@ -356,7 +365,10 @@ export class StepsEditorPageComponent {
             visibility: saved.visibility,
             platform: saved.video.provider || 'tiktok',
           });
-          void this.router.navigate(['/play', saved.id]);
+          this.applySavedIds(saved);
+          if (!id) {
+            void this.router.navigate(['/my-steps', saved.id, 'edit'], { replaceUrl: true });
+          }
         }),
         map(() => ({ saving: false, error: null as string | null })),
         startWith({ saving: true, error: null as string | null }),
@@ -499,6 +511,19 @@ export class StepsEditorPageComponent {
     this.revealInvalidSection();
     this.expandInvalidEntries();
     this.saveTrigger$.next();
+  }
+
+  previewFrom(range: StepPreviewRange): void {
+    this.preview?.playFrom(range.startSeconds, range.endSeconds);
+  }
+
+  private applySavedIds(saved: ApiStepsItem): void {
+    saved.steps.forEach((step, index) => {
+      const control = this.steps.at(index);
+      if (control && step.id) {
+        control.patchValue({ id: step.id }, { emitEvent: false });
+      }
+    });
   }
 
   /**
