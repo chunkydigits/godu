@@ -1,11 +1,8 @@
-<app-page-template
-  title="My Godus"
-  subtitle="Your private Godu library."
->
+<app-page-template title="My Godus" subtitle="Your private Godu library.">
   @if (isAuthenticated$ | async) {
     <div class="action-bar">
       <a mat-flat-button color="primary" routerLink="/my-steps/new">Create Godus</a>
-      <a mat-stroked-button routerLink="/creator">Published Steps</a>
+      <a mat-stroked-button routerLink="/creator">Published Godus</a>
     </div>
   }
 

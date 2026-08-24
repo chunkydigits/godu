@@ -25,6 +25,27 @@ describe('DemoStepsService related', () => {
     expect(listed.some((item) => item.id === 'steps_demo_fitness_core')).toBe(false);
   });
 
+  it('uses the Nicci Robinson HIIT circuit with seven repeats', async () => {
+    const hiit = await firstValueFrom(service.getById('steps_demo_train_hiit'));
+    expect(hiit.video.externalVideoId).toBe('7457632822598159658');
+    expect(hiit.repeatCount).toBe(7);
+    expect(hiit.gapSeconds).toBeNull();
+    expect(hiit.steps).toHaveLength(6);
+    expect(hiit.steps.map((step) => step.title)).toEqual([
+      'Squat to Knee',
+      '3 Pulse Squats into a Calf Raise',
+      'Sprawlee',
+      'Jump Lunges',
+      'Cross Jab Squats',
+      'Rest',
+    ]);
+    expect(hiit.steps[5]).toMatchObject({
+      kind: 'step',
+      durationSeconds: 60,
+      loopVideo: false,
+    });
+  });
+
   it('maps catalogue demos including gap entries', async () => {
     const study = await firstValueFrom(service.getById('steps_demo_learn_study'));
     expect(study.category).toBe('Learn');

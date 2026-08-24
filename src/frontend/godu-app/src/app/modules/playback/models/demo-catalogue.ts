@@ -13,6 +13,7 @@ interface DemoCatalogueStep {
   endSeconds: number;
   durationSeconds: number;
   autoAdvance: boolean;
+  loopVideo?: boolean;
   message?: string;
 }
 
@@ -20,12 +21,14 @@ interface DemoCatalogueEntry {
   id: string;
   category: DemoCategory;
   title: string;
+  description?: string;
   creatorDisplayName: string;
   sourceUrl: string | null;
   externalVideoId: string | null;
   continuousSoundtrack: boolean;
-  gapSeconds: number;
-  gapMessage: string;
+  gapSeconds: number | null;
+  gapMessage: string | null;
+  repeatCount?: number | null;
   steps: DemoCatalogueStep[];
 }
 
@@ -108,74 +111,83 @@ const CATALOGUE: DemoCatalogueEntry[] = [
   {
     id: 'steps_demo_train_hiit',
     category: 'Train',
-    title: '30 Minute Bodyweight HIIT / Beginner Friendly',
+    title: 'Steps from @nicci_robinson',
+    description:
+      '30 Minute Bodyweight HIIT / Beginner Friendly 🔥 Save ➡️ Share ➡️ Execute All you need is 30 minute for this ultimate burn workout. No equipment and all fitness levels are showcased so No Excuses 🙌🏽 Tabata Style  30 seconds work 15 seconds rest  ✔️Squat to Knee ✔️ 3 pulse squats into calf raise ✔️ Sprawlee ✔️Jump Lunge  ✔️ Cross Jab Squats  Rest for 60 seconds then repeat  Join my Resilient app for more workouts and challenges! Available now on all app stores #hiit #bodyweight #beginnerfriendly',
     creatorDisplayName: '@nicci_robinson',
     sourceUrl: 'https://www.tiktok.com/@nicci_robinson/video/7457632822598159658',
     externalVideoId: '7457632822598159658',
-    continuousSoundtrack: true,
-    gapSeconds: 15,
-    gapMessage: 'Rest — next exercise coming up...',
+    continuousSoundtrack: false,
+    gapSeconds: null,
+    gapMessage: null,
+    repeatCount: 7,
     steps: [
       {
         order: 1,
         kind: 'step',
         title: 'Squat to Knee',
-        description: 'Perform a squat, then drive one knee up towards your chest. Alternate sides.',
-        startSeconds: 0,
-        endSeconds: 6,
+        description:
+          'Go from squats to knee raise with your hands on your head. Beginner: Do from standing without squats',
+        startSeconds: 4,
+        endSeconds: 6.5,
         durationSeconds: 30,
         autoAdvance: true,
+        loopVideo: true,
       },
       {
         order: 2,
         kind: 'step',
-        title: '3 Pulse Squats into Calf Raise',
-        description: 'Perform three controlled squat pulses, then rise up onto your toes for a calf raise.',
-        startSeconds: 6,
-        endSeconds: 12,
+        title: '3 Pulse Squats into a Calf Raise',
+        description:
+          'Pulse 3 times in a squat position, then to standing into a full calf raise. Beginner: Squat to standing',
+        startSeconds: 7.5,
+        endSeconds: 10.2,
         durationSeconds: 30,
         autoAdvance: true,
+        loopVideo: true,
       },
       {
         order: 3,
         kind: 'step',
         title: 'Sprawlee',
-        description: 'Drop your hands to the floor, jump or step your feet back, then return to standing.',
-        startSeconds: 12,
-        endSeconds: 18,
+        description:
+          'Press-up position jumping your feet to your hands with your hands remaining on the floor. Beginner: Press-up position stepping both feet to hands one at a time, hands remaining on the floor, then stepping them back one at a time.',
+        startSeconds: 11.5,
+        endSeconds: 13,
         durationSeconds: 30,
         autoAdvance: true,
+        loopVideo: true,
       },
       {
         order: 4,
         kind: 'step',
-        title: 'Jump Lunge',
-        description: 'Alternate between lunge positions, switching legs with a jump.',
-        startSeconds: 18,
-        endSeconds: 24,
+        title: 'Jump Lunges',
+        startSeconds: 15.1,
+        endSeconds: 16.6,
         durationSeconds: 30,
         autoAdvance: true,
+        loopVideo: true,
       },
       {
         order: 5,
         kind: 'step',
         title: 'Cross Jab Squats',
-        description: 'Squat down, then alternate cross-body punches as you rise.',
-        startSeconds: 24,
-        endSeconds: 30,
+        startSeconds: 19.5,
+        endSeconds: 21.5,
         durationSeconds: 30,
         autoAdvance: true,
+        loopVideo: true,
       },
       {
         order: 6,
-        kind: 'gap',
-        title: '',
-        description: null,
-        startSeconds: 0,
-        endSeconds: 0,
+        kind: 'step',
+        title: 'Rest',
+        description: 'Rest for 60 seconds',
+        startSeconds: 23,
+        endSeconds: 23.5,
         durationSeconds: 60,
         autoAdvance: true,
-        message: '60 second recovery — then repeat the circuit',
+        loopVideo: false,
       },
     ],
   },
@@ -742,11 +754,12 @@ function toDemoItem(entry: DemoCatalogueEntry): DemoStepsItem {
     visibility: StepsVisibility.Private,
     status: StepsItemStatus.Published,
     title: entry.title,
-    description: firstActivity?.description ?? entry.title,
+    description: entry.description ?? firstActivity?.description ?? entry.title,
     creatorDisplayName: entry.creatorDisplayName,
     continuousSoundtrack: entry.continuousSoundtrack,
     gapSeconds: entry.gapSeconds,
     gapMessage: entry.gapMessage,
+    repeatCount: entry.repeatCount ?? null,
     video: {
       provider: VideoProvider.TikTok,
       externalVideoId: entry.externalVideoId ?? '',
@@ -778,6 +791,12 @@ function toStep(demoId: string, step: DemoCatalogueStep): StepDefinition {
 
   if (step.kind === 'gap' && step.message) {
     mapped.message = step.message;
+  }
+
+  if (step.loopVideo === false) {
+    mapped.loopVideo = false;
+  } else if (step.loopVideo === true) {
+    mapped.loopVideo = true;
   }
 
   return mapped;
