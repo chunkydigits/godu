@@ -207,6 +207,7 @@ public sealed class InMemoryStepsItemRepository : IStepsItemRepository
             PlayGapPriorToStart = item.PlayGapPriorToStart,
             StartGapSeconds = item.StartGapSeconds,
             StartGapMessage = item.StartGapMessage,
+            RepeatCount = item.RepeatCount,
             CreatedUtc = item.CreatedUtc,
             UpdatedUtc = item.UpdatedUtc,
             PublishedUtc = item.PublishedUtc,

@@ -12,8 +12,14 @@ import { StepDefinition } from '../../models/step-definition.model';
 export class StepNavigatorComponent {
   @Input({ required: true }) steps: StepDefinition[] = [];
   @Input() selectedIndex = -1;
+  /** When true, Next stays enabled on the last step so playback can wrap. */
+  @Input() allowWrapNext = false;
+  /** When true, Previous stays enabled on the first step so playback can rewind a round. */
+  @Input() allowWrapPrevious = false;
 
   @Output() readonly stepSelected = new EventEmitter<number>();
+  @Output() readonly wrapNext = new EventEmitter<void>();
+  @Output() readonly wrapPrevious = new EventEmitter<void>();
 
   readonly displayLabel = (value: number): string => String(value + 1);
 
@@ -26,10 +32,16 @@ export class StepNavigatorComponent {
   }
 
   get atStart(): boolean {
+    if (this.allowWrapPrevious) {
+      return this.steps.length === 0;
+    }
     return this.steps.length === 0 || this.selectedIndex <= 0;
   }
 
   get atEnd(): boolean {
+    if (this.allowWrapNext) {
+      return this.steps.length === 0;
+    }
     return this.steps.length === 0 || this.selectedIndex >= this.steps.length - 1;
   }
 
@@ -50,11 +62,21 @@ export class StepNavigatorComponent {
       return;
     }
 
+    if (this.selectedIndex <= 0) {
+      this.wrapPrevious.emit();
+      return;
+    }
+
     this.select(this.selectedIndex - 1);
   }
 
   next(): void {
     if (this.atEnd) {
+      return;
+    }
+
+    if (this.selectedIndex >= this.steps.length - 1) {
+      this.wrapNext.emit();
       return;
     }
 

@@ -65,6 +65,38 @@ describe('mapApiStepsItem', () => {
     expect(item.publicPath).toBe('/t/coach/mobility');
   });
 
+  it('maps a repeating Godu repeatCount', () => {
+    const api: ApiStepsItem = {
+      id: 'steps_repeat',
+      createdByUserId: 'usr_1',
+      visibility: 'private',
+      status: 'published',
+      title: 'Circuit',
+      continuousSoundtrack: false,
+      repeatCount: 4,
+      createdUtc: '2026-08-24T08:00:00Z',
+      updatedUtc: '2026-08-24T08:00:00Z',
+      video: {
+        provider: 'tiktok',
+        externalVideoId: '1234567890',
+        sourceUrl: 'https://www.tiktok.com/@coach/video/1234567890',
+      },
+      steps: [
+        {
+          id: 'step_1',
+          order: 1,
+          title: 'Squats',
+          startSeconds: 0,
+          endSeconds: 5,
+          durationSeconds: 30,
+          autoAdvance: true,
+        },
+      ],
+    };
+
+    expect(mapApiStepsItem(api).repeatCount).toBe(4);
+  });
+
   it('builds a public path when the API omitted it', () => {
     const api: ApiStepsItem = {
       id: 'steps_3',

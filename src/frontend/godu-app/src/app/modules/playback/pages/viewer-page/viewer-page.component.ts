@@ -32,7 +32,12 @@ import { StepNavigatorComponent } from '../../components/step-navigator/step-nav
 import { VideoHostComponent } from '../../components/video-host/video-host.component';
 import { StepDefinition } from '../../models/step-definition.model';
 import { StepsItem } from '../../models/steps-item.model';
-import { activityEntries } from '../../models/step-entry';
+import {
+  activityEntries,
+  hasMoreIterations,
+  hasPreviousIteration,
+  iterationCaption as formatIterationCaption,
+} from '../../models/step-entry';
 import { TikTokCreatorLink, creatorLabel, tiktokCreatorLink } from '../../models/creator-link';
 import { isContinuousSoundtrackEnabled } from '../../models/continuous-soundtrack.feature';
 import { ControllableVideoPlayer } from '../../models/video-player.interface';
@@ -397,8 +402,28 @@ export class ViewerPageComponent implements OnDestroy {
     return state.phase === 'gap' || (state.phase === 'paused' && state.gapActive);
   }
 
+  iterationCaption(state: PlaybackState): string | null {
+    return formatIterationCaption(
+      state.iteration,
+      state.iterationCount,
+      this.preferences.showIteration,
+    );
+  }
+
+  canWrapNext(state: PlaybackState): boolean {
+    return hasMoreIterations(state.iteration, state.iterationCount);
+  }
+
+  canWrapPrevious(state: PlaybackState): boolean {
+    return hasPreviousIteration(state.iteration, state.iterationCount);
+  }
+
   next(): void {
     void this.playback.next();
+  }
+
+  previous(): void {
+    void this.playback.previous();
   }
 
   replay(): void {

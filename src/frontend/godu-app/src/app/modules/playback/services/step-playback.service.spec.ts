@@ -292,6 +292,147 @@ describe('StepPlaybackService', () => {
     expect(service.snapshot.selectedIndex).toBe(0);
     expect(service.snapshot.iteration).toBe(2);
     expect(service.snapshot.iterationCount).toBe(3);
+    expect(service.snapshot.remainingSeconds).toBe(2);
+  });
+
+  it('exposes iteration 1 of N as soon as a repeating Godu is loaded', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem({ repeatCount: 4 }));
+
+    expect(service.snapshot.iteration).toBe(1);
+    expect(service.snapshot.iterationCount).toBe(4);
+  });
+
+  it('auto-advances from the last step into the next iteration', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        repeatCount: 2,
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Squats',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 2,
+            autoAdvance: true,
+          },
+          {
+            id: 's2',
+            order: 2,
+            title: 'Lunges',
+            startSeconds: 5,
+            endSeconds: 10,
+            durationSeconds: 2,
+            autoAdvance: true,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    expect(service.snapshot.selectedIndex).toBe(0);
+    expect(service.snapshot.iteration).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.selectedIndex).toBe(1);
+    expect(service.snapshot.iteration).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.selectedIndex).toBe(0);
+    expect(service.snapshot.iteration).toBe(2);
+    expect(service.snapshot.iterationCount).toBe(2);
+    expect(service.snapshot.remainingSeconds).toBe(2);
+  });
+
+  it('starts the next iteration when the last timed step ends even without auto-advance', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        repeatCount: 2,
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Squats',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 2,
+            autoAdvance: true,
+          },
+          {
+            id: 's2',
+            order: 2,
+            title: 'Lunges',
+            startSeconds: 5,
+            endSeconds: 10,
+            durationSeconds: 2,
+            autoAdvance: false,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.selectedIndex).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.selectedIndex).toBe(0);
+    expect(service.snapshot.iteration).toBe(2);
+  });
+
+  it('uses the default gap before the first step of the next iteration', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        repeatCount: 2,
+        gapSeconds: 1,
+        gapMessage: 'Next set',
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Squats',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 2,
+            autoAdvance: true,
+          },
+          {
+            id: 's2',
+            order: 2,
+            title: 'Lunges',
+            startSeconds: 5,
+            endSeconds: 10,
+            durationSeconds: 2,
+            autoAdvance: true,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.phase).toBe('gap');
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(service.snapshot.selectedIndex).toBe(1);
+    expect(service.snapshot.iteration).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(service.snapshot.phase).toBe('gap');
+    expect(service.snapshot.iteration).toBe(2);
+    expect(service.snapshot.selectedIndex).toBe(0);
+    expect(service.snapshot.gapMessage).toBe('Next set');
+
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.selectedIndex).toBe(0);
+    expect(service.snapshot.iteration).toBe(2);
   });
 
   it('completes after next on the final iteration', async () => {

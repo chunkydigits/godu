@@ -8,6 +8,11 @@ import {
   firstActivityIndex,
   hasStartGapOverride,
   isGapEntry,
+  canGoToNextStep,
+  canGoToPreviousStep,
+  hasMoreIterations,
+  hasPreviousIteration,
+  iterationCaption,
   lastActivityIndex,
   normaliseGapMessage,
   normaliseGapSeconds,
@@ -122,5 +127,31 @@ describe('step entries', () => {
     expect(resolvedRepeatCount({ repeatCount: 1 })).toBe(1);
     expect(resolvedRepeatCount({ repeatCount: 5 })).toBe(5);
     expect(resolvedRepeatCount({ repeatCount: 200 })).toBe(99);
+  });
+
+  it('names the current iteration only when the Godu repeats', () => {
+    expect(iterationCaption(1, 1)).toBeNull();
+    expect(iterationCaption(1, 3)).toBe('Iteration 1 of 3');
+    expect(iterationCaption(2, 3)).toBe('Iteration 2 of 3');
+    expect(iterationCaption(2, 3, false)).toBeNull();
+    expect(hasMoreIterations(1, 3)).toBe(true);
+    expect(hasMoreIterations(3, 3)).toBe(false);
+    expect(hasPreviousIteration(1, 3)).toBe(false);
+    expect(hasPreviousIteration(2, 3)).toBe(true);
+  });
+
+  it('lets next wrap after the last step when iterations remain', () => {
+    expect(
+      canGoToNextStep({ stepNumber: 3, stepCount: 3, iteration: 1, iterationCount: 2 }),
+    ).toBe(true);
+    expect(
+      canGoToNextStep({ stepNumber: 3, stepCount: 3, iteration: 2, iterationCount: 2 }),
+    ).toBe(false);
+    expect(
+      canGoToPreviousStep({ stepNumber: 1, stepCount: 3, iteration: 2, iterationCount: 2 }),
+    ).toBe(true);
+    expect(
+      canGoToPreviousStep({ stepNumber: 1, stepCount: 3, iteration: 1, iterationCount: 2 }),
+    ).toBe(false);
   });
 });

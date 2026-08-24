@@ -219,3 +219,53 @@ export function resolvedRepeatCount(item?: { repeatCount?: number | null }): num
   }
   return Math.min(REPEAT_COUNT_MAX, Math.floor(value));
 }
+
+export function hasMoreIterations(iteration: number, iterationCount: number): boolean {
+  return iterationCount > 1 && iteration < iterationCount;
+}
+
+export function hasPreviousIteration(iteration: number, iterationCount: number): boolean {
+  return iterationCount > 1 && iteration > 1;
+}
+
+/** Caption beside the step label, or null when the Godu is a single pass. */
+export function iterationCaption(
+  iteration: number,
+  iterationCount: number,
+  show = true,
+): string | null {
+  if (!show || iterationCount < REPEAT_COUNT_MIN) {
+    return null;
+  }
+  return `Iteration ${iteration} of ${iterationCount}`;
+}
+
+export function canGoToNextStep(options: {
+  stepNumber: number | null;
+  stepCount: number;
+  iteration: number;
+  iterationCount: number;
+}): boolean {
+  if (options.stepNumber == null || options.stepCount < 1) {
+    return false;
+  }
+  if (options.stepNumber < options.stepCount) {
+    return true;
+  }
+  return hasMoreIterations(options.iteration, options.iterationCount);
+}
+
+export function canGoToPreviousStep(options: {
+  stepNumber: number | null;
+  stepCount: number;
+  iteration: number;
+  iterationCount: number;
+}): boolean {
+  if (options.stepNumber == null || options.stepCount < 1) {
+    return false;
+  }
+  if (options.stepNumber > 1) {
+    return true;
+  }
+  return hasPreviousIteration(options.iteration, options.iterationCount);
+}

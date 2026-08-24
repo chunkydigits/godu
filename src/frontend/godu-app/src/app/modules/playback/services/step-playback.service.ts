@@ -20,6 +20,7 @@ import {
   activityIndexToEntryIndex,
   activityNumberAt,
   firstActivityIndex,
+  hasMoreIterations,
   lastActivityIndex,
   previousActivityIndex,
   resolveStartGapSeconds,
@@ -439,10 +440,13 @@ export class StepPlaybackService implements OnDestroy {
 
     const transition = resolveStepTransition(stepsItem, selectedIndex);
     if (transition.nextIndex == null) {
-      if (this.snapshot.iteration < this.snapshot.iterationCount) {
-        this.patch({ iteration: this.snapshot.iteration + 1 });
-        await this.advanceTo(resolveWrapTransition(stepsItem), phase);
-        return;
+      if (hasMoreIterations(this.snapshot.iteration, this.snapshot.iterationCount)) {
+        const wrap = resolveWrapTransition(stepsItem);
+        if (wrap.nextIndex != null) {
+          this.patch({ iteration: this.snapshot.iteration + 1 });
+          await this.advanceTo(wrap, phase);
+          return;
+        }
       }
       if (phase === 'ready') {
         return;
@@ -1015,8 +1019,8 @@ export class StepPlaybackService implements OnDestroy {
       return;
     }
 
-    if (selectedStep.autoAdvance) {
-      // next() completes the run when nothing follows the current step.
+    if (selectedStep.autoAdvance || this.shouldWrapAfterLastStep()) {
+      // next() wraps into the next iteration, or completes on the final pass.
       await this.next();
       return;
     }
@@ -1035,6 +1039,14 @@ export class StepPlaybackService implements OnDestroy {
       remainingSeconds: 0,
       continuousSoundtrackActive: false,
     });
+  }
+
+  private shouldWrapAfterLastStep(): boolean {
+    const { stepsItem, selectedIndex, iteration, iterationCount } = this.snapshot;
+    if (!stepsItem || !hasMoreIterations(iteration, iterationCount)) {
+      return false;
+    }
+    return lastActivityIndex(stepsItem.steps) === selectedIndex;
   }
 
   private bumpSession(): void {
