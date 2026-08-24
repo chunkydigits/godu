@@ -15,6 +15,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSidenavModule } from '@angular/material/sidenav';
 
 const materialModules = [
   MatButtonModule,
@@ -33,6 +34,7 @@ const materialModules = [
   MatSlideToggleModule,
   MatSliderModule,
   MatRadioModule,
+  MatSidenavModule,
 ];
 
 
