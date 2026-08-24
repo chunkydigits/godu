@@ -9,94 +9,108 @@
       [fixedInViewport]="true"
       [autoFocus]="false"
     >
-      <div class="page__drawer-head">
-        <a routerLink="/" class="page__drawer-brand" aria-label="Godu home">
-          <img src="images/logo-on-dark.png" alt="Godu" width="220" height="64" />
-        </a>
-        <button
-          mat-icon-button
-          type="button"
-          (click)="closeNav()"
-          aria-label="Close menu"
-        >
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-
-      <mat-nav-list class="page__nav">
-        <a
-          mat-list-item
-          routerLink="/"
-          routerLinkActive="page__nav-item--active"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >
-          <mat-icon matListItemIcon>home</mat-icon>
-          <span matListItemTitle>Home</span>
-        </a>
-        @if (isAuthenticated$ | async) {
-          <a
-            mat-list-item
-            routerLink="/my-steps"
-            routerLinkActive="page__nav-item--active"
-            [routerLinkActiveOptions]="{ exact: true }"
+      <div class="page__drawer-inner">
+        <div class="page__drawer-head">
+          <span class="page__drawer-head-slot" aria-hidden="true"></span>
+          <a routerLink="/" class="page__drawer-brand" aria-label="Godu home">
+            <img src="images/logo-on-dark.png" alt="Godu" width="220" height="64" />
+          </a>
+          <button
+            mat-icon-button
+            type="button"
+            class="page__drawer-close"
+            (click)="closeNav()"
+            aria-label="Close menu"
           >
-            <mat-icon matListItemIcon>playlist_play</mat-icon>
-            <span matListItemTitle>My Godus</span>
-          </a>
-          <a mat-list-item routerLink="/my-steps/new" routerLinkActive="page__nav-item--active">
-            <mat-icon matListItemIcon>add_circle</mat-icon>
-            <span matListItemTitle>Create Godus</span>
-          </a>
-          <a mat-list-item routerLink="/history" routerLinkActive="page__nav-item--active">
-            <mat-icon matListItemIcon>history</mat-icon>
-            <span matListItemTitle>Godu'n</span>
-          </a>
-          <a mat-list-item routerLink="/creator" routerLinkActive="page__nav-item--active">
-            <mat-icon matListItemIcon>campaign</mat-icon>
-            <span matListItemTitle>Published Godus</span>
-          </a>
-          <a mat-list-item routerLink="/settings" routerLinkActive="page__nav-item--active">
-            <mat-icon matListItemIcon>settings</mat-icon>
-            <span matListItemTitle>Settings</span>
-          </a>
-          @if (isAdmin$ | async) {
-            <a mat-list-item routerLink="/admin" routerLinkActive="page__nav-item--active">
-              <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
-              <span matListItemTitle>Admin</span>
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="page__drawer-body">
+          <mat-nav-list class="page__nav page__nav--main">
+            <a
+              mat-list-item
+              routerLink="/"
+              routerLinkActive="page__nav-item--active"
+              [routerLinkActiveOptions]="{ exact: true }"
+            >
+              <mat-icon matListItemIcon>home</mat-icon>
+              <span matListItemTitle>Home</span>
             </a>
-          }
-          <button mat-list-item type="button" (click)="logout()">
-            <mat-icon matListItemIcon>logout</mat-icon>
-            <span matListItemTitle>Log out</span>
-          </button>
-        } @else {
-          <a mat-list-item routerLink="/demos" routerLinkActive="page__nav-item--active">
-            <mat-icon matListItemIcon>play_circle</mat-icon>
-            <span matListItemTitle>Demos</span>
-          </a>
-          <button mat-list-item type="button" (click)="login()">
-            <mat-icon matListItemIcon>login</mat-icon>
-            <span matListItemTitle>Log in</span>
-          </button>
-        }
+            @if (isAuthenticated$ | async) {
+              <a
+                mat-list-item
+                routerLink="/my-steps"
+                routerLinkActive="page__nav-item--active"
+                [routerLinkActiveOptions]="{ exact: true }"
+              >
+                <mat-icon matListItemIcon>playlist_play</mat-icon>
+                <span matListItemTitle>My Godus</span>
+              </a>
+              <a mat-list-item routerLink="/my-steps/new" routerLinkActive="page__nav-item--active">
+                <mat-icon matListItemIcon>add_circle</mat-icon>
+                <span matListItemTitle>Create Godus</span>
+              </a>
+              <a mat-list-item routerLink="/history" routerLinkActive="page__nav-item--active">
+                <mat-icon matListItemIcon>history</mat-icon>
+                <span matListItemTitle>Godu'n</span>
+              </a>
+              <a mat-list-item routerLink="/creator" routerLinkActive="page__nav-item--active">
+                <mat-icon matListItemIcon>campaign</mat-icon>
+                <span matListItemTitle>Published Godus</span>
+              </a>
+              <a mat-list-item routerLink="/settings" routerLinkActive="page__nav-item--active">
+                <mat-icon matListItemIcon>settings</mat-icon>
+                <span matListItemTitle>Settings</span>
+              </a>
+              @if (isAdmin$ | async) {
+                <a mat-list-item routerLink="/admin" routerLinkActive="page__nav-item--active">
+                  <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
+                  <span matListItemTitle>Admin</span>
+                </a>
+              }
+            } @else {
+              <a mat-list-item routerLink="/demos" routerLinkActive="page__nav-item--active">
+                <mat-icon matListItemIcon>play_circle</mat-icon>
+                <span matListItemTitle>Demos</span>
+              </a>
+            }
+          </mat-nav-list>
 
-        <mat-divider class="page__nav-divider" />
+          <div class="page__nav-foot">
+            <mat-nav-list class="page__nav">
+              @if (isAuthenticated$ | async) {
+                <button mat-list-item type="button" (click)="logout()">
+                  <mat-icon matListItemIcon>logout</mat-icon>
+                  <span matListItemTitle>Log out</span>
+                </button>
+              } @else {
+                <button mat-list-item type="button" (click)="login()">
+                  <mat-icon matListItemIcon>login</mat-icon>
+                  <span matListItemTitle>Log in</span>
+                </button>
+              }
 
-        @if (isAuthenticated$ | async) {
-          <a mat-list-item routerLink="/demos" routerLinkActive="page__nav-item--active">
-            <mat-icon matListItemIcon>play_circle</mat-icon>
-            <span matListItemTitle>Demos</span>
-          </a>
-        }
-        <a mat-list-item routerLink="/terms" routerLinkActive="page__nav-item--active">
-          <mat-icon matListItemIcon>gavel</mat-icon>
-          <span matListItemTitle>Terms</span>
-        </a>
-        <a mat-list-item routerLink="/privacy" routerLinkActive="page__nav-item--active">
-          <mat-icon matListItemIcon>policy</mat-icon>
-          <span matListItemTitle>Privacy</span>
-        </a>
-      </mat-nav-list>
+              <mat-divider class="page__nav-divider" />
+
+              @if (isAuthenticated$ | async) {
+                <a mat-list-item routerLink="/demos" routerLinkActive="page__nav-item--active">
+                  <mat-icon matListItemIcon>play_circle</mat-icon>
+                  <span matListItemTitle>Demos</span>
+                </a>
+              }
+              <a mat-list-item routerLink="/terms" routerLinkActive="page__nav-item--active">
+                <mat-icon matListItemIcon>gavel</mat-icon>
+                <span matListItemTitle>Terms</span>
+              </a>
+              <a mat-list-item routerLink="/privacy" routerLinkActive="page__nav-item--active">
+                <mat-icon matListItemIcon>policy</mat-icon>
+                <span matListItemTitle>Privacy</span>
+              </a>
+            </mat-nav-list>
+          </div>
+        </div>
+      </div>
     </mat-sidenav>
   }
 
