@@ -11,7 +11,6 @@
   background: var(--steps-bg);
   color: var(--steps-text);
   padding-top: var(--steps-safe-top);
-  padding-bottom: var(--steps-safe-bottom);
   box-sizing: border-box;
 }
 
@@ -82,10 +81,12 @@
   flex-direction: column;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--steps-safe-bottom);
 }
 
 .page__content--locked {
   overflow: hidden;
+  padding-bottom: 0;
 }
 
 @media (min-width: 960px) {

@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { AnalyticsService } from './core/analytics/analytics.service';
 import { CurrentUserService } from './core/auth/current-user.service';
 import { ServiceWorkerUpdateService } from './core/pwa/service-worker-update.service';
+import { ViewportHeightService } from './core/pwa/viewport-height.service';
 import { PlayHistoryService } from './modules/playback/services/play-history.service';
 
 @Component({
@@ -17,5 +18,6 @@ export class App {
     inject(CurrentUserService).initialize();
     inject(PlayHistoryService).initialize();
     inject(ServiceWorkerUpdateService).initialize();
+    inject(ViewportHeightService).initialize();
   }
 }
