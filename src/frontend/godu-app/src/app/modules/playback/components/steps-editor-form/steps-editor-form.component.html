@@ -43,7 +43,17 @@
 
         <mat-form-field appearance="outline" class="full">
           <mat-label>Creator display name</mat-label>
-          <input matInput formControlName="creatorDisplayName" placeholder="@username" />
+          <input
+            matInput
+            formControlName="creatorDisplayName"
+            placeholder="@username"
+            [readonly]="creatorLocked"
+            [attr.aria-readonly]="creatorLocked ? true : null"
+          />
+          @if (creatorLocked) {
+            <mat-icon matSuffix>lock</mat-icon>
+            <mat-hint>Imported from TikTok so the original creator stays credited.</mat-hint>
+          }
         </mat-form-field>
 
         @if (continuousSoundtrackEnabled) {

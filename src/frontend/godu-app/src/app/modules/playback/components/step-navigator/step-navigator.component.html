@@ -43,16 +43,28 @@
       ></button>
     </div>
 
-    <button
-      mat-icon-button
-      type="button"
-      class="step-nav__arrow"
-      (click)="next()"
-      [disabled]="atEnd"
-      aria-label="Next step"
-    >
-      <mat-icon>chevron_right</mat-icon>
-    </button>
+    @if (showingEnd) {
+      <button
+        mat-button
+        type="button"
+        class="step-nav__end"
+        (click)="finishSession.emit()"
+        aria-label="End"
+      >
+        End
+      </button>
+    } @else {
+      <button
+        mat-icon-button
+        type="button"
+        class="step-nav__arrow"
+        (click)="next()"
+        [disabled]="atEnd"
+        aria-label="Next step"
+      >
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    }
   </div>
   <p class="step-nav__count">{{ currentLabel }}</p>
 </nav>

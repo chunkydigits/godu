@@ -40,6 +40,8 @@ export class StepsEditorFormComponent {
   @Input() openSection: EditorSectionId | null = null;
   /** True while TikTok oEmbed is resolving the pasted URL. */
   @Input() videoLookupPending = false;
+  /** Creator came from TikTok — the field is read-only so the credit cannot be changed. */
+  @Input() creatorLocked = false;
 
   @Output() readonly addEntry = new EventEmitter<StepEntryKind>();
   @Output() readonly removeEntry = new EventEmitter<number>();

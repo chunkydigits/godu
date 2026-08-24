@@ -280,6 +280,42 @@ describe('StepPlaybackService', () => {
     expect(player.pause).toHaveBeenCalled();
   });
 
+  it('records elapsed time when the session completes', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+    await service.start();
+    await vi.advanceTimersByTimeAsync(5000);
+    await service.complete();
+
+    expect(service.snapshot.phase).toBe('completed');
+    expect(service.snapshot.elapsedSeconds).toBe(5);
+  });
+
+  it('ends the session from complete the same way a natural finish does', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+    await service.start();
+    await service.selectStep(1);
+    await service.complete();
+
+    expect(service.snapshot.phase).toBe('completed');
+    expect(service.snapshot.clipHoldActive).toBe(false);
+    expect(player.pause).toHaveBeenCalled();
+  });
+
+  it('keeps the session complete if pause fails', async () => {
+    const { player, pause } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+    await service.start();
+    pause.mockRejectedValueOnce(new Error('embed gone'));
+    await service.complete();
+
+    expect(service.snapshot.phase).toBe('completed');
+  });
+
   it('wraps to the first step when a repeating Godu still has iterations left', async () => {
     const { player } = createMockPlayer();
     await service.attachPlayer(player);

@@ -165,8 +165,13 @@
                     <mat-icon>replay</mat-icon>
                     Replay step
                   </button>
-                  <button mat-flat-button color="primary" type="button" (click)="next()">
-                    Next
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    type="button"
+                    (click)="onHoldAdvance(videoState)"
+                  >
+                    {{ isFinalStep(videoState) ? 'End' : 'Next' }}
                   </button>
                 </div>
               </div>
@@ -197,6 +202,7 @@
           <app-completion-panel
             [stepsItem]="item"
             [completedStep]="state.selectedStep"
+            [elapsedSeconds]="state.elapsedSeconds"
             [relatedSteps]="(related$ | async) ?? []"
             (replay)="replay()"
             (home)="goBack()"
@@ -303,8 +309,8 @@
                   <mat-icon>replay</mat-icon>
                   Replay step
                 </button>
-                <button mat-flat-button color="primary" type="button" (click)="next()">
-                  Next
+                <button mat-flat-button color="primary" type="button" (click)="onHoldAdvance(state)">
+                  {{ isFinalStep(state) ? 'End' : 'Next' }}
                 </button>
               </div>
             } @else {
@@ -330,9 +336,11 @@
               [selectedIndex]="(state.stepNumber ?? 0) - 1"
               [allowWrapNext]="canWrapNext(state)"
               [allowWrapPrevious]="canWrapPrevious(state)"
+              [showEnd]="showEnd(state)"
               (stepSelected)="selectActivityStep($event)"
               (wrapNext)="next()"
               (wrapPrevious)="previous()"
+              (finishSession)="endSession()"
             />
           </div>
         }

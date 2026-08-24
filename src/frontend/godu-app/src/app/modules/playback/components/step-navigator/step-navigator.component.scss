@@ -18,6 +18,15 @@
   flex: 0 0 auto;
 }
 
+.step-nav__end {
+  flex: 0 0 auto;
+  min-width: 3.25rem;
+  padding: 0 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .step-nav__track {
   display: flex;
   align-items: center;

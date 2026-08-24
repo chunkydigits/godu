@@ -269,3 +269,54 @@ export function canGoToPreviousStep(options: {
   }
   return hasPreviousIteration(options.iteration, options.iterationCount);
 }
+
+export function isOnFinalStep(options: {
+  stepNumber: number | null;
+  stepCount: number;
+  iteration: number;
+  iterationCount: number;
+}): boolean {
+  return (
+    options.stepNumber != null &&
+    options.stepCount > 0 &&
+    options.stepNumber === options.stepCount &&
+    !hasMoreIterations(options.iteration, options.iterationCount)
+  );
+}
+
+export function hasTimedActivity(
+  entries: readonly { durationSeconds?: number | null; kind?: string | null }[],
+): boolean {
+  return activityEntries(entries).some(
+    (entry) => entry.durationSeconds != null && entry.durationSeconds > 0,
+  );
+}
+
+/** Spoken elapsed time for the completion summary, e.g. "12 minutes 4 seconds". */
+export function formatElapsed(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+  const parts: string[] = [];
+  if (hours > 0) {
+    parts.push(hours === 1 ? '1 hour' : `${hours} hours`);
+  }
+  if (minutes > 0) {
+    parts.push(minutes === 1 ? '1 minute' : `${minutes} minutes`);
+  }
+  if (rest > 0 || parts.length === 0) {
+    parts.push(rest === 1 ? '1 second' : `${rest} seconds`);
+  }
+  return parts.join(' ');
+}
+
+export function sessionTimeSummary(
+  elapsedSeconds: number | null | undefined,
+  timed: boolean,
+): string | null {
+  if (!timed || elapsedSeconds == null || elapsedSeconds < 0) {
+    return null;
+  }
+  return `It took ${formatElapsed(elapsedSeconds)}.`;
+}

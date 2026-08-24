@@ -60,4 +60,26 @@ describe('StepNavigatorComponent', () => {
     nav.next();
     expect(wrapped).toBe(false);
   });
+
+  it('shows End on the last step and emits finishSession instead of next', () => {
+    const nav = new StepNavigatorComponent();
+    nav.steps = [step('a'), step('b')];
+    nav.selectedIndex = 1;
+    nav.showEnd = true;
+
+    expect(nav.showingEnd).toBe(true);
+    expect(nav.atEnd).toBe(false);
+
+    let ended = false;
+    let wrapped = false;
+    nav.finishSession.subscribe(() => {
+      ended = true;
+    });
+    nav.wrapNext.subscribe(() => {
+      wrapped = true;
+    });
+    nav.next();
+    expect(ended).toBe(true);
+    expect(wrapped).toBe(false);
+  });
 });

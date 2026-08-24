@@ -5,7 +5,7 @@ import { MaterialModule } from '../../../../core/material.module';
 import { publicViewerPath } from '../../models/public-path';
 import { StepsItem } from '../../models/steps-item.model';
 import { StepDefinition } from '../../models/step-definition.model';
-import { activityCount } from '../../models/step-entry';
+import { activityCount, hasTimedActivity, sessionTimeSummary } from '../../models/step-entry';
 import { CreatorNameComponent } from '../creator-name/creator-name.component';
 import { PlatformMarkComponent } from '../platform-mark/platform-mark.component';
 
@@ -19,6 +19,7 @@ export class CompletionPanelComponent {
   @Input({ required: true }) stepsItem!: StepsItem;
   @Input() completedStep: StepDefinition | null = null;
   @Input() relatedSteps: StepsItem[] = [];
+  @Input() elapsedSeconds: number | null = null;
 
   @Output() readonly replay = new EventEmitter<void>();
   @Output() readonly home = new EventEmitter<void>();
@@ -30,6 +31,10 @@ export class CompletionPanelComponent {
   /** Gaps are not steps, so they are left out of the counts shown here. */
   stepCount(item: StepsItem): number {
     return activityCount(item.steps);
+  }
+
+  timeSummary(): string | null {
+    return sessionTimeSummary(this.elapsedSeconds, hasTimedActivity(this.stepsItem.steps));
   }
 
   viewerLink(item: StepsItem): string {

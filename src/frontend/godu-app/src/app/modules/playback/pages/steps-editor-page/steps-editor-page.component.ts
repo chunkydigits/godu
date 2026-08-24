@@ -61,6 +61,7 @@ import {
   buildTikTokSourceUrl,
   canonicalTikTokShortUrl,
   formatCreatorDisplayName,
+  importedTikTokHandle,
   parseTikTokVideo,
   suggestTitleFromTikTok,
 } from '../../models/tiktok-video-id';
@@ -115,12 +116,14 @@ export class StepsEditorPageComponent {
   private readonly saveTrigger$ = new Subject<void>();
 
   /** Last values written by URL autofill — do not overwrite user edits. */
-  private lastAutoCreator = '';
   private lastAutoTitle = '';
   private lastAutoDescription = '';
   private lastTrackedVideoId: string | null = null;
+  /** TikTok handle that locked the creator field, without @. */
+  private importedCreatorHandle: string | null = null;
 
   readonly continuousSoundtrackEnabled = environment.features.continuousSoundtrack;
+  readonly creatorLocked = signal(false);
   readonly editId$ = this.route.paramMap.pipe(map((p) => p.get('id')));
   readonly isEditMode = !!this.route.snapshot.paramMap.get('id');
   readonly goduId = toSignal(this.editId$, {
@@ -242,6 +245,7 @@ export class StepsEditorPageComponent {
         const epoch = this.videoLookupEpoch;
 
         if (!parsed && !shortUrl) {
+          this.unlockImportedCreator();
           this.resolvedVideoId.set(null);
           if (epoch === this.videoLookupEpoch) {
             this.videoLookupPending.set(false);
@@ -298,7 +302,6 @@ export class StepsEditorPageComponent {
         }
         return this.myStepsApi.get(id).pipe(
           tap((item) => {
-            this.lastAutoCreator = '';
             this.lastAutoTitle = '';
             this.lastAutoDescription = '';
             this.lastTrackedVideoId =
@@ -352,6 +355,16 @@ export class StepsEditorPageComponent {
               this.steps.push(group);
               // Saved entries start collapsed so the whole run is visible at once.
               this.collapsedEntries.add(group);
+            }
+            const imported =
+              importedTikTokHandle(item.video.creatorUsername) ??
+              importedTikTokHandle(
+                parseTikTokVideo(item.video.sourceUrl || '')?.username,
+              );
+            if (imported) {
+              this.lockImportedCreator(imported);
+            } else {
+              this.unlockImportedCreator();
             }
           }),
           map(() => ({ loading: false, error: null as string | null })),
@@ -584,20 +597,32 @@ export class StepsEditorPageComponent {
     }
   }
 
+  /**
+   * Once TikTok supplies a handle, pin it on the form so the Godu cannot be
+   * re-credited to someone else.
+   */
+  private lockImportedCreator(username: string | null | undefined): void {
+    const handle = importedTikTokHandle(username);
+    const formatted = formatCreatorDisplayName(handle);
+    if (!handle || !formatted) {
+      return;
+    }
+    this.importedCreatorHandle = handle;
+    this.creatorLocked.set(true);
+    this.form.controls.creatorDisplayName.patchValue(formatted, { emitEvent: false });
+  }
+
+  private unlockImportedCreator(): void {
+    this.importedCreatorHandle = null;
+    this.creatorLocked.set(false);
+  }
+
   private applyUrlAutofill(username: string | null): void {
+    this.lockImportedCreator(username);
+
     const patch: {
-      creatorDisplayName?: string;
       title?: string;
     } = {};
-
-    const suggestedCreator = formatCreatorDisplayName(username);
-    if (suggestedCreator) {
-      const currentCreator = this.form.controls.creatorDisplayName.value.trim();
-      if (!currentCreator || currentCreator === this.lastAutoCreator) {
-        patch.creatorDisplayName = suggestedCreator;
-        this.lastAutoCreator = suggestedCreator;
-      }
-    }
 
     const suggestedTitle = suggestTitleFromTikTok(username);
     if (suggestedTitle) {
@@ -617,7 +642,6 @@ export class StepsEditorPageComponent {
     const patch: {
       videoInput?: string;
       description?: string;
-      creatorDisplayName?: string;
       title?: string;
     } = {};
 
@@ -631,14 +655,7 @@ export class StepsEditorPageComponent {
     }
 
     const handle = metadata.authorUniqueId || null;
-    const suggestedCreator = formatCreatorDisplayName(handle);
-    if (suggestedCreator) {
-      const currentCreator = this.form.controls.creatorDisplayName.value.trim();
-      if (!currentCreator || currentCreator === this.lastAutoCreator) {
-        patch.creatorDisplayName = suggestedCreator;
-        this.lastAutoCreator = suggestedCreator;
-      }
-    }
+    this.lockImportedCreator(handle);
 
     const suggestedTitle = suggestTitleFromTikTok(handle);
     if (suggestedTitle) {
@@ -734,7 +751,9 @@ export class StepsEditorPageComponent {
     }
 
     const username =
-      raw.creatorDisplayName.replace(/^@/, '').trim() || parsed?.username || null;
+      importedTikTokHandle(this.importedCreatorHandle) ??
+      importedTikTokHandle(raw.creatorDisplayName) ??
+      importedTikTokHandle(parsed?.username);
     const entries = raw.steps as StepEntryFormValue[];
     const steps = entries.map((entry, index) => {
       const order = index + 1;
@@ -824,7 +843,7 @@ export class StepsEditorPageComponent {
     return {
       title: raw.title.trim(),
       description: raw.description.trim() || null,
-      creatorDisplayName: raw.creatorDisplayName.trim() || null,
+      creatorDisplayName: formatCreatorDisplayName(username),
       continuousSoundtrack: this.continuousSoundtrackEnabled
         ? !!raw.continuousSoundtrack
         : false,

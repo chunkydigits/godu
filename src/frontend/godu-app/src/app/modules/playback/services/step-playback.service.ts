@@ -64,6 +64,8 @@ export interface PlaybackState {
   iteration: number;
   /** Total passes. 1 means a single run. */
   iterationCount: number;
+  /** Wall-clock seconds from Start to completion. Null until the session ends. */
+  elapsedSeconds: number | null;
 }
 
 const initialState: PlaybackState = {
@@ -85,6 +87,7 @@ const initialState: PlaybackState = {
   loopAll: false,
   iteration: 1,
   iterationCount: 1,
+  elapsedSeconds: null,
 };
 
 const MEDIA_POLL_MS = 500;
@@ -110,6 +113,7 @@ export class StepPlaybackService implements OnDestroy {
   private timerKind: 'activity' | 'gap' = 'activity';
   private gapMediaStarted = false;
   private gapTotalSeconds = 0;
+  private sessionStartedAt: number | null = null;
   private readonly voiceCues = new PlaybackVoiceCues();
 
   readonly state$: Observable<PlaybackState> = this.stateSubject.asObservable();
@@ -142,6 +146,7 @@ export class StepPlaybackService implements OnDestroy {
     this.setLoopArmed(false);
     this.gapMediaStarted = false;
     this.gapTotalSeconds = 0;
+    this.sessionStartedAt = null;
     this.voiceCues.cancel();
     const loopAll =
       this.snapshot.stepsItem?.id === stepsItem.id ? this.snapshot.loopAll : false;
@@ -161,6 +166,7 @@ export class StepPlaybackService implements OnDestroy {
       loopAll,
       iteration: 1,
       iterationCount,
+      elapsedSeconds: null,
     });
 
     const first = firstActivityIndex(stepsItem.steps);
@@ -223,6 +229,7 @@ export class StepPlaybackService implements OnDestroy {
     }
 
     this.voiceCues.unlockFromUserGesture();
+    this.sessionStartedAt = Date.now();
 
     const index =
       selectedIndex >= 0 ? selectedIndex : (firstActivityIndex(stepsItem.steps) ?? -1);
@@ -576,18 +583,17 @@ export class StepPlaybackService implements OnDestroy {
   }
 
   async complete(): Promise<void> {
+    const elapsedSeconds =
+      this.sessionStartedAt == null
+        ? null
+        : Math.max(0, Math.round((Date.now() - this.sessionStartedAt) / 1000));
+    this.sessionStartedAt = null;
     this.bumpSession();
     this.stopTimer();
     this.setLoopArmed(false);
     this.voiceCues.cancel();
     this.gapMediaStarted = false;
     this.gapTotalSeconds = 0;
-    if (this.player) {
-      await this.player.pause();
-    }
-    if (this.soundtrackPlayer) {
-      await this.soundtrackPlayer.pause();
-    }
     this.patch({
       phase: 'completed',
       remainingSeconds: 0,
@@ -596,7 +602,14 @@ export class StepPlaybackService implements OnDestroy {
       startGapActive: false,
       gapMessage: null,
       clipHoldActive: false,
+      elapsedSeconds,
     });
+    try {
+      await this.player?.pause();
+      await this.soundtrackPlayer?.pause();
+    } catch {
+      // Session is already complete; a provider pause failure must not reopen it.
+    }
   }
 
   async destroy(): Promise<void> {

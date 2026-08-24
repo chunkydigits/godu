@@ -56,9 +56,27 @@ export function parseTikTokVideo(input: string): ParsedTikTokVideo | null {
   };
 }
 
+/** Sentinel used in canonical URLs when the TikTok handle is not known. */
+export const UNKNOWN_TIKTOK_USERNAME = 'video';
+
 export function buildTikTokSourceUrl(videoId: string, username?: string | null): string {
-  const handle = (username ?? 'video').replace(/^@/, '').trim() || 'video';
+  const handle =
+    importedTikTokHandle(username) ?? UNKNOWN_TIKTOK_USERNAME;
   return `https://www.tiktok.com/@${handle}/video/${videoId}`;
+}
+
+/**
+ * TikTok handle from a URL or oEmbed payload. Ignores the placeholder used
+ * when a watch URL was built without a username.
+ */
+export function importedTikTokHandle(
+  username: string | null | undefined,
+): string | null {
+  const handle = username?.replace(/^@/, '').trim() ?? '';
+  if (!handle || handle.toLowerCase() === UNKNOWN_TIKTOK_USERNAME) {
+    return null;
+  }
+  return handle;
 }
 
 const SHORT_LINK_HOSTS = new Set([

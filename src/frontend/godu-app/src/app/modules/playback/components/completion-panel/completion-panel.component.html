@@ -8,6 +8,9 @@
     }
     — {{ stepCount(stepsItem) }} steps.
   </p>
+  @if (timeSummary(); as summary) {
+    <p class="completion__time">{{ summary }}</p>
+  }
 
   <div class="completion__icon-actions" role="group" aria-label="Session actions">
     <button

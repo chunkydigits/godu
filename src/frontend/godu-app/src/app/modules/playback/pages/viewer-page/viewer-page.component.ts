@@ -16,6 +16,7 @@ import {
   distinctUntilChanged,
   map,
   of,
+  shareReplay,
   startWith,
   switchMap,
   takeUntil,
@@ -36,6 +37,7 @@ import {
   activityEntries,
   hasMoreIterations,
   hasPreviousIteration,
+  isOnFinalStep,
   iterationCaption as formatIterationCaption,
 } from '../../models/step-entry';
 import { TikTokCreatorLink, creatorLabel, tiktokCreatorLink } from '../../models/creator-link';
@@ -88,7 +90,6 @@ export class ViewerPageComponent implements OnDestroy {
   private readonly shareGodu = inject(ShareGoduService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
-  private startedAtMs: number | null = null;
   private lastPlayingStep: number | null = null;
   private lastCompletedStep: number | null = null;
 
@@ -118,6 +119,12 @@ export class ViewerPageComponent implements OnDestroy {
           this.playback.setUserMuted(this.preferences.muted);
           this.syncVoiceCuesToPlayback();
           this.trackViewed(item);
+          if (
+            this.playback.snapshot.stepsItem?.id === item.id &&
+            this.playback.snapshot.phase === 'completed'
+          ) {
+            return;
+          }
           void this.playback.load(item);
           if (shouldReplaceCanonicalPath(this.router.url, item.publicPath)) {
             void this.router.navigateByUrl(item.publicPath!, { replaceUrl: true });
@@ -135,6 +142,7 @@ export class ViewerPageComponent implements OnDestroy {
       ),
     ),
     takeUntil(this.destroy$),
+    shareReplay({ bufferSize: 1, refCount: true }),
   );
 
   readonly related$: Observable<StepsItem[]> = this.view$.pipe(
@@ -352,7 +360,6 @@ export class ViewerPageComponent implements OnDestroy {
   start(): void {
     const item = this.playback.snapshot.stepsItem;
     if (item) {
-      this.startedAtMs = Date.now();
       this.analytics.trackOnce(
         `started:${item.id}`,
         AnalyticsEvent.GoduStarted,
@@ -418,6 +425,17 @@ export class ViewerPageComponent implements OnDestroy {
     return hasPreviousIteration(state.iteration, state.iterationCount);
   }
 
+  isFinalStep(state: PlaybackState): boolean {
+    return isOnFinalStep(state);
+  }
+
+  showEnd(state: PlaybackState): boolean {
+    if (state.phase === 'idle' || state.phase === 'ready' || state.phase === 'completed') {
+      return false;
+    }
+    return isOnFinalStep(state);
+  }
+
   next(): void {
     void this.playback.next();
   }
@@ -426,8 +444,19 @@ export class ViewerPageComponent implements OnDestroy {
     void this.playback.previous();
   }
 
+  endSession(): void {
+    void this.playback.complete();
+  }
+
+  onHoldAdvance(state: PlaybackState): void {
+    if (this.isFinalStep(state)) {
+      this.endSession();
+      return;
+    }
+    this.next();
+  }
+
   replay(): void {
-    this.startedAtMs = Date.now();
     this.lastPlayingStep = null;
     this.lastCompletedStep = null;
     void this.playback.restart();
@@ -587,14 +616,10 @@ export class ViewerPageComponent implements OnDestroy {
       this.trackStepCompleted(item, this.lastPlayingStep, totalSteps);
     }
 
-    const elapsedSeconds =
-      this.startedAtMs == null
-        ? undefined
-        : Math.max(0, Math.round((Date.now() - this.startedAtMs) / 1000));
     this.analytics.trackOnce(`completed:${item.id}`, AnalyticsEvent.GoduCompleted, {
       ...this.goduProps(item),
       stepCount: totalSteps,
-      elapsedSeconds,
+      elapsedSeconds: this.playback.snapshot.elapsedSeconds ?? undefined,
     });
     this.playHistory.record(item, 'completed');
   }
@@ -621,6 +646,10 @@ export class ViewerPageComponent implements OnDestroy {
 
   private async syncPlayerToState(): Promise<void> {
     const snap = this.playback.snapshot;
+    if (snap.phase === 'completed' || snap.phase === 'idle') {
+      return;
+    }
+
     if (snap.phase === 'playing' && snap.selectedIndex >= 0) {
       this.playback.resumeVisualKeepSessionFromUserGesture();
       return;

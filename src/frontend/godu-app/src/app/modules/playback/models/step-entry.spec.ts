@@ -10,10 +10,14 @@ import {
   isGapEntry,
   canGoToNextStep,
   canGoToPreviousStep,
+  formatElapsed,
   hasMoreIterations,
   hasPreviousIteration,
+  hasTimedActivity,
+  isOnFinalStep,
   iterationCaption,
   lastActivityIndex,
+  sessionTimeSummary,
   normaliseGapMessage,
   normaliseGapSeconds,
   previousActivityIndex,
@@ -153,5 +157,36 @@ describe('step entries', () => {
     expect(
       canGoToPreviousStep({ stepNumber: 1, stepCount: 3, iteration: 1, iterationCount: 2 }),
     ).toBe(false);
+  });
+
+  it('treats the last step of the last iteration as the final step', () => {
+    expect(
+      isOnFinalStep({ stepNumber: 3, stepCount: 3, iteration: 1, iterationCount: 1 }),
+    ).toBe(true);
+    expect(
+      isOnFinalStep({ stepNumber: 3, stepCount: 3, iteration: 1, iterationCount: 2 }),
+    ).toBe(false);
+    expect(
+      isOnFinalStep({ stepNumber: 3, stepCount: 3, iteration: 2, iterationCount: 2 }),
+    ).toBe(true);
+    expect(
+      isOnFinalStep({ stepNumber: 2, stepCount: 3, iteration: 2, iterationCount: 2 }),
+    ).toBe(false);
+  });
+
+  it('summarises elapsed time only for timed Godus', () => {
+    expect(formatElapsed(0)).toBe('0 seconds');
+    expect(formatElapsed(1)).toBe('1 second');
+    expect(formatElapsed(45)).toBe('45 seconds');
+    expect(formatElapsed(60)).toBe('1 minute');
+    expect(formatElapsed(94)).toBe('1 minute 34 seconds');
+    expect(formatElapsed(3725)).toBe('1 hour 2 minutes 5 seconds');
+    expect(hasTimedActivity([{ durationSeconds: null }, { durationSeconds: 30 }])).toBe(true);
+    expect(hasTimedActivity([{ durationSeconds: null }, { kind: 'gap', durationSeconds: 20 }])).toBe(
+      false,
+    );
+    expect(sessionTimeSummary(94, true)).toBe('It took 1 minute 34 seconds.');
+    expect(sessionTimeSummary(94, false)).toBeNull();
+    expect(sessionTimeSummary(null, true)).toBeNull();
   });
 });

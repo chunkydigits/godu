@@ -21,6 +21,13 @@
   line-height: 1.45;
 }
 
+.completion__time {
+  margin: 0;
+  color: var(--steps-text);
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
 .completion__icon-actions {
   display: flex;
   justify-content: center;

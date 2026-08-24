@@ -17,6 +17,10 @@
   color: var(--steps-accent);
 }
 
+.full mat-icon[matSuffix] {
+  color: var(--steps-text-muted);
+}
+
 .section {
   display: flex;
   flex-direction: column;

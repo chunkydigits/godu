@@ -3,6 +3,7 @@ import {
   buildTikTokSourceUrl,
   canonicalTikTokShortUrl,
   formatCreatorDisplayName,
+  importedTikTokHandle,
   parseTikTokVideo,
   parseTikTokVideoId,
   suggestTitleFromTikTok,
@@ -62,6 +63,19 @@ describe('buildTikTokSourceUrl', () => {
     expect(buildTikTokSourceUrl('12345', '@coach')).toBe(
       'https://www.tiktok.com/@coach/video/12345',
     );
+  });
+});
+
+describe('importedTikTokHandle', () => {
+  it('returns a handle without @', () => {
+    expect(importedTikTokHandle('@Coach')).toBe('Coach');
+  });
+
+  it('ignores the placeholder used when the username is unknown', () => {
+    expect(importedTikTokHandle('video')).toBeNull();
+    expect(importedTikTokHandle('@video')).toBeNull();
+    expect(importedTikTokHandle('')).toBeNull();
+    expect(importedTikTokHandle(null)).toBeNull();
   });
 });
 

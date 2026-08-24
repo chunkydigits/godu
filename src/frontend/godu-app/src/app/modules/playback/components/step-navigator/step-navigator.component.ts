@@ -16,10 +16,13 @@ export class StepNavigatorComponent {
   @Input() allowWrapNext = false;
   /** When true, Previous stays enabled on the first step so playback can rewind a round. */
   @Input() allowWrapPrevious = false;
+  /** Final step of the last iteration: show End instead of Next. */
+  @Input() showEnd = false;
 
   @Output() readonly stepSelected = new EventEmitter<number>();
   @Output() readonly wrapNext = new EventEmitter<void>();
   @Output() readonly wrapPrevious = new EventEmitter<void>();
+  @Output() readonly finishSession = new EventEmitter<void>();
 
   readonly displayLabel = (value: number): string => String(value + 1);
 
@@ -38,8 +41,12 @@ export class StepNavigatorComponent {
     return this.steps.length === 0 || this.selectedIndex <= 0;
   }
 
+  get showingEnd(): boolean {
+    return this.showEnd && this.steps.length > 0 && this.selectedIndex >= this.steps.length - 1;
+  }
+
   get atEnd(): boolean {
-    if (this.allowWrapNext) {
+    if (this.showingEnd || this.allowWrapNext) {
       return this.steps.length === 0;
     }
     return this.steps.length === 0 || this.selectedIndex >= this.steps.length - 1;
@@ -76,6 +83,10 @@ export class StepNavigatorComponent {
     }
 
     if (this.selectedIndex >= this.steps.length - 1) {
+      if (this.showingEnd) {
+        this.finishSession.emit();
+        return;
+      }
       this.wrapNext.emit();
       return;
     }
