@@ -315,7 +315,7 @@ const DEMO_ITEMS: DemoStepsItem[] = [
         endSeconds: 109,
         durationSeconds: null,
         autoAdvance: false,
-        loopVideo: true,
+        loopVideo: false,
       },
       {
         id: 'step_01M0S4F5QPRAXYY3YMHV3TB0WB',
