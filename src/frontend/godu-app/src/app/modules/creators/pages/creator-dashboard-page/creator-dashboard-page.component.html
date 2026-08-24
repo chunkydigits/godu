@@ -3,7 +3,7 @@
   subtitle="Public Godus on your creator URLs."
 >
   <div class="action-bar">
-    <a mat-stroked-button routerLink="/my-steps">My Steps</a>
+    <a mat-stroked-button routerLink="/my-steps">My Godus</a>
   </div>
 
   @if (view$ | async; as view) {
@@ -20,7 +20,7 @@
       @if (view.items.length === 0) {
         <p class="empty">
           Nothing published yet. Publish from
-          <a routerLink="/my-steps">My Steps</a>
+          <a routerLink="/my-steps">My Godus</a>
           after connecting TikTok in
           <a routerLink="/settings">Settings</a>.
         </p>

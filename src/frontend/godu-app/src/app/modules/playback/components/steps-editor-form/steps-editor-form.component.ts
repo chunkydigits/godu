@@ -14,10 +14,13 @@ import {
   GAP_MESSAGE_MAX_LENGTH,
   GAP_SECONDS_MAX,
   GAP_SECONDS_MIN,
+  REPEAT_COUNT_MAX,
+  REPEAT_COUNT_MIN,
   STEP_ENTRY_KINDS,
   StepEntryKind,
   activityNumberAt,
   isGapEntry,
+  shouldLoopVideo,
 } from '../../models/step-entry';
 
 @Component({
@@ -52,6 +55,8 @@ export class StepsEditorFormComponent {
   readonly gapSecondsMin = GAP_SECONDS_MIN;
   readonly gapSecondsMax = GAP_SECONDS_MAX;
   readonly gapMessageMaxLength = GAP_MESSAGE_MAX_LENGTH;
+  readonly repeatCountMin = REPEAT_COUNT_MIN;
+  readonly repeatCountMax = REPEAT_COUNT_MAX;
 
   /** Tips are a peek at one section at a time rather than a pinned panel. */
   private openTips: EditorSectionId | null = null;
@@ -120,19 +125,27 @@ export class StepsEditorFormComponent {
     return duration == null || duration <= 0;
   }
 
+  entryLoops(index: number): boolean {
+    return shouldLoopVideo(loopFields(this.entryAt(index)));
+  }
+
   playFromStart(index: number): void {
-    this.previewFrom.emit(this.previewRange(index, toNumber(this.entryAt(index)?.startSeconds) ?? 0));
+    this.previewFrom.emit(
+      this.previewRange(index, toNumber(this.entryAt(index)?.startSeconds) ?? 0, true),
+    );
   }
 
   playFromBeforeEnd(index: number): void {
     const end = toNumber(this.entryAt(index)?.endSeconds) ?? 0;
-    this.previewFrom.emit(this.previewRange(index, Math.max(0, end - 1)));
+    this.previewFrom.emit(this.previewRange(index, Math.max(0, end - 1), false));
   }
 
-  private previewRange(index: number, startSeconds: number): StepPreviewRange {
+  private previewRange(index: number, startSeconds: number, applyClipMode: boolean): StepPreviewRange {
+    const entry = this.entryAt(index);
     return {
       startSeconds: Math.max(0, startSeconds),
-      endSeconds: Math.max(0, toNumber(this.entryAt(index)?.endSeconds) ?? 0),
+      endSeconds: Math.max(0, toNumber(entry?.endSeconds) ?? 0),
+      loop: applyClipMode && shouldLoopVideo(loopFields(entry)),
     };
   }
 
@@ -161,6 +174,8 @@ export class StepsEditorFormComponent {
 export interface StepPreviewRange {
   startSeconds: number;
   endSeconds: number;
+  /** When true, the preview repeats the clip until pause or another seek. */
+  loop?: boolean;
 }
 
 interface StepEntrySummary {
@@ -170,6 +185,7 @@ interface StepEntrySummary {
   endSeconds?: number | string;
   durationSeconds?: number | string | null;
   autoAdvance?: boolean;
+  loopVideo?: boolean;
   message?: string;
 }
 
@@ -179,6 +195,16 @@ function toNumber(value: number | string | null | undefined): number | null {
   }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function loopFields(entry: StepEntrySummary | null): {
+  durationSeconds?: number | null;
+  loopVideo?: boolean;
+} {
+  return {
+    durationSeconds: toNumber(entry?.durationSeconds),
+    loopVideo: entry?.loopVideo,
+  };
 }
 
 function formatSeconds(value: number | string | null | undefined): string {

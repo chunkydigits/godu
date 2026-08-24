@@ -91,6 +91,7 @@ public sealed class StepsItemServiceTests
         request.PlayGapPriorToStart = true;
         request.StartGapSeconds = 12;
         request.StartGapMessage = "  Watch the demo  ";
+        request.RepeatCount = 5;
         request.Steps[0].LoopVideo = false;
 
         var result = await _sut.CreateMineAsync(request);
@@ -101,12 +102,14 @@ public sealed class StepsItemServiceTests
         saved.PlayGapPriorToStart.Should().BeTrue();
         saved.StartGapSeconds.Should().Be(12);
         saved.StartGapMessage.Should().Be("Watch the demo");
+        saved.RepeatCount.Should().Be(5);
         saved.Steps[0].LoopVideo.Should().BeFalse();
         result.GapSeconds.Should().Be(60);
         result.GapMessage.Should().Be("Active recovery");
         result.PlayGapPriorToStart.Should().BeTrue();
         result.StartGapSeconds.Should().Be(12);
         result.StartGapMessage.Should().Be("Watch the demo");
+        result.RepeatCount.Should().Be(5);
         result.Steps[0].LoopVideo.Should().BeFalse();
     }
 

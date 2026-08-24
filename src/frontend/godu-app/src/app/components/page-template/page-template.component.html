@@ -45,22 +45,18 @@
         <mat-icon>home</mat-icon>
         <span>Home</span>
       </a>
-      <a mat-menu-item routerLink="/demos">
-        <mat-icon>play_circle</mat-icon>
-        <span>Demos</span>
-      </a>
       @if (isAuthenticated$ | async) {
         <a mat-menu-item routerLink="/my-steps">
           <mat-icon>playlist_play</mat-icon>
-          <span>My Steps</span>
+          <span>My Godus</span>
         </a>
         <a mat-menu-item routerLink="/my-steps/new">
           <mat-icon>add_circle</mat-icon>
-          <span>Create Steps</span>
+          <span>Create Godus</span>
         </a>
         <a mat-menu-item routerLink="/history">
           <mat-icon>history</mat-icon>
-          <span>Godu’d</span>
+          <span>Godu'n</span>
         </a>
         <a mat-menu-item routerLink="/creator">
           <mat-icon>campaign</mat-icon>
@@ -81,12 +77,22 @@
           <span>Log out</span>
         </button>
       } @else {
+        <a mat-menu-item routerLink="/demos">
+          <mat-icon>play_circle</mat-icon>
+          <span>Demos</span>
+        </a>
         <button mat-menu-item type="button" (click)="login()">
           <mat-icon>login</mat-icon>
           <span>Log in</span>
         </button>
       }
       <mat-divider />
+      @if (isAuthenticated$ | async) {
+        <a mat-menu-item routerLink="/demos">
+          <mat-icon>play_circle</mat-icon>
+          <span>Demos</span>
+        </a>
+      }
       <a mat-menu-item routerLink="/terms">
         <mat-icon>gavel</mat-icon>
         <span>Terms</span>

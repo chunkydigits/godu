@@ -8,11 +8,13 @@ import {
   firstActivityIndex,
   hasStartGapOverride,
   isGapEntry,
+  lastActivityIndex,
   normaliseGapMessage,
   normaliseGapSeconds,
   previousActivityIndex,
   resolveStartGapMessage,
   resolveStartGapSeconds,
+  resolvedRepeatCount,
   shouldLoopVideo,
   stepEntryKind,
 } from './step-entry';
@@ -54,6 +56,8 @@ describe('step entries', () => {
 
   it('finds neighbouring steps around gaps', () => {
     expect(firstActivityIndex([{ kind: 'gap' }, { kind: 'step' }])).toBe(1);
+    expect(lastActivityIndex(entries)).toBe(3);
+    expect(lastActivityIndex([{ kind: 'gap' }])).toBeNull();
     expect(activityIndexAtOrAfter(entries, 1)).toBe(2);
     expect(previousActivityIndex(entries, 2)).toBe(0);
     expect(previousActivityIndex(entries, 0)).toBeNull();
@@ -104,10 +108,19 @@ describe('step entries', () => {
     expect(hasStartGapOverride({})).toBe(false);
   });
 
-  it('loops timed steps and untimed steps unless play-once or loop-all', () => {
-    expect(shouldLoopVideo({ durationSeconds: 10, loopVideo: false })).toBe(true);
+  it('loops when loopVideo is on, including timed steps', () => {
+    expect(shouldLoopVideo({ durationSeconds: 10 })).toBe(true);
+    expect(shouldLoopVideo({ durationSeconds: 10, loopVideo: false })).toBe(false);
     expect(shouldLoopVideo({ durationSeconds: null })).toBe(true);
     expect(shouldLoopVideo({ durationSeconds: null, loopVideo: false })).toBe(false);
     expect(shouldLoopVideo({ durationSeconds: null, loopVideo: false }, true)).toBe(true);
+  });
+
+  it('treats repeat counts below 2 as a single pass', () => {
+    expect(resolvedRepeatCount()).toBe(1);
+    expect(resolvedRepeatCount({ repeatCount: null })).toBe(1);
+    expect(resolvedRepeatCount({ repeatCount: 1 })).toBe(1);
+    expect(resolvedRepeatCount({ repeatCount: 5 })).toBe(5);
+    expect(resolvedRepeatCount({ repeatCount: 200 })).toBe(99);
   });
 });

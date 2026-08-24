@@ -32,6 +32,8 @@ export interface StepsItem {
   startGapSeconds?: number | null;
   /** Optional start-gap copy. When set, overrides the between-step message for the intro. */
   startGapMessage?: string | null;
+  /** How many times to run the full sequence. Null or omitted means a single pass. */
+  repeatCount?: number | null;
   createdUtc: string;
   updatedUtc?: string;
   publishedUtc?: string;

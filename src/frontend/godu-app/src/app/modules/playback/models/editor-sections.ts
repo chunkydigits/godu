@@ -2,7 +2,7 @@ import { environment } from '../../../../environments/environment';
 import { GAP_MESSAGE_MAX_LENGTH, GAP_SECONDS_MAX, GAP_SECONDS_MIN } from './step-entry';
 
 /** Collapsible groups of fields on the Steps editor page. */
-export type EditorSectionId = 'video' | 'gaps' | 'steps';
+export type EditorSectionId = 'video' | 'gaps' | 'repeat' | 'steps';
 
 export interface EditorSection {
   id: EditorSectionId;
@@ -57,15 +57,25 @@ export const EDITOR_SECTIONS = {
       `The message shows on screen while the gap counts down — up to ${GAP_MESSAGE_MAX_LENGTH} characters, or leave it blank for just the countdown.`,
     ],
   },
+  repeat: {
+    id: 'repeat',
+    label: 'Repeat configuration',
+    controls: ['repeatVideo', 'repeatCount'],
+    tips: [
+      'Tick this when the whole Godu is one round that should be done several times, such as a fitness set you repeat until the workout is complete. This is separate from looping a step clip for the set duration.',
+      'How many times is the number of full passes, including the first. Playback shows which iteration you are on.',
+    ],
+  },
   steps: {
     id: 'steps',
     label: 'Steps',
     controls: ['steps'],
     tips: [
-      'Each step loops a slice of the video: Start and End trim the clip, Duration is how long the step runs.',
-      'Leave Duration blank for an untimed step that waits for you to move on. Untimed clips can loop, or play once and then hold the step name and description on screen until Next.',
+      'Each step loops a slice of the video: Start and End trim the clip, Duration is how long the set / step runs.',
+      'Loop repeats that clip while the step is active. Play once plays it once. Repeating the whole Godu (sets of the workout) is configured under Repeat configuration, not here.',
+      'Leave Duration blank for an untimed step that waits for you to move on. Untimed play-once holds the step name and description on screen until Next.',
       'Turn on Auto-advance to roll straight into the next step when the timer ends.',
-      'The summary line shows the clip window, the length, and a fast-forward symbol when the step auto-advances.',
+      'The summary line shows the clip window, the length, a loop or play-once symbol, and a fast-forward symbol when the step auto-advances.',
       'Use the arrow beside Add step to insert a gap. Gaps sit between steps and are not numbered.',
       'Drag the handle to reorder, and tap a summary line to fold a step away.',
     ],

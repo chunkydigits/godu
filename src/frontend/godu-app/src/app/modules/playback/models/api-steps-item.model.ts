@@ -45,6 +45,7 @@ export interface ApiStepsItem {
   playGapPriorToStart?: boolean;
   startGapSeconds?: number | null;
   startGapMessage?: string | null;
+  repeatCount?: number | null;
   video: ApiVideoReference;
   steps: ApiStepDefinition[];
   createdUtc: string;
@@ -88,6 +89,7 @@ export interface CreateStepsItemRequest {
   playGapPriorToStart?: boolean;
   startGapSeconds?: number | null;
   startGapMessage?: string | null;
+  repeatCount?: number | null;
   video: ApiVideoReferenceRequest;
   steps: ApiStepDefinitionRequest[];
 }

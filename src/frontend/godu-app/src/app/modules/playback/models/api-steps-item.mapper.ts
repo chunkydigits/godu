@@ -26,6 +26,7 @@ export function mapApiStepsItem(api: ApiStepsItem): StepsItem {
     playGapPriorToStart: !!api.playGapPriorToStart,
     startGapSeconds: api.startGapSeconds ?? null,
     startGapMessage: api.startGapMessage ?? null,
+    repeatCount: api.repeatCount ?? null,
     createdUtc: api.createdUtc,
     updatedUtc: api.updatedUtc,
     publishedUtc: api.publishedUtc ?? undefined,

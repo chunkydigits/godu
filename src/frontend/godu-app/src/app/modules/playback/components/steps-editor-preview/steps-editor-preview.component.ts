@@ -24,6 +24,8 @@ export class StepsEditorPreviewComponent implements OnDestroy {
   private lastUpdate: VideoPlayerTimeUpdate = { currentTime: 0, duration: 0 };
   private clipStartSeconds = 0;
   private stopAtSeconds: number | null = null;
+  private loopClip = false;
+  private loopSeekPending = false;
   private readonly clockSubject = new BehaviorSubject<{ current: string; duration: string }>({
     current: '0:00',
     duration: '0:00',
@@ -64,7 +66,7 @@ export class StepsEditorPreviewComponent implements OnDestroy {
     this.playFrom(this.lastUpdate.currentTime || 0);
   }
 
-  playFrom(seconds: number, stopAtSeconds?: number): void {
+  playFrom(seconds: number, stopAtSeconds?: number, loop = false): void {
     if (!this.player) {
       return;
     }
@@ -72,6 +74,8 @@ export class StepsEditorPreviewComponent implements OnDestroy {
     this.clipStartSeconds = start;
     this.stopAtSeconds =
       stopAtSeconds != null && stopAtSeconds > start ? stopAtSeconds : null;
+    this.loopClip = loop && this.stopAtSeconds != null;
+    this.loopSeekPending = false;
     this.lastUpdate = { ...this.lastUpdate, currentTime: start };
     this.publishClock(this.lastUpdate);
     this.player.kickstartFromUserGesture(start);
@@ -115,10 +119,22 @@ export class StepsEditorPreviewComponent implements OnDestroy {
     if (this.stopAtSeconds == null || !this.player) {
       return;
     }
+    if (this.loopSeekPending) {
+      if (currentTime >= this.clipStartSeconds - 0.5 && currentTime < this.stopAtSeconds) {
+        this.loopSeekPending = false;
+      }
+      return;
+    }
     if (currentTime + 0.05 < this.clipStartSeconds) {
       return;
     }
     if (currentTime < this.stopAtSeconds) {
+      return;
+    }
+    if (this.loopClip) {
+      this.loopSeekPending = true;
+      void this.player.seek(this.clipStartSeconds);
+      void this.player.play();
       return;
     }
     this.clearClipStop();
@@ -127,6 +143,8 @@ export class StepsEditorPreviewComponent implements OnDestroy {
 
   private clearClipStop(): void {
     this.stopAtSeconds = null;
+    this.loopClip = false;
+    this.loopSeekPending = false;
   }
 
   private publishClock(update: VideoPlayerTimeUpdate): void {

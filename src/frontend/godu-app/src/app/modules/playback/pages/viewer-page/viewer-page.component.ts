@@ -100,6 +100,7 @@ export class ViewerPageComponent implements OnDestroy {
 
   readonly showVideo$ = this.preferences.showVideo$;
   readonly voiceCues$ = this.userSettings.voiceCues$;
+  readonly showIteration$ = this.preferences.showIteration$;
 
   readonly view$: Observable<ViewerLoadView> = this.route.paramMap.pipe(
     switchMap((params) =>
@@ -314,6 +315,11 @@ export class ViewerPageComponent implements OnDestroy {
     if (enabled && this.playback.snapshot.clipHoldActive) {
       void this.playback.replayCurrentClip();
     }
+    this.onSettingsActivity();
+  }
+
+  onShowIterationChange(enabled: boolean): void {
+    this.preferences.setShowIteration(enabled);
     this.onSettingsActivity();
   }
 

@@ -1,5 +1,5 @@
 import { StepsItem } from './steps-item.model';
-import { isGapEntry, normaliseGapMessage, normaliseGapSeconds } from './step-entry';
+import { firstActivityIndex, isGapEntry, normaliseGapMessage, normaliseGapSeconds } from './step-entry';
 
 export interface StepTransition {
   /** Index of the next activity step, or null when the sequence is finished. */
@@ -47,6 +47,21 @@ export function resolveStepTransition(
   const defaultGap = normaliseGapSeconds(item?.gapSeconds);
   return {
     nextIndex: index,
+    gapSeconds: defaultGap,
+    gapMessage: defaultGap > 0 ? normaliseGapMessage(item?.gapMessage) : null,
+  };
+}
+
+/** Rest and first step used when wrapping from the last step into the next iteration. */
+export function resolveWrapTransition(item: StepsItem | null | undefined): StepTransition {
+  const first = firstActivityIndex(item?.steps ?? []);
+  if (first == null) {
+    return { nextIndex: null, gapSeconds: 0, gapMessage: null };
+  }
+
+  const defaultGap = normaliseGapSeconds(item?.gapSeconds);
+  return {
+    nextIndex: first,
     gapSeconds: defaultGap,
     gapMessage: defaultGap > 0 ? normaliseGapMessage(item?.gapMessage) : null,
   };

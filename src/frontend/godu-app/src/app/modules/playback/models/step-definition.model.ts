@@ -13,8 +13,8 @@ export interface StepDefinition {
   durationSeconds?: number | null;
   autoAdvance: boolean;
   /**
-   * Untimed steps: loop the clip, or play it once then hold on the step copy.
-   * Timed steps always loop. Missing means loop.
+   * Loop the clip, or play it once. Missing means loop.
+   * Timed play-once still runs the duration timer; untimed play-once holds the step copy.
    */
   loopVideo?: boolean;
   /** Gap entries only: copy shown while the gap counts down. */

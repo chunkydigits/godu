@@ -120,6 +120,16 @@
                         aria-label="Loop all"
                       />
                     </div>
+                    @if (state.iterationCount > 1) {
+                      <div class="viewer__settings-row">
+                        <span>Show iteration</span>
+                        <mat-slide-toggle
+                          [checked]="(showIteration$ | async) ?? true"
+                          (change)="onShowIterationChange($event.checked)"
+                          aria-label="Show iteration"
+                        />
+                      </div>
+                    }
                   </div>
                 }
               </div>
@@ -146,9 +156,14 @@
                   <p class="viewer__clip-hold-copy">{{ videoState.selectedStep.description }}</p>
                 }
                 <div class="viewer__clip-hold-actions">
-                  <button mat-stroked-button type="button" (click)="replayClip()">
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    (click)="replayClip()"
+                    aria-label="Replay step"
+                  >
                     <mat-icon>replay</mat-icon>
-                    Replay
+                    Replay step
                   </button>
                   <button mat-flat-button color="primary" type="button" (click)="next()">
                     Next
@@ -194,6 +209,9 @@
                   Up next · Step {{ state.stepNumber }} of {{ state.stepCount }}
                 } @else {
                   Step {{ state.stepNumber }} of {{ state.stepCount }}
+                }
+                @if (state.iterationCount > 1 && (showIteration$ | async) !== false) {
+                  <span> · Iteration {{ state.iteration }} of {{ state.iterationCount }}</span>
                 }
                 @if (state.continuousSoundtrackActive) {
                   <span class="viewer__soundtrack-badge"> · Soundtrack</span>
@@ -276,9 +294,14 @@
               </div>
             } @else if (state.clipHoldActive) {
               <div class="viewer__actions">
-                <button mat-stroked-button type="button" (click)="replayClip()">
+                <button
+                  mat-stroked-button
+                  type="button"
+                  (click)="replayClip()"
+                  aria-label="Replay step"
+                >
                   <mat-icon>replay</mat-icon>
-                  Replay
+                  Replay step
                 </button>
                 <button mat-flat-button color="primary" type="button" (click)="next()">
                   Next

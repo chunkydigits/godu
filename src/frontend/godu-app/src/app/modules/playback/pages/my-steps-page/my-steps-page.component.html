@@ -1,17 +1,17 @@
 <app-page-template
-  title="My Steps"
+  title="My Godus"
   subtitle="Your private Godu library."
 >
   @if (isAuthenticated$ | async) {
     <div class="action-bar">
-      <a mat-flat-button color="primary" routerLink="/my-steps/new">Create Steps</a>
+      <a mat-flat-button color="primary" routerLink="/my-steps/new">Create Godus</a>
       <a mat-stroked-button routerLink="/creator">Published Steps</a>
     </div>
   }
 
   @if (view$ | async; as view) {
     @if (!view.authenticated) {
-      <p class="empty">Log in from the menu to manage your private Steps.</p>
+      <p class="empty">Log in from the menu to manage your private Godus.</p>
     } @else if (view.loading) {
       <div class="status-row">
         <mat-progress-bar mode="indeterminate" />
@@ -31,7 +31,7 @@
         </p>
       }
       @if (view.items.length === 0 && !view.error) {
-        <p class="empty">No saved Steps yet. Create one to get started.</p>
+        <p class="empty">No saved Godus yet. Create one to get started.</p>
       } @else if (view.items.length > 0) {
         <ul class="mine-list">
           @for (item of view.items; track item.id) {
@@ -83,6 +83,33 @@
             </li>
           }
         </ul>
+      }
+
+      @if (demos$ | async; as demos) {
+        @if (demos.length > 0) {
+          <section class="demos-section" aria-labelledby="demos-heading">
+            <h2 id="demos-heading" class="demos-section__title">Demos</h2>
+            <p class="demos-section__lead">Try these without using your library.</p>
+            <ul class="mine-list mine-list--demos">
+              @for (item of demos; track item.id) {
+                <li class="mine-item">
+                  <div class="mine-item__body">
+                    <h2>{{ item.title }}</h2>
+                    <p>
+                      {{ item.category }}
+                      @if (item.creatorDisplayName) {
+                        · {{ item.creatorDisplayName }}
+                      }
+                    </p>
+                  </div>
+                  <div class="mine-item__actions">
+                    <a mat-stroked-button [routerLink]="['/play', item.id]">Open</a>
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
       }
     }
   }

@@ -47,11 +47,14 @@ import {
   GAP_MESSAGE_MAX_LENGTH,
   GAP_SECONDS_MAX,
   GAP_SECONDS_MIN,
+  REPEAT_COUNT_MAX,
+  REPEAT_COUNT_MIN,
   StepEntryKind,
   activityCount,
   hasStartGapOverride,
   normaliseGapMessage,
   normaliseGapSeconds,
+  resolvedRepeatCount,
   stepEntryKind,
 } from '../../models/step-entry';
 import {
@@ -166,6 +169,11 @@ export class StepsEditorPageComponent {
       [Validators.min(1), Validators.max(600)],
     ],
     startGapMessage: [{ value: '', disabled: true }, [Validators.maxLength(200)]],
+    repeatVideo: [false],
+    repeatCount: [
+      { value: REPEAT_COUNT_MIN as number | null, disabled: true },
+      [Validators.required, Validators.min(REPEAT_COUNT_MIN), Validators.max(REPEAT_COUNT_MAX)],
+    ],
     steps: this.fb.array<FormGroup>([this.createStepGroup(1)]),
   });
 
@@ -187,6 +195,13 @@ export class StepsEditorPageComponent {
   private readonly overrideStartGapLock = toSignal(
     this.form.controls.overrideStartGap.valueChanges.pipe(
       tap((enabled) => this.applyOverrideStartGap(enabled)),
+    ),
+    { initialValue: false },
+  );
+
+  private readonly repeatLock = toSignal(
+    this.form.controls.repeatVideo.valueChanges.pipe(
+      tap((enabled) => this.applyRepeatVideo(enabled)),
     ),
     { initialValue: false },
   );
@@ -303,11 +318,17 @@ export class StepsEditorPageComponent {
                 startGapSeconds: item.startGapSeconds ?? null,
                 startGapMessage: item.startGapMessage ?? '',
                 noGaps,
+                repeatVideo: resolvedRepeatCount(item) > 1,
+                repeatCount:
+                  resolvedRepeatCount(item) > 1
+                    ? resolvedRepeatCount(item)
+                    : REPEAT_COUNT_MIN,
               },
               { emitEvent: true },
             );
             this.applyNoGaps(noGaps);
             this.applyPlayGapPriorToStart(!!item.playGapPriorToStart);
+            this.applyRepeatVideo(resolvedRepeatCount(item) > 1);
             this.steps.clear();
             this.collapsedEntries.clear();
             for (const step of [...item.steps].sort((a, b) => a.order - b.order)) {
@@ -444,6 +465,19 @@ export class StepsEditorPageComponent {
     startGapMessage.enable({ emitEvent: false });
   }
 
+  private applyRepeatVideo(enabled: boolean): void {
+    const { repeatCount } = this.form.controls;
+    if (!enabled) {
+      repeatCount.disable({ emitEvent: false });
+      return;
+    }
+    const current = Number(repeatCount.value);
+    if (!Number.isFinite(current) || current < REPEAT_COUNT_MIN) {
+      repeatCount.setValue(REPEAT_COUNT_MIN, { emitEvent: false });
+    }
+    repeatCount.enable({ emitEvent: false });
+  }
+
   toggleSection(id: EditorSectionId): void {
     this.openSection.update((current) => (current === id ? null : id));
   }
@@ -514,7 +548,7 @@ export class StepsEditorPageComponent {
   }
 
   previewFrom(range: StepPreviewRange): void {
-    this.preview?.playFrom(range.startSeconds, range.endSeconds);
+    this.preview?.playFrom(range.startSeconds, range.endSeconds, range.loop === true);
   }
 
   private applySavedIds(saved: ApiStepsItem): void {
@@ -775,6 +809,18 @@ export class StepsEditorPageComponent {
       ? String(raw.startGapMessage ?? '').trim().slice(0, 200) || null
       : null;
 
+    const repeatCount = raw.repeatVideo
+      ? Math.floor(Number(raw.repeatCount))
+      : null;
+    if (
+      raw.repeatVideo &&
+      (!Number.isFinite(repeatCount) ||
+        repeatCount! < REPEAT_COUNT_MIN ||
+        repeatCount! > REPEAT_COUNT_MAX)
+    ) {
+      return null;
+    }
+
     return {
       title: raw.title.trim(),
       description: raw.description.trim() || null,
@@ -787,6 +833,7 @@ export class StepsEditorPageComponent {
       playGapPriorToStart,
       startGapSeconds,
       startGapMessage,
+      repeatCount,
       video: {
         provider: 'tiktok',
         externalVideoId: videoId,

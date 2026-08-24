@@ -132,6 +132,42 @@
 
   <section class="section">
     <ng-container
+      *ngTemplateOutlet="sectionHead; context: { $implicit: sections.repeat }"
+    ></ng-container>
+
+    @if (isSectionOpen('repeat')) {
+      <div class="section__body">
+        <div class="field-block">
+          <mat-checkbox formControlName="repeatVideo">
+            Does the user need to repeat the video multiple times
+          </mat-checkbox>
+          <p class="field-hint">
+            For example a fitness video with a set of moves you run several times to complete the
+            workout. This repeats the whole sequence. Each step still has Loop / Play once for its
+            clip.
+          </p>
+        </div>
+
+        @if (form.get('repeatVideo')?.value) {
+          <mat-form-field appearance="outline">
+            <mat-label>How many times</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="repeatCount"
+              [min]="repeatCountMin"
+              [max]="repeatCountMax"
+              required
+            />
+            <mat-hint>Including the first pass. {{ repeatCountMin }}–{{ repeatCountMax }}.</mat-hint>
+          </mat-form-field>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="section">
+    <ng-container
       *ngTemplateOutlet="sectionHead; context: { $implicit: sections.steps }"
     ></ng-container>
 
@@ -172,11 +208,24 @@
                     <span class="step__number">{{ activityNumber(i) }}</span>
                     <span class="step__name">{{ stepTitle(i) }}</span>
                     <span class="step__timing">{{ stepTiming(i) }}</span>
-                    @if (isAutoAdvance(i)) {
-                      <mat-icon class="step__auto" aria-label="Auto-advance" title="Auto-advance">
-                        fast_forward
-                      </mat-icon>
-                    }
+                    <span class="step__flags">
+                      @if (entryLoops(i)) {
+                        <mat-icon class="step__flag" aria-label="Loop" title="Loop">loop</mat-icon>
+                      } @else {
+                        <mat-icon class="step__flag" aria-label="Play once" title="Play once">
+                          play_arrow
+                        </mat-icon>
+                      }
+                      @if (isAutoAdvance(i)) {
+                        <mat-icon
+                          class="step__flag"
+                          aria-label="Auto-advance"
+                          title="Auto-advance"
+                        >
+                          fast_forward
+                        </mat-icon>
+                      }
+                    </span>
                   }
                 </button>
 
@@ -239,7 +288,9 @@
                         type="button"
                         class="step__num-action"
                         (click)="playFromStart(i)"
-                        aria-label="Play from start"
+                        [attr.aria-label]="
+                          entryLoops(i) ? 'Play from start and loop' : 'Play from start once'
+                        "
                       >
                         <mat-icon>play_arrow</mat-icon>
                       </button>
@@ -269,19 +320,22 @@
 
                   <mat-checkbox formControlName="autoAdvance">Auto-advance</mat-checkbox>
 
-                  @if (isUntimed(i)) {
-                    <div class="field-block">
-                      <span class="field-label">Video</span>
-                      <mat-radio-group formControlName="loopVideo" class="clip-mode">
-                        <mat-radio-button [value]="true">Loop</mat-radio-button>
-                        <mat-radio-button [value]="false">Play once</mat-radio-button>
-                      </mat-radio-group>
-                      <p class="field-hint">
+                  <div class="field-block">
+                    <span class="field-label">Video</span>
+                    <mat-radio-group formControlName="loopVideo" class="clip-mode">
+                      <mat-radio-button [value]="true">Loop</mat-radio-button>
+                      <mat-radio-button [value]="false">Play once</mat-radio-button>
+                    </mat-radio-group>
+                    <p class="field-hint">
+                      @if (isUntimed(i)) {
                         Loop repeats the clip. Play once shows the step name and description over
                         the video until Next.
-                      </p>
-                    </div>
-                  }
+                      } @else {
+                        Loop repeats the clip until the duration ends. Play once plays the clip
+                        once; the timer still runs for the set.
+                      }
+                    </p>
+                  </div>
                 }
               }
             </div>

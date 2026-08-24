@@ -100,6 +100,7 @@ public sealed class StepsItemService : IStepsItemService
             StartGapMessage = request.PlayGapPriorToStart
                 ? TrimGapMessage(request.StartGapMessage)
                 : null,
+            RepeatCount = NormalizeRepeatCount(request.RepeatCount),
             Video = StepsItemMapper.ToVideoDocument(request.Video),
             Steps = StepsItemMapper.ToStepDocuments(request.Steps),
             CreatedUtc = now,
@@ -145,6 +146,7 @@ public sealed class StepsItemService : IStepsItemService
         existing.StartGapMessage = request.PlayGapPriorToStart
             ? TrimGapMessage(request.StartGapMessage)
             : null;
+        existing.RepeatCount = NormalizeRepeatCount(request.RepeatCount);
         existing.Slug = slug;
         existing.Video = StepsItemMapper.ToVideoDocument(request.Video);
         existing.Steps = StepsItemMapper.ToStepDocuments(request.Steps);
@@ -495,6 +497,21 @@ public sealed class StepsItemService : IStepsItemService
         }
 
         return gapSeconds;
+    }
+
+    private static int? NormalizeRepeatCount(int? repeatCount)
+    {
+        if (repeatCount is null or < 2)
+        {
+            return null;
+        }
+
+        if (repeatCount > 99)
+        {
+            throw new ArgumentException("Repeat count must be between 2 and 99.");
+        }
+
+        return repeatCount;
     }
 
     private static string? NormalizeGapMessage(string? message, int? gapSeconds)

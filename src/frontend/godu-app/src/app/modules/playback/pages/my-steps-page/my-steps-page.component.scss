@@ -73,6 +73,29 @@
   margin: 0;
 }
 
+.demos-section {
+  padding-top: 0.5rem;
+}
+
+.demos-section__title {
+  margin: 0;
+  padding: 0.5rem 1.25rem 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.demos-section__lead {
+  margin: 0;
+  padding: 0 1.25rem 0.85rem;
+  color: var(--steps-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.mine-list--demos {
+  padding-top: 0;
+}
+
 @media (min-width: 640px) {
   .mine-item {
     flex-direction: row;

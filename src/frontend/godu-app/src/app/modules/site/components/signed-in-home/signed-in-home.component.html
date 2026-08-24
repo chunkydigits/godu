@@ -14,30 +14,25 @@
   <nav class="actions" aria-label="Shortcuts">
     <a class="action" routerLink="/my-steps/new">
       <mat-icon>add_circle</mat-icon>
-      <span class="action__label">Create Steps</span>
+      <span class="action__label">Create Godus</span>
       <span class="action__hint">Paste a TikTok and mark the moves</span>
     </a>
     <a class="action" routerLink="/my-steps">
       <mat-icon>playlist_play</mat-icon>
-      <span class="action__label">My Steps</span>
+      <span class="action__label">My Godus</span>
       <span class="action__hint">Your private library</span>
     </a>
     <a class="action" routerLink="/history">
       <mat-icon>history</mat-icon>
-      <span class="action__label">Godu’d</span>
+      <span class="action__label">Godu’n</span>
       <span class="action__hint">Ones you’ve started</span>
-    </a>
-    <a class="action" routerLink="/demos">
-      <mat-icon>play_circle</mat-icon>
-      <span class="action__label">Demos</span>
-      <span class="action__hint">Try one without editing</span>
     </a>
   </nav>
 
   @if (history$ | async; as history) {
     <section class="recent">
       <div class="recent__head">
-        <h2>Godu’d</h2>
+        <h2>Godu’n</h2>
         <a routerLink="/history">See all</a>
       </div>
 
@@ -75,7 +70,7 @@
   @if (library$ | async; as library) {
     <section class="recent">
       <div class="recent__head">
-        <h2>Your Steps</h2>
+        <h2>Your Godus</h2>
         <a routerLink="/my-steps">See all</a>
       </div>
 
@@ -105,5 +100,34 @@
         </ul>
       }
     </section>
+  }
+
+  @if (demos$ | async; as demos) {
+    @if (demos.length > 0) {
+      <section class="recent">
+        <div class="recent__head">
+          <h2>Demos</h2>
+          <a routerLink="/demos">See all</a>
+        </div>
+        <ul class="recent__list">
+          @for (item of demos; track item.id) {
+            <li class="recent__item">
+              <div class="recent__body">
+                <h3>{{ item.title }}</h3>
+                <p>
+                  {{ item.category }}
+                  @if (item.creatorDisplayName) {
+                    · {{ item.creatorDisplayName }}
+                  }
+                </p>
+              </div>
+              <div class="recent__cta">
+                <a mat-stroked-button [routerLink]="['/play', item.id]">Open</a>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
   }
 </div>

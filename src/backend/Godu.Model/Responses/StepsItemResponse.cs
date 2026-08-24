@@ -38,6 +38,8 @@ public sealed class StepsItemResponse
 
     public string? StartGapMessage { get; init; }
 
+    public int? RepeatCount { get; init; }
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; init; }

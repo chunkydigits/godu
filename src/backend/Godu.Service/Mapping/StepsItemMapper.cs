@@ -30,6 +30,7 @@ public static class StepsItemMapper
             PlayGapPriorToStart = document.PlayGapPriorToStart,
             StartGapSeconds = document.StartGapSeconds,
             StartGapMessage = document.StartGapMessage,
+            RepeatCount = document.RepeatCount,
             CreatedUtc = document.CreatedUtc,
             UpdatedUtc = document.UpdatedUtc,
             PublishedUtc = document.PublishedUtc,

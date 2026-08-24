@@ -34,6 +34,8 @@ export const DEFAULT_STEP_ENTRY_KIND: StepEntryKind = 'step';
 export const GAP_MESSAGE_MAX_LENGTH = 256;
 export const GAP_SECONDS_MIN = 1;
 export const GAP_SECONDS_MAX = 600;
+export const REPEAT_COUNT_MIN = 2;
+export const REPEAT_COUNT_MAX = 99;
 export const DEFAULT_GAP_SECONDS = 15;
 
 /** Anything carrying a kind, including raw API payloads and editor form values. */
@@ -95,6 +97,15 @@ export function activityIndexToEntryIndex(
 
 export function firstActivityIndex(entries: readonly KindedEntry[]): number | null {
   return activityIndexToEntryIndex(entries, 0);
+}
+
+export function lastActivityIndex(entries: readonly KindedEntry[]): number | null {
+  for (let i = entries.length - 1; i >= 0; i -= 1) {
+    if (isActivityEntry(entries[i])) {
+      return i;
+    }
+  }
+  return null;
 }
 
 /** Nearest activity step at or after `index`, used when a gap is targeted directly. */
@@ -178,7 +189,7 @@ export function resolveStartGapMessage(item: {
   return normaliseGapMessage(item.startGapMessage) ?? normaliseGapMessage(item.gapMessage);
 }
 
-/** Timed steps always loop. Untimed steps loop unless loopVideo is false. */
+/** Clip loops unless loopVideo is false. Timed or untimed does not override that. */
 export function shouldLoopVideo(
   step: {
     durationSeconds?: number | null;
@@ -189,8 +200,7 @@ export function shouldLoopVideo(
   if (loopAll) {
     return true;
   }
-  const timed = step.durationSeconds != null && step.durationSeconds > 0;
-  return timed || step.loopVideo !== false;
+  return step.loopVideo !== false;
 }
 
 export function normaliseGapMessage(value: string | null | undefined): string | null {
@@ -199,4 +209,13 @@ export function normaliseGapMessage(value: string | null | undefined): string | 
     return null;
   }
   return trimmed.slice(0, GAP_MESSAGE_MAX_LENGTH);
+}
+
+/** Full passes of the Godu. 1 means a single run; 2 or more repeats the sequence. */
+export function resolvedRepeatCount(item?: { repeatCount?: number | null }): number {
+  const value = item?.repeatCount;
+  if (value == null || !Number.isFinite(value) || value < REPEAT_COUNT_MIN) {
+    return 1;
+  }
+  return Math.min(REPEAT_COUNT_MAX, Math.floor(value));
 }

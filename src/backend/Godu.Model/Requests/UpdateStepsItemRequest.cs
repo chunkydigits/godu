@@ -30,6 +30,12 @@ public sealed class UpdateStepsItemRequest
     [MaxLength(200)]
     public string? StartGapMessage { get; set; }
 
+    /// <summary>
+    /// How many times to run the full step sequence. Null means a single pass.
+    /// </summary>
+    [Range(2, 99)]
+    public int? RepeatCount { get; set; }
+
     [Required]
     public required VideoReferenceRequest Video { get; set; }
 

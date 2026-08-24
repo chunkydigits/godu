@@ -30,7 +30,7 @@ export class PlayHistoryPageComponent {
       of({
         loading: false,
         items: [],
-        error: problemDetail(err, 'Could not load Godu’d history.'),
+        error: problemDetail(err, "Could not load Godu'n history."),
       }),
     ),
   );

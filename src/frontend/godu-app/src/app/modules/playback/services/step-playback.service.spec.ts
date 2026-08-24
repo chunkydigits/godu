@@ -280,6 +280,48 @@ describe('StepPlaybackService', () => {
     expect(player.pause).toHaveBeenCalled();
   });
 
+  it('wraps to the first step when a repeating Godu still has iterations left', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem({ repeatCount: 3 }));
+    await service.start();
+    await service.selectStep(1);
+    await service.next();
+
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.selectedIndex).toBe(0);
+    expect(service.snapshot.iteration).toBe(2);
+    expect(service.snapshot.iterationCount).toBe(3);
+  });
+
+  it('completes after next on the final iteration', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem({ repeatCount: 2 }));
+    await service.start();
+    await service.selectStep(1);
+    await service.next();
+    expect(service.snapshot.iteration).toBe(2);
+    await service.selectStep(1);
+    await service.next();
+    expect(service.snapshot.phase).toBe('completed');
+  });
+
+  it('previous from the first step of a later iteration returns to the last step', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem({ repeatCount: 2 }));
+    await service.start();
+    await service.selectStep(1);
+    await service.next();
+    expect(service.snapshot.selectedIndex).toBe(0);
+    expect(service.snapshot.iteration).toBe(2);
+
+    await service.previous();
+    expect(service.snapshot.selectedIndex).toBe(1);
+    expect(service.snapshot.iteration).toBe(1);
+  });
+
   it('pause and resume couple video and timer', async () => {
     const { player } = createMockPlayer();
     await service.attachPlayer(player);
@@ -804,6 +846,64 @@ describe('StepPlaybackService', () => {
     await vi.advanceTimersByTimeAsync(500);
     expect(service.snapshot.clipHoldActive).toBe(true);
     expect(pause).toHaveBeenCalled();
+  });
+
+  it('pauses a timed play-once clip at the end without holding', async () => {
+    const { player, pause } = createMockPlayer();
+    vi.mocked(player.getCurrentTime).mockResolvedValue(6);
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Squats',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 20,
+            autoAdvance: false,
+            loopVideo: false,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(service.snapshot.clipHoldActive).toBe(false);
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.selectedIndex).toBe(0);
+    expect(pause).toHaveBeenCalled();
+  });
+
+  it('loops a timed clip until the duration ends', async () => {
+    const { player, seek } = createMockPlayer();
+    vi.mocked(player.getCurrentTime).mockResolvedValue(6);
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Squats',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 20,
+            autoAdvance: false,
+            loopVideo: true,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    seek.mockClear();
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(seek).toHaveBeenCalledWith(0);
+    expect(service.snapshot.clipHoldActive).toBe(false);
+    expect(service.snapshot.phase).toBe('playing');
   });
 
   it('replays a play-once clip from the start after it holds', async () => {

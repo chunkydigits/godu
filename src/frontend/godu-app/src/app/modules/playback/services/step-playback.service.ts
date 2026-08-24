@@ -20,12 +20,14 @@ import {
   activityIndexToEntryIndex,
   activityNumberAt,
   firstActivityIndex,
+  lastActivityIndex,
   previousActivityIndex,
   resolveStartGapSeconds,
   resolveStartGapMessage,
+  resolvedRepeatCount,
   shouldLoopVideo,
 } from '../models/step-entry';
-import { StepTransition, resolveStepTransition } from '../models/step-transition';
+import { StepTransition, resolveStepTransition, resolveWrapTransition } from '../models/step-transition';
 import { isContinuousSoundtrackEnabled } from '../models/continuous-soundtrack.feature';
 import { ControllableVideoPlayer } from '../models/video-player.interface';
 import { PlaybackVoiceCues } from './playback-voice-cues';
@@ -57,6 +59,10 @@ export interface PlaybackState {
   clipHoldActive: boolean;
   /** Session-only: loop every step clip, including untimed play-once steps. */
   loopAll: boolean;
+  /** 1-based pass through the Godu when repeatCount is set. */
+  iteration: number;
+  /** Total passes. 1 means a single run. */
+  iterationCount: number;
 }
 
 const initialState: PlaybackState = {
@@ -76,6 +82,8 @@ const initialState: PlaybackState = {
   gapMessage: null,
   clipHoldActive: false,
   loopAll: false,
+  iteration: 1,
+  iterationCount: 1,
 };
 
 const MEDIA_POLL_MS = 500;
@@ -136,6 +144,7 @@ export class StepPlaybackService implements OnDestroy {
     this.voiceCues.cancel();
     const loopAll =
       this.snapshot.stepsItem?.id === stepsItem.id ? this.snapshot.loopAll : false;
+    const iterationCount = resolvedRepeatCount(stepsItem);
     this.patch({
       stepsItem,
       selectedStep: null,
@@ -149,6 +158,8 @@ export class StepPlaybackService implements OnDestroy {
       gapMessage: null,
       clipHoldActive: false,
       loopAll,
+      iteration: 1,
+      iterationCount,
     });
 
     const first = firstActivityIndex(stepsItem.steps);
@@ -402,6 +413,17 @@ export class StepPlaybackService implements OnDestroy {
     }
   }
 
+  private async advanceTo(transition: StepTransition, phase: PlaybackPhase): Promise<void> {
+    if (transition.nextIndex == null) {
+      return;
+    }
+    if (transition.gapSeconds > 0 && (phase === 'playing' || phase === 'paused')) {
+      await this.beginGap(transition);
+      return;
+    }
+    await this.selectStep(transition.nextIndex);
+  }
+
   async next(): Promise<void> {
     const { stepsItem, selectedIndex, phase, gapActive } = this.snapshot;
     if (!stepsItem) {
@@ -417,6 +439,11 @@ export class StepPlaybackService implements OnDestroy {
 
     const transition = resolveStepTransition(stepsItem, selectedIndex);
     if (transition.nextIndex == null) {
+      if (this.snapshot.iteration < this.snapshot.iterationCount) {
+        this.patch({ iteration: this.snapshot.iteration + 1 });
+        await this.advanceTo(resolveWrapTransition(stepsItem), phase);
+        return;
+      }
       if (phase === 'ready') {
         return;
       }
@@ -424,22 +451,25 @@ export class StepPlaybackService implements OnDestroy {
       return;
     }
 
-    if (transition.gapSeconds > 0 && (phase === 'playing' || phase === 'paused')) {
-      await this.beginGap(transition);
-      return;
-    }
-
-    await this.selectStep(transition.nextIndex);
+    await this.advanceTo(transition, phase);
   }
 
   async previous(): Promise<void> {
-    const { stepsItem, selectedIndex } = this.snapshot;
+    const { stepsItem, selectedIndex, iteration } = this.snapshot;
     const previous = previousActivityIndex(stepsItem?.steps ?? [], selectedIndex);
-    if (previous == null) {
+    if (previous != null) {
+      this.voiceCues.unlockFromUserGesture();
+      await this.selectStep(previous);
       return;
     }
-    this.voiceCues.unlockFromUserGesture();
-    await this.selectStep(previous);
+    if (iteration > 1) {
+      const last = lastActivityIndex(stepsItem?.steps ?? []);
+      if (last != null) {
+        this.voiceCues.unlockFromUserGesture();
+        this.patch({ iteration: iteration - 1 });
+        await this.selectStep(last);
+      }
+    }
   }
 
   async pause(): Promise<void> {
@@ -850,6 +880,11 @@ export class StepPlaybackService implements OnDestroy {
 
     if (currentTime >= selectedStep.endSeconds) {
       if (!shouldLoopVideo(selectedStep, this.snapshot.loopAll)) {
+        const timed = selectedStep.durationSeconds != null && selectedStep.durationSeconds > 0;
+        if (timed) {
+          void this.player.pause();
+          return;
+        }
         void this.enterClipHold();
         return;
       }

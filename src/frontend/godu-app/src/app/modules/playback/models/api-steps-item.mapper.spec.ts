@@ -60,6 +60,7 @@ describe('mapApiStepsItem', () => {
     expect(item.playGapPriorToStart).toBe(false);
     expect(item.startGapSeconds).toBeNull();
     expect(item.startGapMessage).toBeNull();
+    expect(item.repeatCount).toBeNull();
     expect(item.steps[0].loopVideo).toBe(true);
     expect(item.publicPath).toBe('/t/coach/mobility');
   });

@@ -26,6 +26,8 @@ import { ShareGoduService } from '../../services/share-godu.service';
 import { ApiStepsItem } from '../../models/api-steps-item.model';
 import { isValidSlug, publicViewerPath, slugFromTitle } from '../../models/public-path';
 import { activityCount } from '../../models/step-entry';
+import { DemoStepsItem } from '../../models/demo-steps-item.model';
+import { DemoStepsService } from '../../services/demo-steps.service';
 import { MyStepsApiService } from '../../services/my-steps-api.service';
 
 interface MyStepsView {
@@ -61,6 +63,7 @@ const emptyView = (overrides: Partial<MyStepsView> = {}): MyStepsView => ({
 export class MyStepsPageComponent {
   private readonly auth = inject(AuthService);
   private readonly myStepsApi = inject(MyStepsApiService);
+  private readonly demoSteps = inject(DemoStepsService);
   private readonly creatorSteps = inject(CreatorStepsApiService);
   private readonly platformAccounts = inject(PlatformAccountsApiService);
   private readonly analytics = inject(AnalyticsService);
@@ -74,6 +77,7 @@ export class MyStepsPageComponent {
   private copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly isAuthenticated$ = this.auth.isAuthenticated$;
+  readonly demos$: Observable<DemoStepsItem[]> = this.demoSteps.list();
 
   readonly view$: Observable<MyStepsView> = merge(
     this.auth.isAuthenticated$.pipe(
@@ -204,7 +208,7 @@ export class MyStepsPageComponent {
       }),
       startWith(emptyView({ loading: true })),
       catchError((err: unknown) =>
-        of(emptyView({ error: problemDetail(err, 'Could not load My Steps.') })),
+        of(emptyView({ error: problemDetail(err, 'Could not load My Godus.') })),
       ),
     );
   }

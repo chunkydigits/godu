@@ -251,7 +251,14 @@
   font-size: 0.8rem;
 }
 
-.step__auto {
+.step__flags {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.step__flag {
   flex: 0 0 auto;
   font-size: 1.05rem;
   width: 1.05rem;

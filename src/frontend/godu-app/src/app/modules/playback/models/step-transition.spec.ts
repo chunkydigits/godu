@@ -4,7 +4,7 @@ import { StepsItem } from './steps-item.model';
 import { StepsItemStatus } from './steps-item-status.enum';
 import { StepsVisibility } from './steps-visibility.enum';
 import { VideoProvider } from './video-provider.enum';
-import { resolveStepTransition } from './step-transition';
+import { resolveStepTransition, resolveWrapTransition } from './step-transition';
 
 function activity(id: string): StepDefinition {
   return {
@@ -101,5 +101,13 @@ describe('resolveStepTransition', () => {
     const transition = resolveStepTransition(item([activity('a'), activity('b')]), 0);
 
     expect(transition).toEqual({ nextIndex: 1, gapSeconds: 0, gapMessage: null });
+  });
+
+  it('wraps to the first step using the item default gap', () => {
+    expect(resolveWrapTransition(item([activity('a'), activity('b')], { gapSeconds: 10, gapMessage: 'Again' }))).toEqual({
+      nextIndex: 0,
+      gapSeconds: 10,
+      gapMessage: 'Again',
+    });
   });
 });

@@ -45,6 +45,11 @@ public sealed class StepsItemDocument
     /// </summary>
     public string? StartGapMessage { get; set; }
 
+    /// <summary>
+    /// How many times to run the full step sequence. Null or 1 means a single pass.
+    /// </summary>
+    public int? RepeatCount { get; set; }
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; set; }
