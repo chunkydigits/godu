@@ -6,6 +6,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { authHttpInterceptorFn, provideAuth0 } from '@auth0/auth0-angular';
 
 import { routes } from './app.routes';
+import { isTikTokOAuthCallback } from './core/auth/tiktok-oauth-callback';
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
@@ -25,6 +26,9 @@ export const appConfig: ApplicationConfig = {
         redirect_uri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4300',
         audience: environment.auth0.audience,
       },
+      // TikTok Login Kit also returns `code` and `state`. If Auth0 consumes them
+      // it fails, strips the query, and linking never reaches the API.
+      skipRedirectCallback: isTikTokOAuthCallback,
       // Memory cache + silent iframes drop the session on Safari / PWA / tab
       // restarts. Refresh tokens in localStorage keep you signed in.
       cacheLocation: 'localstorage',

@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { environment } from '../../../../../environments/environment';
+import { tikTokOAuthApiCallbackTarget } from '../../../../core/auth/tiktok-oauth-callback';
 
 @Component({
   selector: 'app-tiktok-oauth-callback',
@@ -7,7 +7,6 @@ import { environment } from '../../../../../environments/environment';
 })
 export class TikTokOAuthCallbackComponent {
   constructor() {
-    const target = `${environment.apiBaseUrl}/api/me/platform-accounts/tiktok/callback${window.location.search}`;
-    window.location.replace(target);
+    window.location.replace(tikTokOAuthApiCallbackTarget());
   }
 }
