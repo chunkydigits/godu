@@ -24,6 +24,12 @@ public sealed class PlayHistoryDocument
 
     public DateTime? LastCompletedUtc { get; set; }
 
+    public int? LastStepCount { get; set; }
+
+    public int? LastIterationCount { get; set; }
+
+    public int? LastElapsedSeconds { get; set; }
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; set; }

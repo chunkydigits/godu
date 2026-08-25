@@ -26,4 +26,13 @@ public sealed record RecordPlayHistoryRequest
     [Required]
     [StringLength(20)]
     public required string Event { get; init; }
+
+    [Range(0, 500)]
+    public int? StepCount { get; init; }
+
+    [Range(1, 99)]
+    public int? IterationCount { get; init; }
+
+    [Range(0, 86400)]
+    public int? ElapsedSeconds { get; init; }
 }

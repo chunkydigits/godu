@@ -66,6 +66,29 @@ public sealed class PlayHistoryServiceTests
     }
 
     [Fact]
+    public async Task RecordAsync_WhenCompleted_ThenStoresLastSessionSummary()
+    {
+        await _sut.RecordAsync(StartedRequest());
+
+        var saved = await _sut.RecordAsync(StartedRequest() with
+        {
+            Event = PlayHistoryEvents.Completed,
+            StepCount = 5,
+            IterationCount = 7,
+            ElapsedSeconds = 94,
+        });
+
+        saved.LastStepCount.Should().Be(5);
+        saved.LastIterationCount.Should().Be(7);
+        saved.LastElapsedSeconds.Should().Be(94);
+
+        var afterStart = await _sut.RecordAsync(StartedRequest());
+        afterStart.LastStepCount.Should().Be(5);
+        afterStart.LastIterationCount.Should().Be(7);
+        afterStart.LastElapsedSeconds.Should().Be(94);
+    }
+
+    [Fact]
     public async Task RecordAsync_WhenInvalidPath_ThenThrows()
     {
         var act = () => _sut.RecordAsync(StartedRequest() with { PlayPath = "https://evil.example/x" });

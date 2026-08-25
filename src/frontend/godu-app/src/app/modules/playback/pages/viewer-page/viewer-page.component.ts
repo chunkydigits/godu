@@ -37,8 +37,10 @@ import {
   activityEntries,
   hasMoreIterations,
   hasPreviousIteration,
+  hasTimedActivity,
   isOnFinalStep,
   iterationCaption as formatIterationCaption,
+  resolvedRepeatCount,
 } from '../../models/step-entry';
 import { TikTokCreatorLink, creatorLabel, tiktokCreatorLink } from '../../models/creator-link';
 import { isContinuousSoundtrackEnabled } from '../../models/continuous-soundtrack.feature';
@@ -623,7 +625,13 @@ export class ViewerPageComponent implements OnDestroy {
       stepCount: totalSteps,
       elapsedSeconds: this.playback.snapshot.elapsedSeconds ?? undefined,
     });
-    this.playHistory.record(item, 'completed');
+    this.playHistory.record(item, 'completed', {
+      stepCount: totalSteps,
+      iterationCount: resolvedRepeatCount(item),
+      elapsedSeconds: hasTimedActivity(item.steps)
+        ? this.playback.snapshot.elapsedSeconds
+        : undefined,
+    });
   }
 
   private trackStepCompleted(item: StepsItem, stepNumber: number, totalSteps: number): void {

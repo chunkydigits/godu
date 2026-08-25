@@ -68,6 +68,7 @@ public sealed class PlayHistoryService : IPlayHistoryService
 
             document.CompletedCount += 1;
             document.LastCompletedUtc = now;
+            ApplyLastSession(document, request);
         }
         else
         {
@@ -137,6 +138,9 @@ public sealed class PlayHistoryService : IPlayHistoryService
             CompletedCount = document.CompletedCount,
             LastStartedUtc = document.LastStartedUtc,
             LastCompletedUtc = document.LastCompletedUtc,
+            LastStepCount = document.LastStepCount,
+            LastIterationCount = document.LastIterationCount,
+            LastElapsedSeconds = document.LastElapsedSeconds,
         };
 
     private static string RequireToken(string? value, string message)
@@ -181,5 +185,23 @@ public sealed class PlayHistoryService : IPlayHistoryService
         }
 
         return value;
+    }
+
+    private static void ApplyLastSession(PlayHistoryDocument document, RecordPlayHistoryRequest request)
+    {
+        if (request.StepCount is int steps)
+        {
+            document.LastStepCount = Math.Clamp(steps, 0, 500);
+        }
+
+        if (request.IterationCount is int iterations)
+        {
+            document.LastIterationCount = Math.Clamp(iterations, 1, 99);
+        }
+
+        if (request.ElapsedSeconds is int elapsed)
+        {
+            document.LastElapsedSeconds = Math.Clamp(elapsed, 0, 86_400);
+        }
     }
 }

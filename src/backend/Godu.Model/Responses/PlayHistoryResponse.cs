@@ -19,4 +19,10 @@ public sealed class PlayHistoryResponse
     public DateTime LastStartedUtc { get; init; }
 
     public DateTime? LastCompletedUtc { get; init; }
+
+    public int? LastStepCount { get; init; }
+
+    public int? LastIterationCount { get; init; }
+
+    public int? LastElapsedSeconds { get; init; }
 }

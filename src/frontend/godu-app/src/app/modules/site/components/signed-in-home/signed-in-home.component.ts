@@ -6,7 +6,7 @@ import { CurrentUserService } from '../../../../core/auth/current-user.service';
 import { MaterialModule } from '../../../../core/material.module';
 import { problemDetail } from '../../../../core/http-problem';
 import { ApiStepsItem } from '../../../playback/models/api-steps-item.model';
-import { PlayHistoryItem } from '../../../playback/models/play-history.model';
+import { PlayHistoryItem, playHistoryStepsSummary, playHistoryTimeSummary } from '../../../playback/models/play-history.model';
 import { DemoStepsItem } from '../../../playback/models/demo-steps-item.model';
 import { DemoStepsService } from '../../../playback/services/demo-steps.service';
 import { MyStepsApiService } from '../../../playback/services/my-steps-api.service';
@@ -77,5 +77,13 @@ export class SignedInHomeComponent {
       default:
         return 'Creator';
     }
+  }
+
+  stepsSummary(item: PlayHistoryItem): string | null {
+    return playHistoryStepsSummary(item);
+  }
+
+  timeSummary(item: PlayHistoryItem): string | null {
+    return playHistoryTimeSummary(item);
   }
 }

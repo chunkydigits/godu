@@ -1,4 +1,5 @@
 import { publicViewerPath } from './public-path';
+import { sessionStepsSummary, sessionTimeSummary } from './step-entry';
 import { StepsItem } from './steps-item.model';
 import { StepsVisibility } from './steps-visibility.enum';
 
@@ -15,6 +16,9 @@ export interface PlayHistoryItem {
   completedCount: number;
   lastStartedUtc: string;
   lastCompletedUtc?: string | null;
+  lastStepCount?: number | null;
+  lastIterationCount?: number | null;
+  lastElapsedSeconds?: number | null;
 }
 
 export interface RecordPlayHistoryRequest {
@@ -24,6 +28,15 @@ export interface RecordPlayHistoryRequest {
   playPath: string;
   source: PlayHistorySource;
   event: PlayHistoryEventName;
+  stepCount?: number | null;
+  iterationCount?: number | null;
+  elapsedSeconds?: number | null;
+}
+
+export interface PlayHistorySessionSnapshot {
+  stepCount?: number | null;
+  iterationCount?: number | null;
+  elapsedSeconds?: number | null;
 }
 
 export function playHistoryPath(item: StepsItem, isDemo: boolean): string {
@@ -50,6 +63,7 @@ export function toRecordPlayHistoryRequest(
   item: StepsItem,
   event: PlayHistoryEventName,
   isDemo: boolean,
+  session?: PlayHistorySessionSnapshot | null,
 ): RecordPlayHistoryRequest {
   return {
     goduId: item.id,
@@ -58,5 +72,28 @@ export function toRecordPlayHistoryRequest(
     playPath: playHistoryPath(item, isDemo),
     source: playHistorySource(item, isDemo),
     event,
+    ...(event === 'completed'
+      ? {
+          stepCount: session?.stepCount ?? undefined,
+          iterationCount: session?.iterationCount ?? undefined,
+          elapsedSeconds: session?.elapsedSeconds ?? undefined,
+        }
+      : {}),
   };
+}
+
+export function playHistoryStepsSummary(item: PlayHistoryItem): string | null {
+  if (item.completedCount <= 0 || item.lastStepCount == null) {
+    return null;
+  }
+
+  return sessionStepsSummary(item.lastStepCount, item.lastIterationCount ?? 1);
+}
+
+export function playHistoryTimeSummary(item: PlayHistoryItem): string | null {
+  if (item.completedCount <= 0) {
+    return null;
+  }
+
+  return sessionTimeSummary(item.lastElapsedSeconds, true);
 }

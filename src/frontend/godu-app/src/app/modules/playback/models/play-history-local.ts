@@ -54,6 +54,15 @@ export function upsertLocalPlayHistory(request: RecordPlayHistoryRequest, nowIso
     }
     next.completedCount += 1;
     next.lastCompletedUtc = nowIso;
+    if (request.stepCount != null) {
+      next.lastStepCount = request.stepCount;
+    }
+    if (request.iterationCount != null) {
+      next.lastIterationCount = request.iterationCount;
+    }
+    if (request.elapsedSeconds != null) {
+      next.lastElapsedSeconds = request.elapsedSeconds;
+    }
   } else {
     next.startedCount += 1;
     next.lastStartedUtc = nowIso;

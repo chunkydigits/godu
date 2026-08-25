@@ -56,6 +56,9 @@ public sealed class InMemoryPlayHistoryRepository : IPlayHistoryRepository
             CompletedCount = document.CompletedCount,
             LastStartedUtc = document.LastStartedUtc,
             LastCompletedUtc = document.LastCompletedUtc,
+            LastStepCount = document.LastStepCount,
+            LastIterationCount = document.LastIterationCount,
+            LastElapsedSeconds = document.LastElapsedSeconds,
             CreatedUtc = document.CreatedUtc,
             UpdatedUtc = document.UpdatedUtc,
         };

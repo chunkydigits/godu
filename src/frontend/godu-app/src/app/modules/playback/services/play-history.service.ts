@@ -5,6 +5,7 @@ import { DemoStepsService } from './demo-steps.service';
 import { PlayHistoryApiService } from './play-history-api.service';
 import {
   PlayHistoryEventName,
+  PlayHistorySessionSnapshot,
   toRecordPlayHistoryRequest,
 } from '../models/play-history.model';
 import { StepsItem } from '../models/steps-item.model';
@@ -32,8 +33,8 @@ export class PlayHistoryService {
     });
   }
 
-  record(item: StepsItem, event: PlayHistoryEventName): void {
-    const request = toRecordPlayHistoryRequest(item, event, this.demos.isDemo(item.id));
+  record(item: StepsItem, event: PlayHistoryEventName, session?: PlayHistorySessionSnapshot): void {
+    const request = toRecordPlayHistoryRequest(item, event, this.demos.isDemo(item.id), session);
     this.auth.isAuthenticated$.pipe(take(1)).subscribe((authenticated) => {
       if (authenticated) {
         this.api.record(request).pipe(catchError(() => EMPTY)).subscribe();
@@ -77,6 +78,9 @@ export class PlayHistoryService {
                 playPath: item.playPath,
                 source: item.source,
                 event: 'completed',
+                stepCount: item.lastStepCount,
+                iterationCount: item.lastIterationCount,
+                elapsedSeconds: item.lastElapsedSeconds,
               }),
             ),
             tap(() => removeLocalPlayHistory(item.goduId)),

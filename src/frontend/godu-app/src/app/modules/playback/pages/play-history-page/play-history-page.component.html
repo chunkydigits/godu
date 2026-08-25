@@ -31,6 +31,12 @@
                   · finished {{ item.completedCount }}
                 }
               </p>
+              @if (stepsSummary(item); as summary) {
+                <p>{{ summary }}</p>
+              }
+              @if (timeSummary(item); as time) {
+                <p>{{ time }}</p>
+              }
             </div>
             <a mat-stroked-button [routerLink]="item.playPath">Open</a>
           </li>

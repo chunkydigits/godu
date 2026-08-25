@@ -56,6 +56,12 @@
                     · {{ item.creatorDisplayName }}
                   }
                 </p>
+                @if (stepsSummary(item); as summary) {
+                  <p>{{ summary }}</p>
+                }
+                @if (timeSummary(item); as time) {
+                  <p>{{ time }}</p>
+                }
               </div>
               <div class="recent__cta">
                 <a mat-stroked-button [routerLink]="item.playPath">Open</a>

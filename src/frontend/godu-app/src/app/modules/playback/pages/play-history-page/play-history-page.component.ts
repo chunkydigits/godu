@@ -5,7 +5,7 @@ import { Observable, catchError, map, of, startWith } from 'rxjs';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
 import { MaterialModule } from '../../../../core/material.module';
 import { problemDetail } from '../../../../core/http-problem';
-import { PlayHistoryItem } from '../../models/play-history.model';
+import { PlayHistoryItem, playHistoryStepsSummary, playHistoryTimeSummary } from '../../models/play-history.model';
 import { PlayHistoryApiService } from '../../services/play-history-api.service';
 
 interface HistoryView {
@@ -44,5 +44,13 @@ export class PlayHistoryPageComponent {
       default:
         return 'Creator';
     }
+  }
+
+  stepsSummary(item: PlayHistoryItem): string | null {
+    return playHistoryStepsSummary(item);
+  }
+
+  timeSummary(item: PlayHistoryItem): string | null {
+    return playHistoryTimeSummary(item);
   }
 }
