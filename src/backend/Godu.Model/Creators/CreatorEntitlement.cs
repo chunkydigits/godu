@@ -17,4 +17,7 @@ public sealed class CreatorEntitlement
     public bool HasActiveEntitlement { get; init; }
 
     public bool TrialClockSkipped { get; init; }
+
+    public bool CanPublishPublic =>
+        HasActiveEntitlement || Status == CreatorSubscriptionStatus.NotStarted;
 }

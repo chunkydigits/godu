@@ -1,5 +1,6 @@
 using Godu.Model.Responses;
 using Godu.Repository.Users;
+using Godu.Service.Creators;
 
 namespace Godu.Service.Identity;
 
@@ -13,12 +14,18 @@ public sealed class MeService : IMeService
     private readonly ICurrentUser _currentUser;
     private readonly IUserRepository _users;
     private readonly IAdminAccessService _admin;
+    private readonly ICreatorEntitlementService _entitlement;
 
-    public MeService(ICurrentUser currentUser, IUserRepository users, IAdminAccessService admin)
+    public MeService(
+        ICurrentUser currentUser,
+        IUserRepository users,
+        IAdminAccessService admin,
+        ICreatorEntitlementService entitlement)
     {
         _currentUser = currentUser;
         _users = users;
         _admin = admin;
+        _entitlement = entitlement;
     }
 
     public async Task<MeResponse> GetMineAsync(CancellationToken cancellationToken = default)
@@ -41,6 +48,7 @@ public sealed class MeService : IMeService
             DisplayName = user.DisplayName,
             IsAdmin = isAdmin,
             IsInternal = _admin.IsEffectiveInternal(user),
+            CanPublishPublic = _entitlement.Evaluate(user).CanPublishPublic,
         };
     }
 }

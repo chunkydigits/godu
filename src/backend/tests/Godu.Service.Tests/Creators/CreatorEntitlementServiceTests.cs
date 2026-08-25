@@ -103,6 +103,7 @@ public sealed class CreatorEntitlementServiceTests
         entitlement.TrialClockSkipped.Should().BeFalse();
         entitlement.HasActiveEntitlement.Should().BeFalse();
         entitlement.Status.Should().Be(CreatorSubscriptionStatus.NotStarted);
+        entitlement.CanPublishPublic.Should().BeTrue();
     }
 
     [Fact]
@@ -118,6 +119,7 @@ public sealed class CreatorEntitlementServiceTests
 
         entitlement.Status.Should().Be(CreatorSubscriptionStatus.Trial);
         entitlement.HasActiveEntitlement.Should().BeTrue();
+        entitlement.CanPublishPublic.Should().BeTrue();
     }
 
     [Fact]
@@ -133,6 +135,7 @@ public sealed class CreatorEntitlementServiceTests
 
         entitlement.Status.Should().Be(CreatorSubscriptionStatus.Expired);
         entitlement.HasActiveEntitlement.Should().BeFalse();
+        entitlement.CanPublishPublic.Should().BeFalse();
     }
 
     [Fact]
@@ -149,6 +152,7 @@ public sealed class CreatorEntitlementServiceTests
 
         entitlement.Status.Should().Be(CreatorSubscriptionStatus.Cancelled);
         entitlement.HasActiveEntitlement.Should().BeTrue();
+        entitlement.CanPublishPublic.Should().BeTrue();
     }
 
     [Fact]
@@ -203,6 +207,38 @@ public sealed class CreatorEntitlementServiceTests
         var allowed = await _sut.HasPublicEntitlementAsync("usr_admin");
 
         allowed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CanPublishPublicAsync_WhenNotStarted_ThenTrue()
+    {
+        await Seed("usr_ada");
+
+        var allowed = await _sut.CanPublishPublicAsync("usr_ada");
+
+        allowed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CanPublishPublicAsync_WhenExpired_ThenFalse()
+    {
+        var user = User("usr_ada");
+        user.CreatorSubscriptionStatus = CreatorSubscriptionMapper.Expired;
+        user.TrialStartedAt = DateTime.UtcNow.AddMonths(-4);
+        user.TrialEndsAt = DateTime.UtcNow.AddDays(-1);
+        await _users.CreateAsync(user);
+
+        var allowed = await _sut.CanPublishPublicAsync("usr_ada");
+
+        allowed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CanPublishPublicAsync_WhenMissingUser_ThenFalse()
+    {
+        var allowed = await _sut.CanPublishPublicAsync("usr_missing");
+
+        allowed.Should().BeFalse();
     }
 
     private async Task Seed(string id, bool isAdmin = false, bool isInternal = false)

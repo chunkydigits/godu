@@ -3,4 +3,5 @@ export interface MeProfile {
   displayName: string;
   isAdmin: boolean;
   isInternal: boolean;
+  canPublishPublic: boolean;
 }

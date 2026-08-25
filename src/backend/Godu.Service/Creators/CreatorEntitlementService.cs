@@ -165,6 +165,24 @@ public sealed class CreatorEntitlementService : ICreatorEntitlementService
         return Evaluate(user).HasActiveEntitlement;
     }
 
+    public async Task<bool> CanPublishPublicAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return false;
+        }
+
+        var user = await _users.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (user is null)
+        {
+            return false;
+        }
+
+        return Evaluate(user).CanPublishPublic;
+    }
+
     private bool SkipsTrialClock(UserDocument user) =>
         user.IsAdmin
         || _admin.IsConfiguredAdmin(user.Id)

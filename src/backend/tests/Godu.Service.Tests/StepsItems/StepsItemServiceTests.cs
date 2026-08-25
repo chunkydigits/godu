@@ -47,6 +47,9 @@ public sealed class StepsItemServiceTests
         _entitlement
             .Setup(e => e.HasPublicEntitlementAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        _entitlement
+            .Setup(e => e.CanPublishPublicAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         _sut = new StepsItemService(
             _repository.Object,
             _accounts.Object,
@@ -512,6 +515,61 @@ public sealed class StepsItemServiceTests
             e => e.StartTrialIfNeededAsync(
                 "usr_owner",
                 It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task PublishMineAsync_WhenEntitlementExpired_ThenThrows()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner", "published");
+        existing.Video.CreatorUsername = "coach";
+        _repository
+            .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _entitlement
+            .Setup(e => e.CanPublishPublicAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var act = () => _sut.PublishMineAsync(existing.Id, new PublishStepsItemRequest { Slug = "morning" });
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*trial has ended*");
+        _repository.Verify(
+            r => r.UpdateAsync(It.IsAny<StepsItemDocument>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _entitlement.Verify(
+            e => e.StartTrialIfNeededAsync(
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UnpublishMineAsync_WhenEntitlementExpired_ThenStillUnpublishes()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner", "published");
+        existing.Visibility = "public";
+        existing.Slug = "morning";
+        _repository
+            .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _repository
+            .Setup(r => r.UpdateAsync(It.IsAny<StepsItemDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StepsItemDocument doc, CancellationToken _) => doc);
+        _entitlement
+            .Setup(e => e.CanPublishPublicAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _sut.UnpublishMineAsync(existing.Id);
+
+        result.Visibility.Should().Be("private");
+        _repository.Verify(
+            r => r.UpdateAsync(
+                It.Is<StepsItemDocument>(d => d.Visibility == "private"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

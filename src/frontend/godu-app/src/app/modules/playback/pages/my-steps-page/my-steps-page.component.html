@@ -20,11 +20,18 @@
       @if (view.actionMessage) {
         <p class="notice">{{ view.actionMessage }}</p>
       }
-      @if (!view.canPublish && !view.error) {
+      @if (!view.hasVerifiedTikTok && !view.error) {
         <p class="notice">
           Connect a verified TikTok account in
           <a routerLink="/settings">Settings</a>
           to publish Steps on a public URL.
+        </p>
+      } @else if (!view.canPublishPublic && !view.error) {
+        <p class="notice">
+          Your creator trial has ended, so public publishing is off until a subscription is
+          available. You can still create and play private Godus. See
+          <a routerLink="/settings">Settings</a>
+          for details.
         </p>
       }
       @if (view.items.length === 0 && !view.error) {

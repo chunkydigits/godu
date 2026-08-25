@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
+import { CurrentUserService } from '../../../../core/auth/current-user.service';
 import {
   Observable,
   Subject,
@@ -37,6 +38,8 @@ interface MyStepsView {
   loading: boolean;
   items: ApiStepsItem[];
   accounts: LinkedPlatformAccount[];
+  hasVerifiedTikTok: boolean;
+  canPublishPublic: boolean;
   canPublish: boolean;
   error: string | null;
   actionMessage: string | null;
@@ -52,6 +55,8 @@ const emptyView = (overrides: Partial<MyStepsView> = {}): MyStepsView => ({
   loading: false,
   items: [],
   accounts: [],
+  hasVerifiedTikTok: false,
+  canPublishPublic: true,
   canPublish: false,
   error: null,
   actionMessage: null,
@@ -66,6 +71,7 @@ const emptyView = (overrides: Partial<MyStepsView> = {}): MyStepsView => ({
 })
 export class MyStepsPageComponent {
   private readonly auth = inject(AuthService);
+  private readonly currentUser = inject(CurrentUserService);
   private readonly myStepsApi = inject(MyStepsApiService);
   private readonly demoSteps = inject(DemoStepsService);
   private readonly creatorSteps = inject(CreatorStepsApiService);
@@ -209,15 +215,19 @@ export class MyStepsPageComponent {
     return combineLatest([
       this.myStepsApi.list(),
       this.platformAccounts.list().pipe(catchError(() => of([]))),
+      this.currentUser.profile$.pipe(catchError(() => of(null))),
     ]).pipe(
-      map(([items, accounts]): MyStepsView => {
-        const canPublish = accounts.some(
+      map(([items, accounts, profile]): MyStepsView => {
+        const hasVerifiedTikTok = accounts.some(
           (account) => account.provider.toLowerCase() === 'tiktok' && account.isVerified,
         );
+        const canPublishPublic = profile?.canPublishPublic !== false;
         return emptyView({
           items,
           accounts,
-          canPublish,
+          hasVerifiedTikTok,
+          canPublishPublic,
+          canPublish: hasVerifiedTikTok && canPublishPublic,
           actionMessage,
         });
       }),

@@ -307,6 +307,12 @@ public sealed class StepsItemService : IStepsItemService
             throw new InvalidOperationException("Archived steps cannot be published.");
         }
 
+        if (!await _entitlement.CanPublishPublicAsync(userId, cancellationToken).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException(
+                "Publishing is unavailable. Your creator trial has ended.");
+        }
+
         var slug = SpecSlug(request.Slug);
         if (string.IsNullOrEmpty(slug))
         {

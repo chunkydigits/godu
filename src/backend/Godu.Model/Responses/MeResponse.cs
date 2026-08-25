@@ -9,4 +9,6 @@ public sealed class MeResponse
     public bool IsAdmin { get; init; }
 
     public bool IsInternal { get; init; }
+
+    public bool CanPublishPublic { get; init; }
 }
