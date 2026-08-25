@@ -44,6 +44,9 @@ public sealed class StepsItemServiceTests
                 It.IsAny<DateTime>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+        _entitlement
+            .Setup(e => e.HasPublicEntitlementAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         _sut = new StepsItemService(
             _repository.Object,
             _accounts.Object,
@@ -309,6 +312,87 @@ public sealed class StepsItemServiceTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetPublicAsync_WhenOwnerEntitlementExpired_ThenReturnsNull()
+    {
+        var existing = SampleDocument("usr_owner", "published");
+        existing.Visibility = "public";
+        existing.Slug = "morning";
+        existing.LinkedPlatformAccountId = "platform_1";
+        existing.Video.CreatorUsername = "coach";
+        _accounts
+            .Setup(r => r.GetVerifiedByCurrentUsernameAsync("tiktok", "coach", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TikTokAccount(verified: true));
+        _repository
+            .Setup(r => r.GetPublicByAccountSlugAsync(
+                "usr_owner",
+                "platform_1",
+                "morning",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _entitlement
+            .Setup(e => e.HasPublicEntitlementAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _sut.GetPublicAsync("t", "coach", "morning");
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ListPublicByUsernameAsync_WhenOwnerEntitlementExpired_ThenReturnsEmpty()
+    {
+        var existing = SampleDocument("usr_owner", "published");
+        existing.Visibility = "public";
+        existing.Slug = "morning";
+        existing.Video.CreatorUsername = "coach";
+        _repository
+            .Setup(r => r.ListPublicByUsernameAsync("tiktok", "coach", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([existing]);
+        _entitlement
+            .Setup(e => e.HasPublicEntitlementAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _sut.ListPublicByUsernameAsync("t", "coach");
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ListRelatedPublicAsync_WhenOwnerEntitlementExpired_ThenReturnsEmpty()
+    {
+        var existing = SampleDocument("usr_owner", "published");
+        existing.Visibility = "public";
+        existing.Slug = "morning";
+        existing.LinkedPlatformAccountId = "platform_1";
+        existing.Video.CreatorUsername = "coach";
+        _accounts
+            .Setup(r => r.GetVerifiedByCurrentUsernameAsync("tiktok", "coach", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TikTokAccount(verified: true));
+        _repository
+            .Setup(r => r.GetPublicByAccountSlugAsync(
+                "usr_owner",
+                "platform_1",
+                "morning",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _entitlement
+            .Setup(e => e.HasPublicEntitlementAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _sut.ListRelatedPublicAsync("t", "coach", "morning");
+
+        result.Should().BeEmpty();
+        _repository.Verify(
+            r => r.ListPublicByLinkedAccountAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }

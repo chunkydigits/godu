@@ -13,4 +13,6 @@ public interface ICreatorEntitlementService
         string userId,
         DateTime publishedUtc,
         CancellationToken cancellationToken = default);
+
+    Task<bool> HasPublicEntitlementAsync(string userId, CancellationToken cancellationToken = default);
 }

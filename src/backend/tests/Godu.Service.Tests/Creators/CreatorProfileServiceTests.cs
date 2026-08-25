@@ -21,6 +21,7 @@ public sealed class CreatorProfileServiceTests
     private readonly Mock<IStepsItemRepository> _steps = new();
     private readonly Mock<ICreatorService> _creatorService = new();
     private readonly Mock<ILinkedPlatformAccountService> _platformAccounts = new();
+    private readonly Mock<ICreatorEntitlementService> _entitlement = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly CreatorProfileService _sut;
 
@@ -32,6 +33,9 @@ public sealed class CreatorProfileServiceTests
         _steps
             .Setup(r => r.ListPublicByUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
+        _entitlement
+            .Setup(e => e.HasPublicEntitlementAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         _sut = new CreatorProfileService(
             _users.Object,
             _accounts.Object,
@@ -39,6 +43,7 @@ public sealed class CreatorProfileServiceTests
             _steps.Object,
             _creatorService.Object,
             _platformAccounts.Object,
+            _entitlement.Object,
             _currentUser.Object);
     }
 
@@ -119,6 +124,62 @@ public sealed class CreatorProfileServiceTests
         var act = () => _sut.GetPublicAsync("usr_1");
 
         await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task GetPublicAsync_WhenEntitlementExpired_ThenThrows()
+    {
+        _entitlement
+            .Setup(e => e.HasPublicEntitlementAsync("usr_1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([TikTok("usr_1", "coach")]);
+
+        var act = () => _sut.GetPublicAsync("usr_1");
+
+        await act.Should().ThrowAsync<KeyNotFoundException>()
+            .WithMessage("*not found*");
+        _steps.Verify(
+            r => r.ListPublicByUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetMineAsync_WhenEntitlementExpired_ThenStillReturnsProfile()
+    {
+        Authenticate("usr_1");
+        _entitlement
+            .Setup(e => e.HasPublicEntitlementAsync("usr_1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _users
+            .Setup(r => r.GetByIdAsync("usr_1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(User("usr_1", "Ada"));
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([TikTok("usr_1", "coach")]);
+
+        var profile = await _sut.GetMineAsync();
+
+        profile.UserId.Should().Be("usr_1");
+        profile.DisplayName.Should().Be("Ada");
+    }
+
+    [Fact]
+    public async Task GetPublicByHandleAsync_WhenEntitlementExpired_ThenThrows()
+    {
+        var current = TikTok("usr_b", "oldname");
+        _entitlement
+            .Setup(e => e.HasPublicEntitlementAsync("usr_b", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _accounts
+            .Setup(r => r.GetVerifiedByCurrentUsernameAsync("tiktok", "oldname", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(current);
+
+        var act = () => _sut.GetPublicByHandleAsync("t", "oldname");
+
+        await act.Should().ThrowAsync<KeyNotFoundException>()
+            .WithMessage("*not found*");
     }
 
     [Fact]

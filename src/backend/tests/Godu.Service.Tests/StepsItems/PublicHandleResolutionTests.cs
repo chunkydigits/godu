@@ -18,13 +18,17 @@ public sealed class PublicHandleResolutionTests
 
     public PublicHandleResolutionTests()
     {
+        var entitlement = new Mock<ICreatorEntitlementService>();
+        entitlement
+            .Setup(e => e.HasPublicEntitlementAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         _sut = new StepsItemService(
             _steps,
             _accounts,
             new CurrentUser(),
             Mock.Of<ITikTokVideoOwnershipVerifier>(),
             Mock.Of<ICreatorService>(),
-            Mock.Of<ICreatorEntitlementService>());
+            entitlement.Object);
     }
 
     [Fact]

@@ -60,7 +60,7 @@ export class CreatorProfilePageComponent {
           of({
             loading: false,
             profile: null,
-            error: problemDetail(err, 'This creator profile is not available yet.'),
+            error: problemDetail(err, 'This creator profile is not available.'),
           }),
         ),
       );

@@ -147,6 +147,24 @@ public sealed class CreatorEntitlementService : ICreatorEntitlementService
         await _users.UpdateAsync(user, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<bool> HasPublicEntitlementAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return false;
+        }
+
+        var user = await _users.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (user is null)
+        {
+            return false;
+        }
+
+        return Evaluate(user).HasActiveEntitlement;
+    }
+
     private bool SkipsTrialClock(UserDocument user) =>
         user.IsAdmin
         || _admin.IsConfiguredAdmin(user.Id)

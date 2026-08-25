@@ -19,6 +19,7 @@ public sealed class CreatorProfileService : ICreatorProfileService
     private readonly IStepsItemRepository _steps;
     private readonly ICreatorService _creatorService;
     private readonly ILinkedPlatformAccountService _platformAccounts;
+    private readonly ICreatorEntitlementService _entitlement;
     private readonly ICurrentUser _currentUser;
 
     public CreatorProfileService(
@@ -28,6 +29,7 @@ public sealed class CreatorProfileService : ICreatorProfileService
         IStepsItemRepository steps,
         ICreatorService creatorService,
         ILinkedPlatformAccountService platformAccounts,
+        ICreatorEntitlementService entitlement,
         ICurrentUser currentUser)
     {
         _users = users;
@@ -36,6 +38,7 @@ public sealed class CreatorProfileService : ICreatorProfileService
         _steps = steps;
         _creatorService = creatorService;
         _platformAccounts = platformAccounts;
+        _entitlement = entitlement;
         _currentUser = currentUser;
     }
 
@@ -48,6 +51,7 @@ public sealed class CreatorProfileService : ICreatorProfileService
             throw new KeyNotFoundException("Creator not found.");
         }
 
+        await EnsurePublicCatalogueAsync(userId, cancellationToken).ConfigureAwait(false);
         return await BuildProfileAsync(userId, cancellationToken).ConfigureAwait(false);
     }
 
@@ -67,6 +71,7 @@ public sealed class CreatorProfileService : ICreatorProfileService
             .ConfigureAwait(false);
         if (current is not null)
         {
+            await EnsurePublicCatalogueAsync(current.UserId, cancellationToken).ConfigureAwait(false);
             return await BuildProfileAsync(current.UserId, cancellationToken).ConfigureAwait(false);
         }
 
@@ -79,6 +84,7 @@ public sealed class CreatorProfileService : ICreatorProfileService
             throw new KeyNotFoundException("Creator not found.");
         }
 
+        await EnsurePublicCatalogueAsync(alias.UserId, cancellationToken).ConfigureAwait(false);
         return await BuildProfileAsync(alias.UserId, cancellationToken).ConfigureAwait(false);
     }
 
@@ -174,6 +180,14 @@ public sealed class CreatorProfileService : ICreatorProfileService
         }
 
         return _currentUser.UserId;
+    }
+
+    private async Task EnsurePublicCatalogueAsync(string userId, CancellationToken cancellationToken)
+    {
+        if (!await _entitlement.HasPublicEntitlementAsync(userId, cancellationToken).ConfigureAwait(false))
+        {
+            throw new KeyNotFoundException("Creator not found.");
+        }
     }
 
     private static string? FirstNonEmpty(params string?[] values) =>

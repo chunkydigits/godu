@@ -203,7 +203,7 @@ public sealed class StepsItemService : IStepsItemService
                 .ConfigureAwait(false);
             if (owned is not null)
             {
-                return await ToResponseAsync(owned, cancellationToken).ConfigureAwait(false);
+                return await ToPublicResponseAsync(owned, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -221,7 +221,7 @@ public sealed class StepsItemService : IStepsItemService
                 .ConfigureAwait(false);
             if (inherited is not null)
             {
-                return await ToResponseAsync(inherited, cancellationToken).ConfigureAwait(false);
+                return await ToPublicResponseAsync(inherited, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -231,7 +231,7 @@ public sealed class StepsItemService : IStepsItemService
 
         return item is null
             ? null
-            : await ToResponseAsync(item, cancellationToken).ConfigureAwait(false);
+            : await ToPublicResponseAsync(item, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<StepsItemResponse>> ListPublicByUsernameAsync(
@@ -253,7 +253,7 @@ public sealed class StepsItemService : IStepsItemService
         var items = await _repository
             .ListPublicByUsernameAsync(provider, username, cancellationToken)
             .ConfigureAwait(false);
-        return await MapManyAsync(items, cancellationToken).ConfigureAwait(false);
+        return await MapPublicManyAsync(items, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<StepsItemResponse>> ListRelatedPublicAsync(
@@ -277,7 +277,7 @@ public sealed class StepsItemService : IStepsItemService
                 take: 4,
                 cancellationToken)
             .ConfigureAwait(false);
-        return await MapManyAsync(related, cancellationToken).ConfigureAwait(false);
+        return await MapPublicManyAsync(related, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<StepsItemResponse>> ListMinePublicAsync(
@@ -483,6 +483,47 @@ public sealed class StepsItemService : IStepsItemService
         }
 
         throw new InvalidOperationException("This TikTok video is not from a linked account.");
+    }
+
+    private async Task<StepsItemResponse?> ToPublicResponseAsync(
+        StepsItemDocument document,
+        CancellationToken cancellationToken)
+    {
+        if (!await _entitlement
+                .HasPublicEntitlementAsync(document.CreatedByUserId, cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return null;
+        }
+
+        return await ToResponseAsync(document, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<IReadOnlyList<StepsItemResponse>> MapPublicManyAsync(
+        IReadOnlyList<StepsItemDocument> items,
+        CancellationToken cancellationToken)
+    {
+        var allowed = new Dictionary<string, bool>(StringComparer.Ordinal);
+        var results = new List<StepsItemResponse>();
+        foreach (var item in items)
+        {
+            if (!allowed.TryGetValue(item.CreatedByUserId, out var visible))
+            {
+                visible = await _entitlement
+                    .HasPublicEntitlementAsync(item.CreatedByUserId, cancellationToken)
+                    .ConfigureAwait(false);
+                allowed[item.CreatedByUserId] = visible;
+            }
+
+            if (!visible)
+            {
+                continue;
+            }
+
+            results.Add(await ToResponseAsync(item, cancellationToken).ConfigureAwait(false));
+        }
+
+        return results;
     }
 
     private async Task<IReadOnlyList<StepsItemResponse>> MapManyAsync(

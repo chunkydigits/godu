@@ -159,6 +159,52 @@ public sealed class CreatorEntitlementServiceTests
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }
 
+    [Fact]
+    public async Task HasPublicEntitlementAsync_WhenMissingUser_ThenFalse()
+    {
+        var allowed = await _sut.HasPublicEntitlementAsync("usr_missing");
+
+        allowed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task HasPublicEntitlementAsync_WhenExpired_ThenFalse()
+    {
+        var user = User("usr_ada");
+        user.CreatorSubscriptionStatus = CreatorSubscriptionMapper.Expired;
+        user.TrialStartedAt = DateTime.UtcNow.AddMonths(-4);
+        user.TrialEndsAt = DateTime.UtcNow.AddDays(-1);
+        await _users.CreateAsync(user);
+
+        var allowed = await _sut.HasPublicEntitlementAsync("usr_ada");
+
+        allowed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task HasPublicEntitlementAsync_WhenTrialInDate_ThenTrue()
+    {
+        var user = User("usr_ada");
+        user.CreatorSubscriptionStatus = CreatorSubscriptionMapper.Trial;
+        user.TrialStartedAt = DateTime.UtcNow.AddMonths(-1);
+        user.TrialEndsAt = DateTime.UtcNow.AddMonths(2);
+        await _users.CreateAsync(user);
+
+        var allowed = await _sut.HasPublicEntitlementAsync("usr_ada");
+
+        allowed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HasPublicEntitlementAsync_WhenAdminNotStarted_ThenTrue()
+    {
+        await Seed("usr_admin", isAdmin: true);
+
+        var allowed = await _sut.HasPublicEntitlementAsync("usr_admin");
+
+        allowed.Should().BeTrue();
+    }
+
     private async Task Seed(string id, bool isAdmin = false, bool isInternal = false)
     {
         await _users.CreateAsync(User(id, isAdmin, isInternal));
