@@ -3,6 +3,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { AbstractControl, FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MaterialModule } from '../../../../core/material.module';
+import { DurationInputComponent } from '../duration-input/duration-input.component';
 import {
   CONTINUOUS_SOUNDTRACK_TIP,
   EDITOR_SECTIONS,
@@ -14,6 +15,8 @@ import {
   GAP_MESSAGE_MAX_LENGTH,
   GAP_SECONDS_MAX,
   GAP_SECONDS_MIN,
+  CARD_SECONDS_MAX,
+  CARD_SECONDS_MIN,
   REPEAT_COUNT_MAX,
   REPEAT_COUNT_MIN,
   StepEntryKind,
@@ -27,7 +30,7 @@ import {
 
 @Component({
   selector: 'app-steps-editor-form',
-  imports: [MaterialModule, ReactiveFormsModule, DragDropModule, NgTemplateOutlet],
+  imports: [MaterialModule, ReactiveFormsModule, DragDropModule, NgTemplateOutlet, DurationInputComponent],
   templateUrl: './steps-editor-form.component.html',
   styleUrl: './steps-editor-form.component.scss',
 })
@@ -56,6 +59,8 @@ export class StepsEditorFormComponent {
   readonly sections = EDITOR_SECTIONS;
   readonly gapSecondsMin = GAP_SECONDS_MIN;
   readonly gapSecondsMax = GAP_SECONDS_MAX;
+  readonly cardSecondsMin = CARD_SECONDS_MIN;
+  readonly cardSecondsMax = CARD_SECONDS_MAX;
   readonly gapMessageMaxLength = GAP_MESSAGE_MAX_LENGTH;
   readonly repeatCountMin = REPEAT_COUNT_MIN;
   readonly repeatCountMax = REPEAT_COUNT_MAX;

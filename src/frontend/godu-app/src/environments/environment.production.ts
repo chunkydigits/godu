@@ -33,5 +33,9 @@ export const environment = {
      * Longer gaps say “{title} for {n} seconds, Go”, timed to land on the timer start.
      */
     gapGoCueMaxSeconds: 10,
+    /**
+     * Longest a card countdown may run, in seconds. 3600 is 60 minutes.
+     */
+    cardSecondsMax: 3600,
   },
 };

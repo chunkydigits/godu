@@ -287,8 +287,7 @@
             @if (isGap(state)) {
               <p class="viewer__gap-countdown" aria-live="polite">
                 Get ready to go{{ state.startGapActive ? '' : ' again' }} in
-                {{ state.remainingSeconds ?? 0 }}
-                {{ (state.remainingSeconds ?? 0) === 1 ? 'second' : 'seconds' }}
+                {{ gapCountdown(state.remainingSeconds) }}
               </p>
             } @else if (!state.clipHoldActive && !instructionCard(state) && !stillOverlay(state)) {
               <p

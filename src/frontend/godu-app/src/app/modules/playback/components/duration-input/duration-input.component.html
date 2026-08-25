@@ -1,0 +1,64 @@
+<div class="duration-input">
+  <div class="duration-input__fields">
+    @if (split) {
+      <mat-form-field appearance="outline">
+        <mat-label>Minutes</mat-label>
+        <input
+          matInput
+          type="number"
+          inputmode="numeric"
+          min="0"
+          [attr.max]="maxMinutes"
+          [value]="minutesText"
+          [disabled]="disabled"
+          (input)="onMinutesInput($event)"
+          (blur)="markTouched()"
+        />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Seconds</mat-label>
+        <input
+          matInput
+          type="number"
+          inputmode="numeric"
+          min="0"
+          max="59"
+          [value]="secondsPartText"
+          [disabled]="disabled"
+          (input)="onSecondsPartInput($event)"
+          (blur)="markTouched()"
+        />
+      </mat-form-field>
+    } @else {
+      <mat-form-field appearance="outline">
+        <mat-label>{{ secondsLabel }}</mat-label>
+        <input
+          matInput
+          type="number"
+          inputmode="numeric"
+          [attr.min]="min ?? 0"
+          [attr.max]="max"
+          [value]="secondsText"
+          [disabled]="disabled"
+          (input)="onSecondsInput($event)"
+          (blur)="markTouched()"
+        />
+      </mat-form-field>
+    }
+  </div>
+  <button
+    mat-icon-button
+    type="button"
+    class="duration-input__toggle"
+    [disabled]="disabled"
+    [attr.aria-pressed]="split"
+    [attr.aria-label]="toggleLabel"
+    [attr.title]="toggleLabel"
+    (click)="toggleSplit()"
+  >
+    <mat-icon>{{ split ? 'timer' : 'more_time' }}</mat-icon>
+  </button>
+</div>
+@if (hint) {
+  <p class="duration-input__hint">{{ hint }}</p>
+}

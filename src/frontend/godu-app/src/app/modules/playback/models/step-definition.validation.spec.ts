@@ -105,6 +105,23 @@ describe('validateStepDefinition', () => {
     expect(result.errors).toEqual([]);
   });
 
+  it('accepts a card up to an hour and rejects longer', () => {
+    expect(
+      validateStepDefinition(
+        step({ id: 'c', title: '', kind: 'card', durationSeconds: 3600 }),
+        undefined,
+        false,
+      ).valid,
+    ).toBe(true);
+    expect(
+      validateStepDefinition(
+        step({ id: 'c', title: '', kind: 'card', durationSeconds: 3601 }),
+        undefined,
+        false,
+      ).valid,
+    ).toBe(false);
+  });
+
   it('rejects a still card when video is off', () => {
     const result = validateStepDefinition(
       step({

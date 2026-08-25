@@ -1,3 +1,5 @@
+import { environment } from '../../../../environments/environment';
+
 /**
  * A Steps item is an ordered list of entries. Most are activity steps, but an
  * entry can also be a gap (a rest that counts down before the next activity).
@@ -41,6 +43,8 @@ export const DEFAULT_CARD_ENTRY_KIND: StepEntryKind = 'card';
 export const GAP_MESSAGE_MAX_LENGTH = 256;
 export const GAP_SECONDS_MIN = 1;
 export const GAP_SECONDS_MAX = 600;
+export const CARD_SECONDS_MIN = GAP_SECONDS_MIN;
+export const CARD_SECONDS_MAX = environment.playback.cardSecondsMax;
 export const REPEAT_COUNT_MIN = 2;
 export const REPEAT_COUNT_MAX = 99;
 export const DEFAULT_GAP_SECONDS = 15;
@@ -180,10 +184,19 @@ export function previousActivityIndex(
 
 /** Clamps a stored gap length to the supported range; 0 means "no gap". */
 export function normaliseGapSeconds(value: number | null | undefined): number {
+  return normaliseTimedSeconds(value, GAP_SECONDS_MAX);
+}
+
+/** Clamps a card countdown to the supported range; 0 means invalid. */
+export function normaliseCardSeconds(value: number | null | undefined): number {
+  return normaliseTimedSeconds(value, CARD_SECONDS_MAX);
+}
+
+function normaliseTimedSeconds(value: number | null | undefined, max: number): number {
   if (value == null || !Number.isFinite(value) || value <= 0) {
     return 0;
   }
-  return Math.min(GAP_SECONDS_MAX, Math.floor(value));
+  return Math.min(max, Math.floor(value));
 }
 
 /** Clip window length in whole seconds, or 0 when the window is invalid. */

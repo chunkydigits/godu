@@ -1,5 +1,7 @@
 import { StepDefinition } from './step-definition.model';
 import {
+  CARD_SECONDS_MAX,
+  CARD_SECONDS_MIN,
   GAP_MESSAGE_MAX_LENGTH,
   GAP_SECONDS_MAX,
   GAP_SECONDS_MIN,
@@ -54,11 +56,11 @@ export function validateStepDefinition(
     if (
       seconds == null ||
       !Number.isFinite(seconds) ||
-      seconds < GAP_SECONDS_MIN ||
-      seconds > GAP_SECONDS_MAX
+      seconds < CARD_SECONDS_MIN ||
+      seconds > CARD_SECONDS_MAX
     ) {
       errors.push(
-        `DurationSeconds must be between ${GAP_SECONDS_MIN} and ${GAP_SECONDS_MAX}`,
+        `DurationSeconds must be between ${CARD_SECONDS_MIN} and ${CARD_SECONDS_MAX}`,
       );
     }
 

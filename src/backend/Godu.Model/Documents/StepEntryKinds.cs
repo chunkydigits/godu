@@ -18,6 +18,10 @@ public static class StepEntryKinds
 
     public const int GapSecondsMax = 600;
 
+    public const int CardSecondsMin = GapSecondsMin;
+
+    public const int CardSecondsMax = 3600;
+
     public const int GapMessageMaxLength = 256;
 
     public const string DefaultCardBackground = "#02c998";

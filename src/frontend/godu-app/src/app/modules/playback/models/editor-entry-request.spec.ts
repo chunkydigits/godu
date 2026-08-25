@@ -49,4 +49,17 @@ describe('mapEditorEntryToApiStep', () => {
 
     expect(card?.stillSeconds).toBe(6);
   });
+
+  it('keeps a 60-minute card as 3600 seconds', () => {
+    const card = mapEditorEntryToApiStep(
+      {
+        kind: 'card',
+        durationSeconds: 3600,
+      },
+      0,
+      false,
+    );
+
+    expect(card?.durationSeconds).toBe(3600);
+  });
 });

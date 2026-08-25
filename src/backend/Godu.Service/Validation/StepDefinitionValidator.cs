@@ -79,10 +79,10 @@ public static class StepDefinitionValidator
         bool useVideoContent,
         List<string> errors)
     {
-        if (step.DurationSeconds is null or < StepEntryKinds.GapSecondsMin or > StepEntryKinds.GapSecondsMax)
+        if (step.DurationSeconds is null or < StepEntryKinds.CardSecondsMin or > StepEntryKinds.CardSecondsMax)
         {
             errors.Add(
-                $"Card {step.Order}: durationSeconds must be between {StepEntryKinds.GapSecondsMin} and {StepEntryKinds.GapSecondsMax}.");
+                $"Card {step.Order}: durationSeconds must be between {StepEntryKinds.CardSecondsMin} and {StepEntryKinds.CardSecondsMax}.");
         }
 
         if (step.Message?.Trim().Length > StepEntryKinds.GapMessageMaxLength)

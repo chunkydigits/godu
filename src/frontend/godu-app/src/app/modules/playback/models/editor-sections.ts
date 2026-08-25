@@ -1,5 +1,5 @@
 import { environment } from '../../../../environments/environment';
-import { GAP_MESSAGE_MAX_LENGTH, GAP_SECONDS_MAX, GAP_SECONDS_MIN } from './step-entry';
+import { GAP_MESSAGE_MAX_LENGTH, GAP_SECONDS_MAX, GAP_SECONDS_MIN, CARD_SECONDS_MAX } from './step-entry';
 
 /** Collapsible groups of fields on the Steps editor page. */
 export type EditorSectionId = 'video' | 'gaps' | 'repeat' | 'steps';
@@ -74,7 +74,7 @@ export const EDITOR_SECTIONS = {
     controls: ['steps'],
     tips: [
       'Each step loops a slice of the video: Start and End trim the clip, Duration is how long the set / step runs.',
-      'A card is a timed countdown with a comment. It can fill the screen in Godu colours, or freeze a still from the TikTok when video is on.',
+      `A card is a timed countdown with a comment, from ${GAP_SECONDS_MIN} seconds up to ${CARD_SECONDS_MAX / 60} minutes. It can fill the screen in Godu colours, or freeze a still from the TikTok when video is on.`,
       'Loop repeats that clip while the step is active. Play once plays it once. Repeating the whole Godu (sets of the workout) is configured under Repeat configuration, not here.',
       'Leave Duration blank for an untimed step that waits for you to move on. Untimed play-once holds the step name and description on screen until Next.',
       'Turn on Auto-advance to roll straight into the next step when the timer ends.',

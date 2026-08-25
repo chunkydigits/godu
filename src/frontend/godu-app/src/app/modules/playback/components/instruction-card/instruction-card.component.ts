@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { formatCountdown } from '../../models/duration';
 import {
   DEFAULT_CARD_BACKGROUND,
   DEFAULT_CARD_TEXT,
@@ -27,5 +28,9 @@ export class InstructionCardComponent {
 
   get title(): string {
     return activityDisplayTitle(this.card);
+  }
+
+  get remainingLabel(): string {
+    return formatCountdown(this.remainingSeconds);
   }
 }

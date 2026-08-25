@@ -32,6 +32,7 @@ import { CompletionPanelComponent } from '../../components/completion-panel/comp
 import { InstructionCardComponent } from '../../components/instruction-card/instruction-card.component';
 import { StepNavigatorComponent } from '../../components/step-navigator/step-navigator.component';
 import { VideoHostComponent } from '../../components/video-host/video-host.component';
+import { countdownUsesMinutes, formatCountdown } from '../../models/duration';
 import { StepDefinition } from '../../models/step-definition.model';
 import { StepsItem } from '../../models/steps-item.model';
 import {
@@ -512,12 +513,16 @@ export class ViewerPageComponent implements OnDestroy {
   }
 
   formatRemaining(seconds: number | null): string {
-    if (seconds == null) {
-      return '';
+    return formatCountdown(seconds);
+  }
+
+  gapCountdown(seconds: number | null): string {
+    const remaining = seconds ?? 0;
+    const count = formatCountdown(remaining);
+    if (countdownUsesMinutes(remaining)) {
+      return count;
     }
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return remaining === 1 ? `${count} second` : `${count} seconds`;
   }
 
   private measureDescriptionMarquee(): void {

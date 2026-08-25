@@ -185,11 +185,6 @@
   cursor: pointer;
 }
 
-.step--gap .step__nums {
-  grid-template-columns: minmax(0, 1fr);
-  max-width: 12rem;
-}
-
 .cdk-drag-preview {
   box-shadow:
     0 10px 24px rgb(0 0 0 / 45%),
@@ -310,6 +305,10 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
+}
+
+.step__nums--clip {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .step__num {

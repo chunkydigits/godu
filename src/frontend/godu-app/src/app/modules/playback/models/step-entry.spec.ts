@@ -25,6 +25,7 @@ import {
   sessionStepsSummary,
   normaliseGapMessage,
   normaliseGapSeconds,
+  normaliseCardSeconds,
   previousActivityIndex,
   resolveStartGapMessage,
   resolveStartGapSeconds,
@@ -111,6 +112,8 @@ describe('step entries', () => {
     expect(normaliseGapSeconds(0)).toBe(0);
     expect(normaliseGapSeconds(null)).toBe(0);
     expect(normaliseGapSeconds(9000)).toBe(600);
+    expect(normaliseCardSeconds(3600)).toBe(3600);
+    expect(normaliseCardSeconds(9000)).toBe(3600);
     expect(normaliseGapMessage('  Breathe  ')).toBe('Breathe');
     expect(normaliseGapMessage('   ')).toBeNull();
     expect(normaliseGapMessage('x'.repeat(300))).toHaveLength(256);

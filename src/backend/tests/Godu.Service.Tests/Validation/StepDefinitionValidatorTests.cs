@@ -75,4 +75,38 @@ public sealed class StepDefinitionValidatorTests
 
         errors.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Validate_WhenCardIsAnHour_ThenAccepts()
+    {
+        var errors = StepDefinitionValidator.Validate(
+            [
+                new StepDefinitionRequest
+                {
+                    Order = 1,
+                    Kind = "card",
+                    DurationSeconds = 3600,
+                },
+            ],
+            useVideoContent: false);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Validate_WhenCardLongerThanAnHour_ThenRejects()
+    {
+        var errors = StepDefinitionValidator.Validate(
+            [
+                new StepDefinitionRequest
+                {
+                    Order = 1,
+                    Kind = "card",
+                    DurationSeconds = 3601,
+                },
+            ],
+            useVideoContent: false);
+
+        errors.Should().ContainSingle(e => e.Contains("between 1 and 3600"));
+    }
 }
