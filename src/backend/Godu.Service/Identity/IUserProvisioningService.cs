@@ -6,5 +6,6 @@ public interface IUserProvisioningService
         string identityProvider,
         string externalSubjectId,
         string? displayNameHint,
+        string? emailHint = null,
         CancellationToken cancellationToken = default);
 }

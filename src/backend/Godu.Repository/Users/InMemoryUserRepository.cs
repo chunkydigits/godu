@@ -51,6 +51,7 @@ public sealed class InMemoryUserRepository : IUserRepository
         {
             Id = user.Id,
             DisplayName = user.DisplayName,
+            Email = user.Email,
             UseVoiceCuesByDefault = user.UseVoiceCuesByDefault,
             IsAdmin = user.IsAdmin,
             IsInternal = user.IsInternal,

@@ -27,11 +27,14 @@ public sealed class CurrentUserMiddleware
                 var displayName = context.User.FindFirstValue("name")
                     ?? context.User.FindFirstValue("nickname")
                     ?? context.User.FindFirstValue(ClaimTypes.Name);
+                var email = context.User.FindFirstValue(ClaimTypes.Email)
+                    ?? context.User.FindFirstValue("email");
 
                 var userId = await provisioning.EnsureUserAsync(
                     "auth0",
                     subject,
                     displayName,
+                    email,
                     context.RequestAborted);
 
                 mutable.IsAuthenticated = true;

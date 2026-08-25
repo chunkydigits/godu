@@ -1,4 +1,5 @@
 using Godu.Api.Configuration;
+using Godu.Api.Jobs;
 using Godu.Api.Middleware;
 using Godu.Model.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -31,6 +32,7 @@ builder.Services.Configure<TikTokOptions>(builder.Configuration.GetSection(TikTo
 builder.Services.Configure<AnalyticsOptions>(builder.Configuration.GetSection(AnalyticsOptions.SectionName));
 builder.Services.Configure<CreatorMonetisationOptions>(
     builder.Configuration.GetSection(CreatorMonetisationOptions.SectionName));
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 var auth0 = builder.Configuration.GetSection(Auth0Options.SectionName).Get<Auth0Options>()
     ?? throw new InvalidOperationException("Auth0 configuration is required.");
 
@@ -79,6 +81,7 @@ builder.Services
 builder.Services.AddAuthorization();
 builder.Services.AddGoduRepositories(builder.Configuration);
 builder.Services.AddGoduServices();
+builder.Services.AddHostedService<TrialExpiryMailHostedService>();
 
 var app = builder.Build();
 

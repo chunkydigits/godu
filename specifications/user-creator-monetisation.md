@@ -428,7 +428,7 @@ A background/check path (timer, queued job, or equivalent) must evaluate users a
 | Provider | AWS SES |
 | From | Configurable (e.g. `noreply@godu.it`); domain must be verified in SES |
 | Region | Configurable |
-| Credentials | **Key Vault**, never source. Same `--` → `:` mapping as Cosmos/TikTok (e.g. `Email--SmtpUsername` / `Email--SmtpPassword`, or access key pair — pick one SES auth style and stick to it) |
+| Credentials | **Key Vault**, never source. Same `--` → `:` mapping as Cosmos/TikTok: `Email--AccessKeyId` and `Email--SecretAccessKey`. SES is called with the AWS API (not SMTP). |
 | Development | May use SES sandbox (verified recipients only) or a dedicated from-address; still a real send path, not a fake in-memory “sent” log as the only Production behaviour |
 | Recipients | Auth0 email on the user when present; skip send (and log) if there is no email |
 | Content | Plain language; include expiry date; no payment links until Stripe exists |

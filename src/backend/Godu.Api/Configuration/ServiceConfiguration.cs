@@ -1,5 +1,6 @@
 using Godu.Service.Analytics;
 using Godu.Service.Creators;
+using Godu.Service.Email;
 using Godu.Service.Identity;
 using Godu.Service.PlayHistory;
 using Godu.Service.PlatformAccounts;
@@ -18,6 +19,8 @@ public static class ServiceConfiguration
         services.AddScoped<ICreatorProfileService, CreatorProfileService>();
         services.AddScoped<ICreatorService, CreatorService>();
         services.AddScoped<ICreatorEntitlementService, CreatorEntitlementService>();
+        services.AddSingleton<IEmailSender, SesEmailSender>();
+        services.AddScoped<ITrialExpiryMailService, TrialExpiryMailService>();
         services.AddScoped<ITikTokAccessTokenResolver, TikTokAccessTokenResolver>();
         services.AddScoped<ITikTokVideoOwnershipVerifier, TikTokVideoOwnershipVerifier>();
         services.AddScoped<IUserProvisioningService, UserProvisioningService>();
