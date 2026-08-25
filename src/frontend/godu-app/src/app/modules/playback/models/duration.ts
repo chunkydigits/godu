@@ -45,3 +45,61 @@ export function formatCountdown(totalSeconds: number | null | undefined): string
 export function countdownUsesMinutes(totalSeconds: number | null | undefined): boolean {
   return totalSeconds != null && Number.isFinite(totalSeconds) && totalSeconds > 60;
 }
+
+/**
+ * Compact length for collapsed editor titles: seconds below a minute, then m and s.
+ * 45 → "45s", 60 → "1m", 90 → "1m 30s", 900 → "15m".
+ */
+export function formatCompactDuration(totalSeconds: number | null | undefined): string {
+  if (totalSeconds == null || !Number.isFinite(totalSeconds) || totalSeconds < 0) {
+    return '—';
+  }
+  const seconds = Math.floor(totalSeconds);
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest === 0 ? `${minutes}m` : `${minutes}m ${rest}s`;
+}
+
+/**
+ * Spoken length for voice cues: seconds below a minute, then minutes and seconds.
+ * 45 → "45 seconds", 60 → "1 minute", 90 → "1 minute and 30 seconds".
+ */
+export function formatSpokenDuration(totalSeconds: number | null | undefined): string {
+  if (totalSeconds == null || !Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+    return '';
+  }
+  const seconds = Math.round(totalSeconds);
+  if (seconds < 60) {
+    return seconds === 1 ? '1 second' : `${seconds} seconds`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  const minutePart = minutes === 1 ? '1 minute' : `${minutes} minutes`;
+  if (rest === 0) {
+    return minutePart;
+  }
+  const secondPart = rest === 1 ? '1 second' : `${rest} seconds`;
+  return `${minutePart} and ${secondPart}`;
+}
+
+/** Elapsed share of a countdown, 0 at the start and 100 when remaining hits 0. */
+export function countdownProgress(
+  remainingSeconds: number | null | undefined,
+  totalSeconds: number | null | undefined,
+): number {
+  if (
+    remainingSeconds == null ||
+    totalSeconds == null ||
+    !Number.isFinite(remainingSeconds) ||
+    !Number.isFinite(totalSeconds) ||
+    totalSeconds <= 0
+  ) {
+    return 0;
+  }
+  const remaining = Math.max(0, remainingSeconds);
+  const elapsed = Math.min(totalSeconds, Math.max(0, totalSeconds - remaining));
+  return (elapsed / totalSeconds) * 100;
+}

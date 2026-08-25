@@ -63,6 +63,15 @@ describe('public paths', () => {
       }),
     ).toBe('/t/coach/morning-flow');
   });
+
+  it('builds a TikTok viewer path for a published card-only Godu', () => {
+    expect(
+      publicViewerPath({
+        slug: 'hold',
+        video: { provider: 'none', creatorUsername: 'coach' },
+      }),
+    ).toBe('/t/coach/hold');
+  });
 });
 
 describe('slugFromTitle', () => {

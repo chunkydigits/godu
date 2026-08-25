@@ -10,7 +10,7 @@
           <mat-checkbox formControlName="noVideoContent">Don’t use video content</mat-checkbox>
           <p class="field-hint">
             Build this Godu from cards and gaps only. A TikTok URL is not required, and you
-            cannot publish it publicly until a video is attached.
+            can publish and share it — cards have no source-video copyright check.
           </p>
         </div>
 
@@ -230,16 +230,22 @@
                     {{ isExpanded(i) ? 'expand_more' : 'chevron_right' }}
                   </mat-icon>
                   @if (isGap(i)) {
-                    <span class="step__name">Gap</span>
-                    <span class="step__timing">{{ gapSummary(i) }}</span>
+                    <span class="step__kind">Gap</span>
+                    <span class="step__duration">{{ entryDurationLabel(i) }}</span>
+                    @if (gapComment(i); as comment) {
+                      <span class="step__detail">{{ comment }}</span>
+                    }
                   } @else if (isCard(i)) {
                     <span
                       class="step__swatch"
                       [style.background]="cardBackground(i)"
                       aria-hidden="true"
                     ></span>
-                    <span class="step__name">Card</span>
-                    <span class="step__timing">{{ cardSummary(i) }}</span>
+                    <span class="step__kind">Card</span>
+                    <span class="step__duration">{{ entryDurationLabel(i) }}</span>
+                    @if (cardComment(i); as comment) {
+                      <span class="step__detail">{{ comment }}</span>
+                    }
                   } @else {
                     <span class="step__number">{{ activityNumber(i) }}</span>
                     <span class="step__name">{{ stepTitle(i) }}</span>
@@ -268,10 +274,21 @@
                 <button
                   mat-button
                   type="button"
+                  class="step__remove step__remove--label"
                   [disabled]="!canRemove(i)"
                   (click)="removeEntry.emit(i)"
                 >
                   Remove
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="step__remove step__remove--icon"
+                  [disabled]="!canRemove(i)"
+                  (click)="removeEntry.emit(i)"
+                  aria-label="Remove"
+                >
+                  <mat-icon>close</mat-icon>
                 </button>
               </div>
 

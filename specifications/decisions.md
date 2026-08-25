@@ -241,7 +241,7 @@ See `field-feedback.md` §3.
 | Playback | Colour card fills the viewer with a countdown. A still pauses the TikTok at that time and counts down over it |
 | No video | Creator may tick “Don’t use video content”. URL is then optional; only cards and gaps can be added; still timestamps are hidden |
 | Gaps before cards | Gap message + countdown, with the next card shown as “Up next” |
-| Public publish | Still requires a TikTok the linked account owns. Video-free Godus stay private |
+| Public publish | Video Godus still require a TikTok the linked account owns. Card-only Godus can be published and shared; there is no source-video copyright check. |
 
 ---
 

@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   combineMinutesSeconds,
+  countdownProgress,
   countdownUsesMinutes,
+  formatCompactDuration,
   formatCountdown,
+  formatSpokenDuration,
   parseSeconds,
   splitSeconds,
 } from './duration';
@@ -35,5 +38,36 @@ describe('duration helpers', () => {
     expect(formatCountdown(600)).toBe('10:00');
     expect(countdownUsesMinutes(60)).toBe(false);
     expect(countdownUsesMinutes(61)).toBe(true);
+  });
+
+  it('formats a compact title duration in m and s from a minute', () => {
+    expect(formatCompactDuration(null)).toBe('—');
+    expect(formatCompactDuration(-1)).toBe('—');
+    expect(formatCompactDuration(0)).toBe('0s');
+    expect(formatCompactDuration(45)).toBe('45s');
+    expect(formatCompactDuration(59)).toBe('59s');
+    expect(formatCompactDuration(60)).toBe('1m');
+    expect(formatCompactDuration(90)).toBe('1m 30s');
+    expect(formatCompactDuration(900)).toBe('15m');
+  });
+
+  it('speaks a duration in minutes and seconds from a minute', () => {
+    expect(formatSpokenDuration(null)).toBe('');
+    expect(formatSpokenDuration(0)).toBe('');
+    expect(formatSpokenDuration(1)).toBe('1 second');
+    expect(formatSpokenDuration(45)).toBe('45 seconds');
+    expect(formatSpokenDuration(60)).toBe('1 minute');
+    expect(formatSpokenDuration(61)).toBe('1 minute and 1 second');
+    expect(formatSpokenDuration(90)).toBe('1 minute and 30 seconds');
+    expect(formatSpokenDuration(120)).toBe('2 minutes');
+    expect(formatSpokenDuration(900)).toBe('15 minutes');
+  });
+
+  it('fills countdown progress as remaining time runs out', () => {
+    expect(countdownProgress(null, 15)).toBe(0);
+    expect(countdownProgress(15, 15)).toBe(0);
+    expect(countdownProgress(7.5, 15)).toBe(50);
+    expect(countdownProgress(0, 15)).toBe(100);
+    expect(countdownProgress(0, 0)).toBe(0);
   });
 });

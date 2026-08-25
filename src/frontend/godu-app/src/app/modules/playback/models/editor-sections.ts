@@ -31,7 +31,7 @@ export const EDITOR_SECTIONS = {
     ],
     tips: [
       'Paste a TikTok link or a bare video ID — including mobile share links like vm.tiktok.com. Creator, title and description autofill from TikTok where it allows it. Title and description you have typed yourself are left alone.',
-      'Tick Don’t use video content for a cards-only Godu. The URL is then optional, steps are hidden, and cards cannot freeze a TikTok still.',
+      'Tick Don’t use video content for a cards-only Godu. The URL is then optional, steps are hidden, and cards cannot freeze a TikTok still. Card-only Godus can be published and shared.',
       'Title and description are what people see in listings and above the player.',
       'Creator display name is locked to the TikTok handle once the video is imported, so the original creator stays credited.',
     ],

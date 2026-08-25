@@ -2,16 +2,34 @@
   class="instruction-card"
   [class.instruction-card--preview]="preview"
   [class.instruction-card--overlay]="overlay"
+  [class.instruction-card--stage]="stage"
   [style.--card-bg]="background"
   [style.background]="overlay ? undefined : background"
   [style.color]="text"
   aria-live="polite"
 >
-  @if (preview) {
-    <p class="instruction-card__eyebrow">Up next</p>
-  }
-  <p class="instruction-card__title">{{ title }}</p>
+  <div class="instruction-card__copy">
+    @if (preview) {
+      <p class="instruction-card__eyebrow">Up next</p>
+    }
+    <p class="instruction-card__title">{{ title }}</p>
+  </div>
   @if (remainingSeconds != null) {
-    <p class="instruction-card__timer">{{ remainingLabel }}</p>
+    <div
+      class="instruction-card__countdown"
+      role="progressbar"
+      [attr.aria-valuemin]="0"
+      [attr.aria-valuemax]="100"
+      [attr.aria-valuenow]="progress"
+      [attr.aria-label]="remainingLabel + ' remaining'"
+    >
+      <div class="instruction-card__dial" [style.--ring-offset]="ringOffset">
+        <svg class="instruction-card__ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="instruction-card__ring-track" cx="50" cy="50" r="42" />
+          <circle class="instruction-card__ring-value" cx="50" cy="50" r="42" pathLength="100" />
+        </svg>
+        <p class="instruction-card__timer">{{ remainingLabel }}</p>
+      </div>
+    </div>
   }
 </section>

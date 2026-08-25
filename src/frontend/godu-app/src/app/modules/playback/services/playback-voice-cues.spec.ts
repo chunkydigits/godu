@@ -10,14 +10,15 @@ import {
 
 describe('playback voice cue phrases', () => {
   it('reads the step title and duration', () => {
-    expect(formatStepAnnouncement('Body Waves', 60)).toBe('Body Waves for 60 seconds');
+    expect(formatStepAnnouncement('Body Waves', 60)).toBe('Body Waves for 1 minute');
     expect(formatStepAnnouncement('Hold', 1)).toBe('Hold for 1 second');
+    expect(formatStepAnnouncement('Plank', 90)).toBe('Plank for 1 minute and 30 seconds');
     expect(formatStepAnnouncement('Flow', null)).toBe('Flow');
   });
 
   it('announces the next step at the start of a gap', () => {
     expect(formatNextUpAnnouncement('Body Waves', 60)).toBe(
-      'Next up Body Waves for 60 seconds',
+      'Next up Body Waves for 1 minute',
     );
   });
 
@@ -28,13 +29,13 @@ describe('playback voice cue phrases', () => {
       expect(gapGoCueMaxSeconds()).toBe(10);
       expect(formatTimerStartAnnouncement('Body Waves', 60, 5)).toBe('Go');
       expect(formatTimerStartAnnouncement('Body Waves', 60, 10)).toBe(
-        'Body Waves for 60 seconds, Go',
+        'Body Waves for 1 minute, Go',
       );
       expect(formatTimerStartAnnouncement('Body Waves', 60, 20)).toBe(
-        'Body Waves for 60 seconds, Go',
+        'Body Waves for 1 minute, Go',
       );
       expect(formatTimerStartAnnouncement('Body Waves', 60, null)).toBe(
-        'Body Waves for 60 seconds',
+        'Body Waves for 1 minute',
       );
     } finally {
       environment.playback.gapGoCueMaxSeconds = original;
@@ -42,7 +43,7 @@ describe('playback voice cue phrases', () => {
   });
 
   it('estimates enough lead time for a spoken Go phrase', () => {
-    const seconds = estimateSpeechSeconds('Body Waves for 60 seconds, Go');
+    const seconds = estimateSpeechSeconds('Body Waves for 1 minute, Go');
     expect(seconds).toBeGreaterThan(1);
     expect(seconds).toBeLessThan(8);
   });

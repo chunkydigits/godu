@@ -10,6 +10,7 @@ import {
   EditorSection,
   EditorSectionId,
 } from '../../models/editor-sections';
+import { formatCompactDuration } from '../../models/duration';
 import {
   DEFAULT_CARD_BACKGROUND,
   GAP_MESSAGE_MAX_LENGTH,
@@ -181,23 +182,17 @@ export class StepsEditorFormComponent {
     };
   }
 
-  gapSummary(index: number): string {
-    const entry = this.entryAt(index);
-    const seconds = toNumber(entry?.durationSeconds);
-    const length = seconds != null && seconds > 0 ? `${seconds}s` : '—';
-    const message = entry?.message?.trim();
-    return message ? `${length} · ${message}` : length;
+  entryDurationLabel(index: number): string {
+    const seconds = toNumber(this.entryAt(index)?.durationSeconds);
+    return seconds != null && seconds > 0 ? formatCompactDuration(seconds) : '—';
   }
 
-  cardSummary(index: number): string {
-    const entry = this.entryAt(index);
-    const seconds = toNumber(entry?.durationSeconds);
-    const length = seconds != null && seconds > 0 ? `${seconds}s` : '—';
-    if (this.useVideoContent && entry?.useStill) {
-      const still = toNumber(entry.stillSeconds);
-      return still != null ? `${length} · still @ ${formatClock(still)}` : `${length} · still`;
-    }
-    return length;
+  gapComment(index: number): string {
+    return this.entryAt(index)?.message?.trim() ?? '';
+  }
+
+  cardComment(index: number): string {
+    return this.entryAt(index)?.message?.trim() ?? '';
   }
 
   cardBackground(index: number): string {
@@ -235,8 +230,6 @@ interface StepEntrySummary {
   loopVideo?: boolean;
   message?: string;
   backgroundColor?: string;
-  stillSeconds?: number | string | null;
-  useStill?: boolean;
 }
 
 function toNumber(value: number | string | null | undefined): number | null {
@@ -260,11 +253,4 @@ function loopFields(entry: StepEntrySummary | null): {
 function formatSeconds(value: number | string | null | undefined): string {
   const parsed = toNumber(value);
   return parsed == null ? '—' : `${parsed}s`;
-}
-
-function formatClock(value: number): string {
-  const total = Math.max(0, Math.floor(value));
-  const minutes = Math.floor(total / 60);
-  const seconds = total % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }

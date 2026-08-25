@@ -15,7 +15,7 @@
         [attr.aria-expanded]="!videoCollapsed()"
       >
         <mat-icon>{{ videoCollapsed() ? 'videocam' : 'videocam_off' }}</mat-icon>
-        {{ videoCollapsed() ? 'Show video' : 'Hide video' }}
+        {{ videoCollapsed() ? 'Show content' : 'Hide content' }}
       </button>
       <button
         mat-stroked-button
@@ -50,6 +50,7 @@
                 [externalVideoId]="previewVideoId()"
                 [lookupPending]="videoLookupPending()"
                 [cardsOnly]="form.controls.noVideoContent.value"
+                [cardPreview]="editorCardPreview()"
               />
             </div>
           </aside>

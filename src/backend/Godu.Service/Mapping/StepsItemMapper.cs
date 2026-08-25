@@ -35,10 +35,7 @@ public static class StepsItemMapper
             CreatedUtc = document.CreatedUtc,
             UpdatedUtc = document.UpdatedUtc,
             PublishedUtc = document.PublishedUtc,
-            PublicPath = ProviderUtilities.PublicPath(
-                document.Video.Provider,
-                document.Video.CreatorUsername,
-                document.Slug),
+            PublicPath = PublicPathFor(document),
             Video = new VideoReferenceResponse
             {
                 Provider = document.Video.Provider,
@@ -84,10 +81,7 @@ public static class StepsItemMapper
             Provider = document.Video.Provider,
             Username = username,
             StepCount = document.Steps.Count(s => !StepEntryKinds.IsGap(s.Kind)),
-            PublicPath = ProviderUtilities.PublicPath(
-                document.Video.Provider,
-                username,
-                document.Slug),
+            PublicPath = PublicPathFor(document),
         };
     }
 
@@ -162,6 +156,22 @@ public static class StepsItemMapper
         document.UseVideoContent != false
         && !string.Equals(document.Video.Provider, VideoProviders.None, StringComparison.OrdinalIgnoreCase)
         && !string.IsNullOrWhiteSpace(document.Video.ExternalVideoId);
+
+    public static string? PublicPathFor(StepsItemDocument document) =>
+        ProviderUtilities.PublicPath(
+            PublicUrlProvider(document),
+            document.Video.CreatorUsername,
+            document.Slug);
+
+    private static string? PublicUrlProvider(StepsItemDocument document)
+    {
+        if (UsesVideoContent(document))
+        {
+            return document.Video.Provider;
+        }
+
+        return string.IsNullOrWhiteSpace(document.Video.CreatorUsername) ? null : "tiktok";
+    }
 
     public static VideoReferenceDocument ToVideoDocument(VideoReferenceRequest? video, bool useVideoContent)
     {

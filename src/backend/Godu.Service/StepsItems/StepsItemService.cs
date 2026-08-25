@@ -330,8 +330,8 @@ public sealed class StepsItemService : IStepsItemService
             throw new ArgumentException("A public URL slug is required.");
         }
 
-        if (!StepsItemMapper.UsesVideoContent(existing)
-            || string.IsNullOrWhiteSpace(existing.Video.ExternalVideoId))
+        if (StepsItemMapper.UsesVideoContent(existing)
+            && string.IsNullOrWhiteSpace(existing.Video.ExternalVideoId))
         {
             throw new InvalidOperationException("A TikTok video is required to publish.");
         }
@@ -344,12 +344,15 @@ public sealed class StepsItemService : IStepsItemService
             throw new InvalidOperationException("A verified TikTok account is required to publish.");
         }
 
-        var owned = await _ownership
-            .OwnsVideoAsync(account, existing.Video.ExternalVideoId, cancellationToken)
-            .ConfigureAwait(false);
-        if (!owned)
+        if (StepsItemMapper.UsesVideoContent(existing))
         {
-            throw new InvalidOperationException("This TikTok video is not owned by the linked account.");
+            var owned = await _ownership
+                .OwnsVideoAsync(account, existing.Video.ExternalVideoId, cancellationToken)
+                .ConfigureAwait(false);
+            if (!owned)
+            {
+                throw new InvalidOperationException("This TikTok video is not owned by the linked account.");
+            }
         }
 
         var taken = await _repository

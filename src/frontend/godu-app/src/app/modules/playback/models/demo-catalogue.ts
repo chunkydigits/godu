@@ -6,7 +6,7 @@ import { StepDefinition } from './step-definition.model';
 
 interface DemoCatalogueStep {
   order: number;
-  kind: 'step' | 'gap';
+  kind: 'step' | 'gap' | 'card';
   title: string;
   description?: string | null;
   startSeconds: number;
@@ -15,6 +15,8 @@ interface DemoCatalogueStep {
   autoAdvance: boolean;
   loopVideo?: boolean;
   message?: string;
+  backgroundColor?: string;
+  textColor?: string;
 }
 
 interface DemoCatalogueEntry {
@@ -25,6 +27,7 @@ interface DemoCatalogueEntry {
   creatorDisplayName: string;
   sourceUrl: string | null;
   externalVideoId: string | null;
+  useVideoContent?: boolean;
   continuousSoundtrack: boolean;
   gapSeconds: number | null;
   gapMessage: string | null;
@@ -736,14 +739,67 @@ const CATALOGUE: DemoCatalogueEntry[] = [
       },
     ],
   },
+  {
+    id: 'steps_demo_learn_writing',
+    category: 'Learn',
+    title: 'Grammar School Creative Writing Test Timer',
+    description:
+      'This simulates a grammar school test for creative writing. Starting with a 5 minute planning time, there is then a 30 second gap for the announcement to move on to the main creative writing exercise followed by a 15 minutes timer for the main exercise.',
+    creatorDisplayName: 'Andy',
+    sourceUrl: null,
+    externalVideoId: null,
+    useVideoContent: false,
+    continuousSoundtrack: false,
+    gapSeconds: null,
+    gapMessage: null,
+    steps: [
+      {
+        order: 1,
+        kind: 'card',
+        title: '',
+        startSeconds: 0,
+        endSeconds: 0,
+        durationSeconds: 300,
+        autoAdvance: true,
+        message: 'Planning',
+        backgroundColor: '#02C998',
+        textColor: '#002116',
+      },
+      {
+        order: 2,
+        kind: 'gap',
+        title: '',
+        startSeconds: 0,
+        endSeconds: 0,
+        durationSeconds: 30,
+        autoAdvance: true,
+        message:
+          'The planning time is over, we will be starting the main creative writing section after this 30 second break.',
+      },
+      {
+        order: 3,
+        kind: 'card',
+        title: '',
+        startSeconds: 0,
+        endSeconds: 0,
+        durationSeconds: 900,
+        autoAdvance: true,
+        message: 'Write the creative writing piece',
+        backgroundColor: '#02C998',
+        textColor: '#002116',
+      },
+    ],
+  },
 ];
 
 export const CATALOGUE_DEMOS: DemoStepsItem[] = CATALOGUE.map(toDemoItem);
 
 function toDemoItem(entry: DemoCatalogueEntry): DemoStepsItem {
   const handle = entry.creatorDisplayName.replace(/^@/, '').toLowerCase();
-  const sourceUrl = entry.sourceUrl ?? (handle ? `https://www.tiktok.com/@${handle}` : '');
-  const firstActivity = entry.steps.find((step) => step.kind === 'step');
+  const useVideo = entry.useVideoContent !== false && !!entry.externalVideoId;
+  const sourceUrl =
+    entry.sourceUrl ?? (useVideo && handle ? `https://www.tiktok.com/@${handle}` : '');
+  const firstActivity = entry.steps.find((step) => step.kind !== 'gap');
 
   return {
     id: entry.id,
@@ -756,16 +812,23 @@ function toDemoItem(entry: DemoCatalogueEntry): DemoStepsItem {
     title: entry.title,
     description: entry.description ?? firstActivity?.description ?? entry.title,
     creatorDisplayName: entry.creatorDisplayName,
+    useVideoContent: useVideo,
     continuousSoundtrack: entry.continuousSoundtrack,
     gapSeconds: entry.gapSeconds,
     gapMessage: entry.gapMessage,
     repeatCount: entry.repeatCount ?? null,
-    video: {
-      provider: VideoProvider.TikTok,
-      externalVideoId: entry.externalVideoId ?? '',
-      sourceUrl,
-      creatorUsername: handle,
-    },
+    video: useVideo
+      ? {
+          provider: VideoProvider.TikTok,
+          externalVideoId: entry.externalVideoId ?? '',
+          sourceUrl,
+          creatorUsername: handle,
+        }
+      : {
+          provider: VideoProvider.None,
+          externalVideoId: '',
+          sourceUrl: '',
+        },
     steps: entry.steps.map((step) => toStep(entry.id, step)),
     createdUtc: PUBLISHED,
     updatedUtc: PUBLISHED,
@@ -789,8 +852,13 @@ function toStep(demoId: string, step: DemoCatalogueStep): StepDefinition {
     mapped.description = step.description;
   }
 
-  if (step.kind === 'gap' && step.message) {
+  if ((step.kind === 'gap' || step.kind === 'card') && step.message) {
     mapped.message = step.message;
+  }
+
+  if (step.kind === 'card') {
+    mapped.backgroundColor = step.backgroundColor ?? null;
+    mapped.textColor = step.textColor ?? null;
   }
 
   if (step.loopVideo === false) {

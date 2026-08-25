@@ -62,4 +62,29 @@ public sealed class StepsItemMapperTests
             Steps = [],
         }).Should().BeFalse();
     }
+
+    [Fact]
+    public void PublicPathFor_WhenCardsOnlyWithHandle_ThenUsesTikTokUrl()
+    {
+        var path = StepsItemMapper.PublicPathFor(new StepsItemDocument
+        {
+            Id = "steps_1",
+            CreatedByUserId = "usr_1",
+            Visibility = "public",
+            Status = "published",
+            Title = "Cards",
+            Slug = "hold",
+            UseVideoContent = false,
+            Video = new VideoReferenceDocument
+            {
+                Provider = "none",
+                ExternalVideoId = string.Empty,
+                SourceUrl = string.Empty,
+                CreatorUsername = "coach",
+            },
+            Steps = [],
+        });
+
+        path.Should().Be("/t/coach/hold");
+    }
 }

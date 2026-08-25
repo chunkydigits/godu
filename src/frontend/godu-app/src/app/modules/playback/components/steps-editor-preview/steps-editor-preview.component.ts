@@ -2,16 +2,19 @@ import { AsyncPipe } from '@angular/common';
 import { Component, Input, NgZone, OnDestroy, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, takeUntil } from 'rxjs';
 import { MaterialModule } from '../../../../core/material.module';
+import { countdownUsesMinutes, formatCountdown } from '../../models/duration';
+import { EditorCardPreview } from '../../models/editor-card-preview';
 import { VideoProvider } from '../../models/video-provider.enum';
 import {
   ControllableVideoPlayer,
   VideoPlayerTimeUpdate,
 } from '../../models/video-player.interface';
+import { InstructionCardComponent } from '../instruction-card/instruction-card.component';
 import { VideoHostComponent } from '../video-host/video-host.component';
 
 @Component({
   selector: 'app-steps-editor-preview',
-  imports: [MaterialModule, VideoHostComponent, AsyncPipe],
+  imports: [MaterialModule, VideoHostComponent, InstructionCardComponent, AsyncPipe],
   templateUrl: './steps-editor-preview.component.html',
   styleUrl: './steps-editor-preview.component.scss',
 })
@@ -34,6 +37,7 @@ export class StepsEditorPreviewComponent implements OnDestroy {
   videoId: string | null = null;
   @Input() lookupPending = false;
   @Input() cardsOnly = false;
+  @Input() cardPreview: EditorCardPreview | null = null;
 
   @Input() set externalVideoId(value: string | null) {
     this.videoId = value?.trim() || null;
@@ -93,6 +97,15 @@ export class StepsEditorPreviewComponent implements OnDestroy {
 
   seekForward(): void {
     void this.seekBy(1);
+  }
+
+  gapCountdown(seconds: number | null): string {
+    const remaining = seconds ?? 0;
+    const count = formatCountdown(remaining);
+    if (countdownUsesMinutes(remaining)) {
+      return count;
+    }
+    return remaining === 1 ? `${count} second` : `${count} seconds`;
   }
 
   private async seekBy(delta: number): Promise<void> {

@@ -19,6 +19,7 @@ import {
   distinctUntilChanged,
   finalize,
   map,
+  merge,
   of,
   startWith,
   switchMap,
@@ -42,6 +43,7 @@ import {
 } from '../../models/api-steps-item.model';
 import { EDITOR_SECTIONS, EditorSectionId } from '../../models/editor-sections';
 import { mapEditorEntryToApiStep, EditorEntryValue } from '../../models/editor-entry-request';
+import { buildEditorCardPreview } from '../../models/editor-card-preview';
 import {
   DEFAULT_CARD_BACKGROUND,
   DEFAULT_CARD_SECONDS,
@@ -223,11 +225,44 @@ export class StepsEditorPageComponent {
   readonly videoLookupPending = signal(false);
 
   readonly previewVideoId = computed(() => {
-    if (this.form.controls.noVideoContent.value) {
+    if (this.noVideoLock()) {
       return null;
     }
     const value = this.videoInputValue() ?? this.form.controls.videoInput.value;
     return parseTikTokVideo(value)?.videoId ?? this.resolvedVideoId();
+  });
+
+  readonly focusedEntryIndex = signal(0);
+
+  readonly stepsSnapshot = toSignal(
+    this.form.controls.steps.valueChanges.pipe(
+      startWith(this.form.controls.steps.getRawValue()),
+      map(() => this.steps.getRawValue() as EditorEntryValue[]),
+    ),
+    { initialValue: this.form.controls.steps.getRawValue() as EditorEntryValue[] },
+  );
+
+  private readonly entryFocus = toSignal(
+    this.form.controls.steps.valueChanges.pipe(
+      startWith(null),
+      switchMap(() =>
+        merge(
+          ...this.steps.controls.map((control, index) =>
+            control.valueChanges.pipe(map(() => index)),
+          ),
+        ),
+      ),
+      tap((index) => this.focusedEntryIndex.set(index)),
+    ),
+    { initialValue: 0 },
+  );
+
+  readonly editorCardPreview = computed(() => {
+    this.entryFocus();
+    if (this.previewVideoId()) {
+      return null;
+    }
+    return buildEditorCardPreview(this.stepsSnapshot(), this.focusedEntryIndex());
   });
 
   /** Keeps autofill subscribed for the component lifetime. */
@@ -378,6 +413,10 @@ export class StepsEditorPageComponent {
               // Saved entries start collapsed so the whole run is visible at once.
               this.collapsedEntries.add(group);
             }
+            const firstCard = [...item.steps]
+              .sort((a, b) => a.order - b.order)
+              .findIndex((step) => stepEntryKind(step) === 'card');
+            this.focusedEntryIndex.set(firstCard >= 0 ? firstCard : 0);
             const imported =
               importedTikTokHandle(item.video.creatorUsername) ??
               importedTikTokHandle(
@@ -462,6 +501,7 @@ export class StepsEditorPageComponent {
     const resolved =
       !this.form.controls.noVideoContent.value || kind !== 'step' ? kind : 'card';
     this.steps.push(this.createEntryGroup(resolved, order));
+    this.focusedEntryIndex.set(this.steps.length - 1);
     if (resolved === 'step' || resolved === 'card') {
       this.analytics.track(AnalyticsEvent.StepAdded, { stepNumber: this.activityStepCount });
     }
@@ -500,6 +540,7 @@ export class StepsEditorPageComponent {
         message: '',
       }),
     );
+    this.focusedEntryIndex.set(0);
   }
 
   /**
@@ -565,6 +606,7 @@ export class StepsEditorPageComponent {
     if (!control) {
       return;
     }
+    this.focusedEntryIndex.set(index);
     if (this.collapsedEntries.has(control)) {
       this.collapsedEntries.delete(control);
     } else {
@@ -584,6 +626,16 @@ export class StepsEditorPageComponent {
     this.steps.removeAt(previousIndex);
     this.steps.insert(currentIndex, control);
     this.renumberSteps();
+    if (this.focusedEntryIndex() === previousIndex) {
+      this.focusedEntryIndex.set(currentIndex);
+    } else {
+      const focused = this.focusedEntryIndex();
+      if (previousIndex < focused && currentIndex >= focused) {
+        this.focusedEntryIndex.set(focused - 1);
+      } else if (previousIndex > focused && currentIndex <= focused) {
+        this.focusedEntryIndex.set(focused + 1);
+      }
+    }
   }
 
   /** Gaps can always go; the last remaining activity step cannot. */
@@ -612,6 +664,12 @@ export class StepsEditorPageComponent {
     }
     this.steps.removeAt(index);
     this.renumberSteps();
+    const focused = this.focusedEntryIndex();
+    if (focused >= this.steps.length) {
+      this.focusedEntryIndex.set(Math.max(0, this.steps.length - 1));
+    } else if (focused > index) {
+      this.focusedEntryIndex.set(focused - 1);
+    }
   }
 
   get activityStepCount(): number {

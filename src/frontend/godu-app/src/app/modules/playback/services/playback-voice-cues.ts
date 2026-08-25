@@ -1,4 +1,5 @@
 import { environment } from '../../../../environments/environment';
+import { formatSpokenDuration } from '../models/duration';
 
 /** ~160 words/minute, used to start long “Go” phrases so they land at timer start. */
 const WORDS_PER_SECOND = 2.6;
@@ -15,11 +16,8 @@ export function gapGoCueMaxSeconds(): number {
 export function formatDurationClause(
   durationSeconds: number | null | undefined,
 ): string {
-  if (durationSeconds == null || !Number.isFinite(durationSeconds) || durationSeconds <= 0) {
-    return '';
-  }
-  const n = Math.round(durationSeconds);
-  return n === 1 ? 'for 1 second' : `for ${n} seconds`;
+  const spoken = formatSpokenDuration(durationSeconds);
+  return spoken ? `for ${spoken}` : '';
 }
 
 export function formatStepAnnouncement(

@@ -30,6 +30,17 @@ export function publicCreatorPath(
   return `/${alias}/${handle}`;
 }
 
+function publicPathProvider(
+  provider: string | null | undefined,
+  username: string | null | undefined,
+): string | undefined {
+  const value = (provider ?? '').trim().toLowerCase();
+  if (value && value !== 'none') {
+    return value;
+  }
+  return username?.trim() ? 'tiktok' : undefined;
+}
+
 export function viewerBackPath(options: {
   provider?: string | null;
   username?: string | null;
@@ -110,7 +121,10 @@ export function publicViewerPath(source: PublicPathSource): string | null {
     return stored.startsWith('/') ? stored : `/${stored}`;
   }
 
-  const provider = source.provider ?? source.video?.provider;
+  const provider = publicPathProvider(
+    source.provider ?? source.video?.provider,
+    source.username ?? source.video?.creatorUsername,
+  );
   const username = source.username ?? source.video?.creatorUsername;
   const slug = canonicalSlug(source.slug);
   const creator = publicCreatorPath(provider, username);

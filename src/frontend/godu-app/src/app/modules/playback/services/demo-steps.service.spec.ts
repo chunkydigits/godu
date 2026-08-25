@@ -20,6 +20,7 @@ describe('DemoStepsService related', () => {
       'steps_demo_play_restless',
       'steps_demo_care_skincare',
       'steps_demo_learn_study',
+      'steps_demo_learn_writing',
     ]);
     expect(listed.every((item) => item.listed && item.category)).toBe(true);
     expect(listed.some((item) => item.id === 'steps_demo_fitness_core')).toBe(false);
@@ -55,13 +56,26 @@ describe('DemoStepsService related', () => {
     );
   });
 
-  it('returns other items from the same creator', async () => {
-    const fitness = await firstValueFrom(service.getById('steps_demo_fitness'));
-    const related = await firstValueFrom(service.getRelatedByCreator(fitness));
-    expect(related.length).toBeGreaterThan(0);
-    expect(related.every((x) => x.video.creatorUsername === 'mydisciplinedrive')).toBe(
-      true,
-    );
-    expect(related.some((x) => x.id === 'steps_demo_fitness')).toBe(false);
+  it('maps a cards-only writing timer with no TikTok', async () => {
+    const writing = await firstValueFrom(service.getById('steps_demo_learn_writing'));
+    expect(writing.category).toBe('Learn');
+    expect(writing.useVideoContent).toBe(false);
+    expect(writing.video.provider).toBe('none');
+    expect(writing.steps.map((step) => step.kind)).toEqual(['card', 'gap', 'card']);
+    expect(writing.steps[0]).toMatchObject({
+      message: 'Planning',
+      durationSeconds: 300,
+      backgroundColor: '#02C998',
+    });
+    expect(writing.steps[2]).toMatchObject({
+      message: 'Write the creative writing piece',
+      durationSeconds: 900,
+    });
+  });
+
+  it('does not invent related items for a cards-only demo', async () => {
+    const writing = await firstValueFrom(service.getById('steps_demo_learn_writing'));
+    const related = await firstValueFrom(service.getRelatedByCreator(writing));
+    expect(related).toEqual([]);
   });
 });

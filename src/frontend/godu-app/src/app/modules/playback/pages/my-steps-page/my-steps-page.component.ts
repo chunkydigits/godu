@@ -148,11 +148,13 @@ export class MyStepsPageComponent {
   }
 
   canPublishItem(item: ApiStepsItem, view: MyStepsView): boolean {
-    return (
-      view.canPublish &&
-      usesVideoContent(item) &&
-      linkedTikTokOwnsVideo(item.video, view.accounts)
-    );
+    if (!view.canPublish) {
+      return false;
+    }
+    if (!usesVideoContent(item)) {
+      return true;
+    }
+    return linkedTikTokOwnsVideo(item.video, view.accounts);
   }
 
   publicHref(item: ApiStepsItem): string | null {

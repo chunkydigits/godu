@@ -22,14 +22,39 @@
         <button mat-stroked-button type="button" (click)="seekForward()">+1s</button>
       </div>
     </div>
+  } @else if (lookupPending) {
+    <div class="preview__empty" aria-busy="true">
+      <mat-spinner diameter="36" />
+      <p aria-live="polite">Looking up this TikTok…</p>
+    </div>
+  } @else if (cardPreview; as preview) {
+    <div class="preview__stage">
+      @if (preview.gapMessage || preview.gapSeconds != null) {
+        <div class="preview__gap">
+          @if (preview.gapMessage) {
+            <p class="preview__gap-message">{{ preview.gapMessage }}</p>
+          }
+          @if (preview.gapSeconds != null) {
+            <p class="preview__gap-countdown">
+              Get ready to go in {{ gapCountdown(preview.gapSeconds) }}
+            </p>
+          }
+        </div>
+      }
+      @if (preview.card; as card) {
+        <app-instruction-card
+          [card]="card"
+          [remainingSeconds]="preview.upNext ? null : preview.remainingSeconds"
+          [preview]="preview.upNext"
+          [stage]="true"
+        />
+      }
+    </div>
   } @else {
-    <div class="preview__empty" [attr.aria-busy]="lookupPending">
-      @if (lookupPending) {
-        <mat-spinner diameter="36" />
-        <p aria-live="polite">Looking up this TikTok…</p>
-      } @else if (cardsOnly) {
+    <div class="preview__empty">
+      @if (cardsOnly) {
         <mat-icon>style</mat-icon>
-        <p>No video on this Godu. Cards and gaps play on their own.</p>
+        <p>Add or select a card to preview how it will look on screen.</p>
       } @else {
         <mat-icon>smart_display</mat-icon>
         <p>Paste a TikTok URL to preview the video while you set timestamps.</p>

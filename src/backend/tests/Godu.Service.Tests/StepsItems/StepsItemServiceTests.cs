@@ -780,7 +780,7 @@ public sealed class StepsItemServiceTests
     }
 
     [Fact]
-    public async Task PublishMineAsync_WhenNoVideo_ThenThrows()
+    public async Task PublishMineAsync_WhenCardsOnly_ThenPublishesWithoutVideoOwnership()
     {
         Authenticate("usr_owner");
         var existing = SampleDocument("usr_owner", "published");
@@ -788,14 +788,47 @@ public sealed class StepsItemServiceTests
         existing.Video.Provider = "none";
         existing.Video.ExternalVideoId = "";
         existing.Video.SourceUrl = "";
+        existing.Video.CreatorUsername = null;
+        existing.Steps =
+        [
+            new StepDefinitionDocument
+            {
+                Id = "card_1",
+                Order = 1,
+                Kind = "card",
+                StartSeconds = 0,
+                EndSeconds = 0,
+                DurationSeconds = 45,
+                Message = "Hold",
+            },
+        ];
+        var account = TikTokAccount(verified: true);
         _repository
             .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existing);
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([account]);
+        _repository
+            .Setup(r => r.SlugTakenAsync("usr_owner", account.Id, "cards", existing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _repository
+            .Setup(r => r.UpdateAsync(It.IsAny<StepsItemDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StepsItemDocument doc, CancellationToken _) => doc);
 
-        var act = () => _sut.PublishMineAsync(existing.Id, new PublishStepsItemRequest { Slug = "cards" });
+        var result = await _sut.PublishMineAsync(existing.Id, new PublishStepsItemRequest { Slug = "cards" });
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*TikTok video is required to publish*");
+        result.Visibility.Should().Be("public");
+        result.Slug.Should().Be("cards");
+        result.UseVideoContent.Should().BeFalse();
+        result.Video.CreatorUsername.Should().Be("coach");
+        result.PublicPath.Should().Be("/t/coach/cards");
+        _ownership.Verify(
+            o => o.OwnsVideoAsync(
+                It.IsAny<LinkedPlatformAccountDocument>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     private static StepsItemDocument SampleDocument(string userId, string status) =>
