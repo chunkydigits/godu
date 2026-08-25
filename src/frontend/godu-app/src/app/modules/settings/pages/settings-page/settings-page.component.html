@@ -11,6 +11,18 @@
     }
   }
 
+  @if (trialPanel$ | async; as trial) {
+    @if (trial.kind !== 'hidden') {
+      <section class="panel" [class.panel--ended]="trial.kind === 'expired'">
+        <h2>{{ trial.title }}</h2>
+        <p class="panel__copy">{{ trial.body }}</p>
+        @if (trial.remaining) {
+          <p class="panel__remaining">{{ trial.remaining }}</p>
+        }
+      </section>
+    }
+  }
+
   <section class="panel">
     <h2>Sign in</h2>
     <p class="panel__copy">

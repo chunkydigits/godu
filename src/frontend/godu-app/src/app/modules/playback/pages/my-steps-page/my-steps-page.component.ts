@@ -41,6 +41,7 @@ interface MyStepsView {
   hasVerifiedTikTok: boolean;
   canPublishPublic: boolean;
   canPublish: boolean;
+  subscriptionPrice: string;
   error: string | null;
   actionMessage: string | null;
 }
@@ -58,6 +59,7 @@ const emptyView = (overrides: Partial<MyStepsView> = {}): MyStepsView => ({
   hasVerifiedTikTok: false,
   canPublishPublic: true,
   canPublish: false,
+  subscriptionPrice: '£9.99',
   error: null,
   actionMessage: null,
   ...overrides,
@@ -228,6 +230,7 @@ export class MyStepsPageComponent {
           hasVerifiedTikTok,
           canPublishPublic,
           canPublish: hasVerifiedTikTok && canPublishPublic,
+          subscriptionPrice: `£${(profile?.monthlyPriceGbp || 9.99).toFixed(2)}`,
           actionMessage,
         });
       }),

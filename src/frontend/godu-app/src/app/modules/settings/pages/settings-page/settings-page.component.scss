@@ -16,6 +16,16 @@
   font-weight: 500;
 }
 
+.panel--ended {
+  border-color: color-mix(in srgb, #f28b82 45%, var(--steps-border));
+}
+
+.panel__remaining {
+  margin: 0.45rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
 .panel__copy,
 .empty,
 .error,

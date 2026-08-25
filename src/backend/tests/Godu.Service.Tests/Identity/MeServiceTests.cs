@@ -1,10 +1,13 @@
 using FluentAssertions;
+using Godu.Model.Configuration;
 using Godu.Model.Creators;
 using Godu.Model.Documents;
 using Godu.Model.Enums;
 using Godu.Repository.Users;
 using Godu.Service.Creators;
 using Godu.Service.Identity;
+using Godu.Service.Mapping;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Godu.Service.Tests.Identity;
@@ -29,22 +32,25 @@ public sealed class MeServiceTests
             _currentUser.Object,
             _users.Object,
             _admin.Object,
-            _entitlement.Object);
+            _entitlement.Object,
+            Options.Create(new CreatorMonetisationOptions { MonthlyPriceGbp = 9.99m }));
     }
 
     [Fact]
-    public async Task GetMineAsync_WhenAuthenticated_ThenIncludesCanPublishPublic()
+    public async Task GetMineAsync_WhenExpired_ThenMapsEntitlementAndPrice()
     {
         Authenticate("usr_1");
-        var user = User("usr_1");
+        var ends = new DateTime(2026, 4, 30, 12, 0, 0, DateTimeKind.Utc);
         _users
             .Setup(r => r.GetByIdAsync("usr_1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(user);
+            .ReturnsAsync(User("usr_1"));
         _entitlement
             .Setup(e => e.Evaluate(It.IsAny<UserDocument>(), It.IsAny<DateTime?>()))
             .Returns(new CreatorEntitlement
             {
                 Status = CreatorSubscriptionStatus.Expired,
+                TrialStartedAt = ends.AddMonths(-3),
+                TrialEndsAt = ends,
                 HasActiveEntitlement = false,
                 TrialClockSkipped = false,
             });
@@ -53,16 +59,20 @@ public sealed class MeServiceTests
 
         me.UserId.Should().Be("usr_1");
         me.CanPublishPublic.Should().BeFalse();
+        me.MonthlyPriceGbp.Should().Be(9.99m);
+        me.Entitlement.Status.Should().Be(CreatorSubscriptionMapper.Expired);
+        me.Entitlement.TrialEndsAt.Should().Be(ends);
+        me.Entitlement.CanPublishPublic.Should().BeFalse();
+        me.Entitlement.HasActiveEntitlement.Should().BeFalse();
     }
 
     [Fact]
     public async Task GetMineAsync_WhenNotStarted_ThenCanPublishPublic()
     {
         Authenticate("usr_1");
-        var user = User("usr_1");
         _users
             .Setup(r => r.GetByIdAsync("usr_1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(user);
+            .ReturnsAsync(User("usr_1"));
         _entitlement
             .Setup(e => e.Evaluate(It.IsAny<UserDocument>(), It.IsAny<DateTime?>()))
             .Returns(new CreatorEntitlement
@@ -75,6 +85,9 @@ public sealed class MeServiceTests
         var me = await _sut.GetMineAsync();
 
         me.CanPublishPublic.Should().BeTrue();
+        me.Entitlement.Status.Should().Be(CreatorSubscriptionMapper.NotStarted);
+        me.Entitlement.CanPublishPublic.Should().BeTrue();
+        me.Entitlement.TrialEndsAt.Should().BeNull();
     }
 
     [Fact]

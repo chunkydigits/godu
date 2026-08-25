@@ -11,4 +11,8 @@ public sealed class MeResponse
     public bool IsInternal { get; init; }
 
     public bool CanPublishPublic { get; init; }
+
+    public decimal MonthlyPriceGbp { get; init; }
+
+    public required CreatorEntitlementResponse Entitlement { get; init; }
 }

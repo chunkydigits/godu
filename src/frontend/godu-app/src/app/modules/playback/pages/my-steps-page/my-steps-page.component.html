@@ -28,8 +28,9 @@
         </p>
       } @else if (!view.canPublishPublic && !view.error) {
         <p class="notice">
-          Your creator trial has ended, so public publishing is off until a subscription is
-          available. You can still create and play private Godus. See
+          Your creator trial has ended, so public publishing is off until a
+          {{ view.subscriptionPrice }}/month subscription is available. You can still create
+          and play private Godus. See
           <a routerLink="/settings">Settings</a>
           for details.
         </p>

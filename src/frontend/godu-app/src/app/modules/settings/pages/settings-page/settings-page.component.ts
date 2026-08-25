@@ -22,7 +22,12 @@ import {
   UpdateCreatorProfileRequest,
 } from '../../../creators/models/creator-profile.model';
 import { MineCreatorProfileApiService } from '../../../creators/services/mine-creator-profile-api.service';
+import { CurrentUserService } from '../../../../core/auth/current-user.service';
 import { publicCreatorPath } from '../../../playback/models/public-path';
+import {
+  creatorTrialPanel,
+  CreatorTrialPanel,
+} from '../../models/creator-trial-panel';
 import {
   LinkedPlatformAccount,
   RefreshHandleResult,
@@ -58,6 +63,7 @@ export class SettingsPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly platformAccounts = inject(PlatformAccountsApiService);
   private readonly userSettings = inject(UserSettingsService);
+  private readonly currentUser = inject(CurrentUserService);
   private readonly creatorProfile = inject(MineCreatorProfileApiService);
   private readonly changeDetector = inject(ChangeDetectorRef);
 
@@ -78,6 +84,9 @@ export class SettingsPageComponent {
 
   readonly user$ = this.auth.user$;
   readonly voiceCues$ = this.userSettings.voiceCues$;
+  readonly trialPanel$: Observable<CreatorTrialPanel> = this.currentUser.profile$.pipe(
+    map((profile) => creatorTrialPanel(profile)),
+  );
 
   readonly notice$ = this.route.queryParamMap.pipe(
     map((params) => ({
@@ -88,6 +97,7 @@ export class SettingsPageComponent {
 
   constructor() {
     this.userSettings.hydrate().subscribe();
+    this.currentUser.refresh();
   }
 
   readonly view$: Observable<SettingsView> = merge(
