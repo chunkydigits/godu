@@ -111,7 +111,7 @@ const CATALOGUE: DemoCatalogueEntry[] = [
   {
     id: 'steps_demo_train_hiit',
     category: 'Train',
-    title: 'Steps from @nicci_robinson',
+    title: '30 Minute Bodyweight HIIT from @nicci_robinson',
     description:
       '30 Minute Bodyweight HIIT / Beginner Friendly 🔥 Save ➡️ Share ➡️ Execute All you need is 30 minute for this ultimate burn workout. No equipment and all fitness levels are showcased so No Excuses 🙌🏽 Tabata Style  30 seconds work 15 seconds rest  ✔️Squat to Knee ✔️ 3 pulse squats into calf raise ✔️ Sprawlee ✔️Jump Lunge  ✔️ Cross Jab Squats  Rest for 60 seconds then repeat  Join my Resilient app for more workouts and challenges! Available now on all app stores #hiit #bodyweight #beginnerfriendly',
     creatorDisplayName: '@nicci_robinson',
@@ -194,7 +194,7 @@ const CATALOGUE: DemoCatalogueEntry[] = [
   {
     id: 'steps_demo_style_plait',
     category: 'Style',
-    title: 'Beginner Hair Plait & Twist',
+    title: 'Beginner Hair Plait & Twist from @theellapatt',
     creatorDisplayName: '@theellapatt',
     sourceUrl: 'https://www.tiktok.com/@theellapatt/video/7601240724440616214',
     externalVideoId: '7601240724440616214',
@@ -267,7 +267,7 @@ const CATALOGUE: DemoCatalogueEntry[] = [
   {
     id: 'steps_demo_dance_pop',
     category: 'Dance',
-    title: 'Learn the Pop Muzik Dance',
+    title: 'Learn the Pop Muzik Dance from @beginnerdancetutorials',
     creatorDisplayName: '@beginnerdancetutorials',
     sourceUrl: 'https://www.tiktok.com/@beginnerdancetutorials/video/7496236660967918890',
     externalVideoId: '7496236660967918890',
@@ -340,7 +340,7 @@ const CATALOGUE: DemoCatalogueEntry[] = [
   {
     id: 'steps_demo_makeup_baddie',
     category: 'Makeup',
-    title: 'Baddie Makeup Tutorial',
+    title: 'Baddie Makeup Tutorial from @itsbabykelz',
     creatorDisplayName: '@itsbabykelz',
     sourceUrl: 'https://www.tiktok.com/@itsbabykelz/video/7582736145491004686',
     externalVideoId: '7582736145491004686',
@@ -433,7 +433,7 @@ const CATALOGUE: DemoCatalogueEntry[] = [
   {
     id: 'steps_demo_fix_hinge',
     category: 'Fix',
-    title: 'Repair a Cabinet Door Hinge',
+    title: 'Repair a Cabinet Door Hinge from @mercurystardust',
     creatorDisplayName: '@mercurystardust',
     sourceUrl: 'https://www.tiktok.com/@mercurystardust/video/7293688491815439662',
     externalVideoId: '7293688491815439662',
@@ -496,7 +496,7 @@ const CATALOGUE: DemoCatalogueEntry[] = [
   {
     id: 'steps_demo_make_granny',
     category: 'Make',
-    title: 'Beginner Granny Square',
+    title: 'Beginner Granny Square from @jaswebstar',
     creatorDisplayName: '@jaswebstar',
     sourceUrl: 'https://www.tiktok.com/@jaswebstar/video/7528578251799661855',
     externalVideoId: '7528578251799661855',
@@ -569,7 +569,7 @@ const CATALOGUE: DemoCatalogueEntry[] = [
   {
     id: 'steps_demo_play_restless',
     category: 'Play',
-    title: 'Restless Guitar Tutorial',
+    title: 'Restless Guitar Tutorial from @orlanbro',
     creatorDisplayName: '@orlanbro',
     sourceUrl: 'https://www.tiktok.com/@orlanbro/video/7580576145897295118',
     externalVideoId: '7580576145897295118',
@@ -632,7 +632,7 @@ const CATALOGUE: DemoCatalogueEntry[] = [
   {
     id: 'steps_demo_care_skincare',
     category: 'Care',
-    title: '3-Step Skincare Routine',
+    title: '3-Step Skincare Routine from @sabrina.cinoman.brier',
     creatorDisplayName: '@sabrina.cinoman.brier',
     sourceUrl: 'https://www.tiktok.com/@sabrina.cinoman.brier/video/7550301946347900191',
     externalVideoId: '7550301946347900191',
@@ -675,7 +675,7 @@ const CATALOGUE: DemoCatalogueEntry[] = [
   {
     id: 'steps_demo_learn_study',
     category: 'Learn',
-    title: 'Study Tips',
+    title: 'Study Tips from @gvgmotivation',
     creatorDisplayName: '@gvgmotivation',
     sourceUrl: 'https://www.tiktok.com/@gvgmotivation/video/6708742129562160389',
     externalVideoId: '6708742129562160389',

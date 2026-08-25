@@ -5,17 +5,28 @@ describe('ScreenWakeLockService', () => {
   let service: ScreenWakeLockService;
   let releaseFn: ReturnType<typeof vi.fn>;
   let requestFn: ReturnType<typeof vi.fn>;
+  let sentinel: {
+    released: boolean;
+    release: ReturnType<typeof vi.fn>;
+    addEventListener: ReturnType<typeof vi.fn>;
+    removeEventListener: ReturnType<typeof vi.fn>;
+    type: string;
+    onrelease: null;
+  };
 
   beforeEach(() => {
     releaseFn = vi.fn().mockResolvedValue(undefined);
-    requestFn = vi.fn().mockResolvedValue({
+    sentinel = {
       released: false,
       release: releaseFn,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
       type: 'screen',
       onrelease: null,
-      dispatchedEvent: vi.fn(),
+    };
+    requestFn = vi.fn().mockImplementation(async () => {
+      sentinel.released = false;
+      return sentinel;
     });
 
     Object.defineProperty(navigator, 'wakeLock', {
@@ -48,6 +59,26 @@ describe('ScreenWakeLockService', () => {
     await service.release();
     expect(releaseFn).toHaveBeenCalled();
     expect(service.isActive).toBe(false);
+  });
+
+  it('re-requests when Safari marks the previous lock released', async () => {
+    await service.request();
+    sentinel.released = true;
+
+    await service.request();
+
+    expect(requestFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-requests on pageshow while still wanted', async () => {
+    await service.request();
+    sentinel.released = true;
+    requestFn.mockClear();
+
+    window.dispatchEvent(new Event('pageshow'));
+    await vi.waitFor(() => {
+      expect(requestFn).toHaveBeenCalledWith('screen');
+    });
   });
 
   it('fails soft when request rejects', async () => {

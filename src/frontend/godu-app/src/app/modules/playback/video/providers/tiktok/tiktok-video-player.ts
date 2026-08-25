@@ -22,6 +22,8 @@ interface EmbedOptions {
  * Isolates all TikTok postMessage / iframe details behind VideoPlayer.
  */
 export class TikTokVideoPlayer implements ControllableVideoPlayer {
+  private static readonly SeekRetryMs = 350;
+  private static readonly SeekMaxRetries = 6;
   private iframe: HTMLIFrameElement | null = null;
   private currentTimeSeconds = 0;
   private durationSeconds = 0;
@@ -31,7 +33,8 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
   private muted = false;
   private lastPlayRetryAt = 0;
   private playIntentAt = 0;
-  private seekPostedAt = 0;
+  private seekRetries = 0;
+  private seekRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly readySubject = new BehaviorSubject<boolean>(false);
   private readonly isPlayingSubject = new BehaviorSubject<boolean>(false);
@@ -77,11 +80,12 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     this.playIntentAt = Date.now();
     this.pendingSeekSeconds = startSeconds;
     this.currentTimeSeconds = startSeconds;
-    this.seekPostedAt = Date.now();
+    this.seekRetries = 0;
 
     // TikTok ignores postMessage `play` on an already-paused embed. Navigating
     // a new iframe with autoplay=1 in this click stack is what actually starts it.
     this.mountIframe({ autoplay: true, muted: this.muted });
+    this.scheduleSeekRetry();
   }
 
   setMuted(muted: boolean): void {
@@ -105,8 +109,9 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
   async seek(seconds: number): Promise<void> {
     this.pendingSeekSeconds = seconds;
     this.currentTimeSeconds = seconds;
-    this.seekPostedAt = Date.now();
+    this.seekRetries = 0;
     this.post('seekTo', seconds);
+    this.scheduleSeekRetry();
     this.emitTimeUpdate();
   }
 
@@ -118,6 +123,7 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     this.destroyed = true;
     this.wantPlaying = false;
     this.pendingSeekSeconds = null;
+    this.clearSeekRetry();
     window.removeEventListener('message', this.onMessage);
     this.readySubject.next(false);
     this.setPlaying(false);
@@ -137,6 +143,8 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     // `allow` must be set before `src` or the navigation starts without autoplay.
     iframe.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
     iframe.setAttribute('allowfullscreen', 'true');
+    iframe.setAttribute('playsinline', 'true');
+    iframe.setAttribute('webkit-playsinline', 'true');
     iframe.referrerPolicy = 'strict-origin-when-cross-origin';
     iframe.style.width = '100%';
     iframe.style.height = '100%';
@@ -202,6 +210,36 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
     this.applyMuteState();
   }
 
+  private scheduleSeekRetry(): void {
+    this.clearSeekRetry();
+    if (this.destroyed || this.pendingSeekSeconds == null) {
+      return;
+    }
+    this.seekRetryTimer = setTimeout(() => this.retryPendingSeek(), TikTokVideoPlayer.SeekRetryMs);
+  }
+
+  private retryPendingSeek(): void {
+    if (this.destroyed || this.pendingSeekSeconds == null) {
+      return;
+    }
+    if (this.seekRetries >= TikTokVideoPlayer.SeekMaxRetries) {
+      return;
+    }
+    this.seekRetries += 1;
+    this.post('seekTo', this.pendingSeekSeconds);
+    if (this.wantPlaying) {
+      this.post('play');
+    }
+    this.scheduleSeekRetry();
+  }
+
+  private clearSeekRetry(): void {
+    if (this.seekRetryTimer != null) {
+      clearTimeout(this.seekRetryTimer);
+      this.seekRetryTimer = null;
+    }
+  }
+
   private applyMuteState(): void {
     this.post(this.muted ? 'mute' : 'unMute');
   }
@@ -264,11 +302,11 @@ export class TikTokVideoPlayer implements ControllableVideoPlayer {
         const nextTime = value.currentTime ?? 0;
         if (this.pendingSeekSeconds != null) {
           const landed = Math.abs(nextTime - this.pendingSeekSeconds) <= 1.25;
-          if (!landed && Date.now() - this.seekPostedAt < 1500) {
-            return;
-          }
           if (landed) {
             this.pendingSeekSeconds = null;
+            this.clearSeekRetry();
+          } else if (this.seekRetries < TikTokVideoPlayer.SeekMaxRetries) {
+            return;
           }
         }
         this.currentTimeSeconds = nextTime;

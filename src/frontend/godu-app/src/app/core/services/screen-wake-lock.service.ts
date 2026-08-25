@@ -3,6 +3,9 @@ import { Injectable, OnDestroy } from '@angular/core';
 /**
  * Keeps the screen awake while a Steps session is actively playing.
  * Uses the Screen Wake Lock API when available; fails soft otherwise.
+ *
+ * Safari only grants the lock from a user gesture and may mark it released
+ * without a reliable event — re-request from Start/Resume and on pageshow.
  */
 @Injectable({ providedIn: 'root' })
 export class ScreenWakeLockService implements OnDestroy {
@@ -13,16 +16,27 @@ export class ScreenWakeLockService implements OnDestroy {
       void this.request();
     }
   };
+  private readonly onPageShow = () => {
+    if (this.wanted) {
+      void this.request();
+    }
+  };
 
   constructor() {
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pageshow', this.onPageShow);
     }
   }
 
   ngOnDestroy(): void {
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('pageshow', this.onPageShow);
     }
     void this.release();
   }
@@ -34,20 +48,21 @@ export class ScreenWakeLockService implements OnDestroy {
       return;
     }
 
-    if (document.visibilityState !== 'visible') {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
       return;
     }
 
     try {
-      if (this.sentinel) {
+      if (this.sentinel && this.sentinel.released === false) {
         return;
       }
+      this.sentinel = null;
       this.sentinel = await navigator.wakeLock.request('screen');
       this.sentinel.addEventListener('release', () => {
         this.sentinel = null;
       });
     } catch {
-      // Permission denied / unsupported document state — fail soft
+      // Permission denied / lost user activation / unsupported — fail soft
       this.sentinel = null;
     }
   }

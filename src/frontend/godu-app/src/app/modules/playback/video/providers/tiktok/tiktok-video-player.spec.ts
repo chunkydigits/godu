@@ -45,6 +45,7 @@ describe('TikTokVideoPlayer', () => {
   afterEach(async () => {
     await player.destroy();
     host.remove();
+    vi.useRealTimers();
   });
 
   it('replays a pending seek without playing when playback was not requested', async () => {
@@ -70,6 +71,8 @@ describe('TikTokVideoPlayer', () => {
     const after = host.querySelector('iframe');
     expect(after).not.toBe(before);
     expect(after?.allow).toContain('autoplay');
+    expect(after?.getAttribute('playsinline')).toBe('true');
+    expect(after?.getAttribute('webkit-playsinline')).toBe('true');
     expect(after?.src).toContain('autoplay=1');
     expect(after?.src).toContain('muted=1');
   });
@@ -84,6 +87,44 @@ describe('TikTokVideoPlayer', () => {
     expect(types()).toContain('play');
     expect(types()).toContain('seekTo');
     expect(types()).not.toContain('pause');
+  });
+
+  it('retries a seek that has not landed yet', async () => {
+    vi.useFakeTimers();
+    await player.seek(12);
+    posted = [];
+    spyOnPost();
+
+    await vi.advanceTimersByTimeAsync(350);
+
+    expect(posted).toEqual(
+      expect.arrayContaining([{ 'x-tiktok-player': true, type: 'seekTo', value: 12 }]),
+    );
+    vi.useRealTimers();
+  });
+
+  it('stops retrying once the embed lands on the seek', async () => {
+    vi.useFakeTimers();
+    await player.seek(12);
+    const iframe = host.querySelector('iframe')!;
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: {
+          'x-tiktok-player': true,
+          type: 'onCurrentTime',
+          value: { currentTime: 12, duration: 40 },
+        },
+        origin: TIKTOK_ORIGIN,
+        source: iframe.contentWindow,
+      }),
+    );
+    posted = [];
+    spyOnPost();
+
+    await vi.advanceTimersByTimeAsync(700);
+
+    expect(types()).not.toContain('seekTo');
+    vi.useRealTimers();
   });
 
   it('reports playing only while the embed says so', async () => {

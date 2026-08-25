@@ -367,6 +367,7 @@ export class ViewerPageComponent implements OnDestroy {
       );
       this.playHistory.record(item, 'started');
     }
+    void this.wakeLock.request();
     void this.playback.start();
   }
 
@@ -401,6 +402,7 @@ export class ViewerPageComponent implements OnDestroy {
     if (state.phase === 'playing' || state.phase === 'gap') {
       void this.playback.pause();
     } else if (state.phase === 'paused') {
+      void this.wakeLock.request();
       void this.playback.resume();
     }
   }
