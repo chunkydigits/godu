@@ -2,7 +2,6 @@ using FluentAssertions;
 using Godu.Model.Documents;
 using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
-using Godu.Repository.Users;
 using Godu.Service.Creators;
 using Godu.Service.Identity;
 using Godu.Service.StepsItems;
@@ -25,7 +24,7 @@ public sealed class PublicHandleResolutionTests
             new CurrentUser(),
             Mock.Of<ITikTokVideoOwnershipVerifier>(),
             Mock.Of<ICreatorService>(),
-            Mock.Of<IUserRepository>());
+            Mock.Of<ICreatorEntitlementService>());
     }
 
     [Fact]

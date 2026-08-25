@@ -91,6 +91,7 @@ interface StepEntryFormValue {
 }
 
 const LAYOUT_KEY = 'godu.editor.videoOnEnd';
+const COLLAPSE_KEY = 'godu.editor.videoCollapsed';
 
 @Component({
   selector: 'app-steps-editor-page',
@@ -138,8 +139,11 @@ export class StepsEditorPageComponent {
     }
   }
 
-  /** Desktop: when true, video column is on the end (right in LTR). */
+  /** Desktop / landscape: when true, video column is on the end (right in LTR). */
   readonly videoOnEnd = signal(readVideoOnEnd());
+
+  /** Portrait / stacked: when true, the preview is collapsed so the form can use the space. */
+  readonly videoCollapsed = signal(readVideoCollapsed());
 
   /** Keyed by control so collapse state survives reordering. */
   readonly collapsedEntries = new Set<AbstractControl>();
@@ -424,6 +428,15 @@ export class StepsEditorPageComponent {
     const next = !this.videoOnEnd();
     this.videoOnEnd.set(next);
     writeVideoOnEnd(next);
+  }
+
+  toggleVideoCollapsed(): void {
+    const next = !this.videoCollapsed();
+    this.videoCollapsed.set(next);
+    writeVideoCollapsed(next);
+    if (next) {
+      this.preview?.pause();
+    }
   }
 
   addEntry(kind: StepEntryKind = DEFAULT_STEP_ENTRY_KIND): void {
@@ -887,6 +900,22 @@ function readVideoOnEnd(): boolean {
 function writeVideoOnEnd(value: boolean): void {
   try {
     localStorage.setItem(LAYOUT_KEY, value ? '1' : '0');
+  } catch {
+    // ignore
+  }
+}
+
+function readVideoCollapsed(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeVideoCollapsed(value: boolean): void {
+  try {
+    localStorage.setItem(COLLAPSE_KEY, value ? '1' : '0');
   } catch {
     // ignore
   }

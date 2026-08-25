@@ -230,3 +230,15 @@
     font-size: 1.35rem;
   }
 }
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .page__shell:has(> .page__content--locked) .page__title,
+  .page__shell:has(> .page__content--locked) .page__subtitle {
+    display: none;
+  }
+
+  .page__shell:has(> .page__content--locked) .page__header {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+  }
+}

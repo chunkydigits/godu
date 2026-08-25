@@ -3,7 +3,6 @@ using Godu.Model.Documents;
 using Godu.Model.Requests;
 using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
-using Godu.Repository.Users;
 using Godu.Service.Creators;
 using Godu.Service.Identity;
 using Godu.Service.StepsItems;
@@ -18,7 +17,7 @@ public sealed class StepsItemServiceTests
     private readonly Mock<ILinkedPlatformAccountRepository> _accounts = new();
     private readonly Mock<ITikTokVideoOwnershipVerifier> _ownership = new();
     private readonly Mock<ICreatorService> _creators = new();
-    private readonly Mock<IUserRepository> _users = new();
+    private readonly Mock<ICreatorEntitlementService> _entitlement = new();
     private readonly CurrentUser _currentUser = new();
     private readonly StepsItemService _sut;
 
@@ -39,13 +38,19 @@ public sealed class StepsItemServiceTests
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
+        _entitlement
+            .Setup(e => e.StartTrialIfNeededAsync(
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         _sut = new StepsItemService(
             _repository.Object,
             _accounts.Object,
             _currentUser,
             _ownership.Object,
             _creators.Object,
-            _users.Object);
+            _entitlement.Object);
     }
 
     [Fact]
@@ -70,6 +75,24 @@ public sealed class StepsItemServiceTests
         saved!.CreatedByUserId.Should().Be("usr_owner");
         saved.Status.Should().Be("published");
         saved.Visibility.Should().Be("private");
+    }
+
+    [Fact]
+    public async Task CreateMineAsync_WhenOwnerHasDifferentLinkedTikTok_ThenCreatorSocialsUseVideoCreator()
+    {
+        Authenticate("usr_owner");
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([TikTokAccount(verified: true)]);
+        _repository
+            .Setup(r => r.CreateAsync(It.IsAny<StepsItemDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StepsItemDocument doc, CancellationToken _) => doc);
+
+        var result = await _sut.CreateMineAsync(ValidCreateRequest());
+
+        result.Video.CreatorUsername.Should().Be("x");
+        result.CreatorSocials.Should().ContainSingle(s =>
+            s.Provider == "tiktok" && s.Username == "x");
     }
 
     [Fact]
@@ -307,6 +330,12 @@ public sealed class StepsItemServiceTests
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*verified TikTok*");
+        _entitlement.Verify(
+            e => e.StartTrialIfNeededAsync(
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -362,7 +391,7 @@ public sealed class StepsItemServiceTests
     {
         Authenticate("usr_owner");
         var existing = SampleDocument("usr_owner", "published");
-        existing.Video.CreatorUsername = "someone-else";
+        existing.Video.CreatorUsername = "coach";
         var account = TikTokAccount(verified: true);
         _repository
             .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
@@ -395,6 +424,41 @@ public sealed class StepsItemServiceTests
                 It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+        _entitlement.Verify(
+            e => e.StartTrialIfNeededAsync(
+                "usr_owner",
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task PublishMineAsync_WhenVideoFromDifferentTikTok_ThenThrows()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner", "published");
+        existing.Video.CreatorUsername = "someone-else";
+        var account = TikTokAccount(verified: true);
+        _repository
+            .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _accounts
+            .Setup(r => r.ListByUserAsync("usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([account]);
+
+        var act = () => _sut.PublishMineAsync(existing.Id, new PublishStepsItemRequest { Slug = "morning" });
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*not from a linked account*");
+        _ownership.Verify(
+            o => o.OwnsVideoAsync(It.IsAny<LinkedPlatformAccountDocument>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _entitlement.Verify(
+            e => e.StartTrialIfNeededAsync(
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

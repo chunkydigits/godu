@@ -4,7 +4,6 @@ using Godu.Model.Requests;
 using Godu.Model.Responses;
 using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
-using Godu.Repository.Users;
 using Godu.Service.Creators;
 using Godu.Service.Identity;
 using Godu.Service.Mapping;
@@ -21,7 +20,7 @@ public sealed class StepsItemService : IStepsItemService
     private readonly ICurrentUser _currentUser;
     private readonly ITikTokVideoOwnershipVerifier _ownership;
     private readonly ICreatorService _creators;
-    private readonly IUserRepository _users;
+    private readonly ICreatorEntitlementService _entitlement;
 
     public StepsItemService(
         IStepsItemRepository repository,
@@ -29,14 +28,14 @@ public sealed class StepsItemService : IStepsItemService
         ICurrentUser currentUser,
         ITikTokVideoOwnershipVerifier ownership,
         ICreatorService creators,
-        IUserRepository users)
+        ICreatorEntitlementService entitlement)
     {
         _repository = repository;
         _platformAccounts = platformAccounts;
         _currentUser = currentUser;
         _ownership = ownership;
         _creators = creators;
-        _users = users;
+        _entitlement = entitlement;
     }
 
     public async Task<IReadOnlyList<StepsItemResponse>> ListMineAsync(
@@ -360,10 +359,14 @@ public sealed class StepsItemService : IStepsItemService
         existing.CreatorDisplayName = displayName;
         existing.Video.CreatorUsername = account.Username.Trim().ToLowerInvariant();
         existing.Video.CreatorExternalAccountId = account.ExternalAccountId;
-        existing.PublishedUtc = DateTime.UtcNow;
-        existing.UpdatedUtc = DateTime.UtcNow;
+        var publishedUtc = DateTime.UtcNow;
+        existing.PublishedUtc = publishedUtc;
+        existing.UpdatedUtc = publishedUtc;
 
         var updated = await _repository.UpdateAsync(existing, cancellationToken).ConfigureAwait(false);
+        await _entitlement
+            .StartTrialIfNeededAsync(userId, publishedUtc, cancellationToken)
+            .ConfigureAwait(false);
         return await ToResponseAsync(updated, cancellationToken).ConfigureAwait(false);
     }
 
@@ -401,6 +404,7 @@ public sealed class StepsItemService : IStepsItemService
                 throw new InvalidOperationException("Linked account not found.");
             }
 
+            EnsureAccountMatchesVideo(item, requested);
             return requested;
         }
 
@@ -411,6 +415,19 @@ public sealed class StepsItemService : IStepsItemService
         if (tiktok.Count == 0)
         {
             throw new InvalidOperationException("Connect a verified TikTok account in Settings before publishing.");
+        }
+
+        var videoOpenId = item.Video.CreatorExternalAccountId?.Trim();
+        if (!string.IsNullOrEmpty(videoOpenId))
+        {
+            var byId = tiktok.FirstOrDefault(a =>
+                string.Equals(a.ExternalAccountId, videoOpenId, StringComparison.Ordinal));
+            if (byId is not null)
+            {
+                return byId;
+            }
+
+            throw new InvalidOperationException("This TikTok video is not from a linked account.");
         }
 
         var videoHandle = item.Video.CreatorUsername?.Trim().TrimStart('@');
@@ -424,6 +441,11 @@ public sealed class StepsItemService : IStepsItemService
             return matching;
         }
 
+        if (!string.IsNullOrWhiteSpace(videoHandle))
+        {
+            throw new InvalidOperationException("This TikTok video is not from a linked account.");
+        }
+
         if (tiktok.Count == 1)
         {
             return tiktok[0];
@@ -431,6 +453,36 @@ public sealed class StepsItemService : IStepsItemService
 
         throw new InvalidOperationException(
             "Choose which verified TikTok account owns this video.");
+    }
+
+    private static void EnsureAccountMatchesVideo(
+        StepsItemDocument item,
+        LinkedPlatformAccountDocument account)
+    {
+        var videoOpenId = item.Video.CreatorExternalAccountId?.Trim();
+        if (!string.IsNullOrEmpty(videoOpenId))
+        {
+            if (!string.Equals(account.ExternalAccountId, videoOpenId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("This TikTok video is not from a linked account.");
+            }
+
+            return;
+        }
+
+        var videoHandle = item.Video.CreatorUsername?.Trim().TrimStart('@');
+        if (string.IsNullOrWhiteSpace(videoHandle))
+        {
+            return;
+        }
+
+        if (string.Equals(account.Username, videoHandle, StringComparison.OrdinalIgnoreCase)
+            || account.UsernameAliases.Contains(videoHandle, StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException("This TikTok video is not from a linked account.");
     }
 
     private async Task<IReadOnlyList<StepsItemResponse>> MapManyAsync(

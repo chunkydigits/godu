@@ -64,19 +64,19 @@ function handleFromUrl(url: string | null | undefined): string | null {
 }
 
 /**
- * Best-effort TikTok homepage for the creator a Steps item is based on. Falls
- * back through linked socials, the stored username, the video source URL and
- * finally a display name that is already a handle.
+ * TikTok homepage for the person who posted the video this Godu is based on.
+ * Linked socials belong to the Godu owner and are only used when the video
+ * itself has no handle.
  */
 export function tiktokCreatorLink(item: CreatorLinkSource): TikTokCreatorLink | null {
   const tiktok = item.creatorSocials?.find(
     (social) => social.provider.trim().toLowerCase() === 'tiktok',
   );
   const handle =
-    toHandle(tiktok?.username) ??
-    handleFromUrl(tiktok?.profileUrl) ??
     toHandle(item.video.creatorUsername) ??
     handleFromUrl(item.video.sourceUrl) ??
+    toHandle(tiktok?.username) ??
+    handleFromUrl(tiktok?.profileUrl) ??
     toHandle(item.creatorDisplayName);
   if (!handle) {
     return null;

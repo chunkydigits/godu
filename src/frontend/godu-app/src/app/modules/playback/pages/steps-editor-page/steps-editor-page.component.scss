@@ -27,7 +27,12 @@
   padding-bottom: 0.5rem;
 }
 
+.toolbar__collapse {
+  margin-left: auto;
+}
+
 .toolbar__swap {
+  display: none;
   margin-left: auto;
 }
 
@@ -54,6 +59,21 @@
   position: relative;
   z-index: 2;
   background: var(--steps-bg);
+}
+
+.editor-shell__player {
+  height: 100%;
+  min-height: 0;
+}
+
+.editor-shell__player app-steps-editor-preview {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+
+.editor-shell__preview--collapsed {
+  display: none;
 }
 
 .editor-shell__form {
@@ -84,7 +104,19 @@
   margin: 0;
 }
 
-@media (min-width: 960px) {
+/*
+ * Phone landscape is typically 667–932px wide, so min-width: 960px never
+ * matches after rotate. Treat landscape as the split layout as well.
+ */
+@media (min-width: 960px), (orientation: landscape) {
+  .toolbar__collapse {
+    display: none;
+  }
+
+  .toolbar__swap {
+    display: inline-flex;
+  }
+
   .editor-shell {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -93,7 +125,9 @@
     gap: 1rem;
   }
 
-  .editor-shell__preview {
+  .editor-shell__preview,
+  .editor-shell__preview--collapsed {
+    display: block;
     flex: unset;
     height: auto;
     max-height: none;
@@ -113,5 +147,17 @@
 
   .editor-shell--video-end .editor-shell__form {
     order: 1;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .toolbar {
+    padding-top: 0;
+    padding-bottom: 0.25rem;
+  }
+
+  .editor-shell {
+    gap: 0.5rem;
+    padding-bottom: 0.35rem;
   }
 }

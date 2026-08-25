@@ -54,6 +54,13 @@ public sealed class InMemoryUserRepository : IUserRepository
             UseVoiceCuesByDefault = user.UseVoiceCuesByDefault,
             IsAdmin = user.IsAdmin,
             IsInternal = user.IsInternal,
+            CreatorSubscriptionStatus = user.CreatorSubscriptionStatus,
+            TrialStartedAt = user.TrialStartedAt,
+            TrialEndsAt = user.TrialEndsAt,
+            SubscriptionStartedAt = user.SubscriptionStartedAt,
+            SubscriptionEndsAt = user.SubscriptionEndsAt,
+            TrialWarningEmailSentAt = user.TrialWarningEmailSentAt,
+            TrialEndedEmailSentAt = user.TrialEndedEmailSentAt,
             CreatedUtc = user.CreatedUtc,
             UpdatedUtc = user.UpdatedUtc,
         };

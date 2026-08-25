@@ -56,7 +56,10 @@ public sealed class UserProvisioningServiceTests
         userId.Should().StartWith("usr_");
         _users.Verify(
             r => r.CreateAsync(
-                It.Is<UserDocument>(u => u.Id == userId && u.DisplayName == "Ada Lovelace"),
+                It.Is<UserDocument>(u =>
+                    u.Id == userId
+                    && u.DisplayName == "Ada Lovelace"
+                    && u.CreatorSubscriptionStatus == "notStarted"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _identities.Verify(

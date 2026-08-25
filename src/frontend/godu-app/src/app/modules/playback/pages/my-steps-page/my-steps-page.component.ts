@@ -19,11 +19,13 @@ import { PageTemplateComponent } from '../../../../components/page-template/page
 import { problemDetail } from '../../../../core/http-problem';
 import { MaterialModule } from '../../../../core/material.module';
 import { CreatorStepsApiService } from '../../../creators/services/creator-steps-api.service';
+import { LinkedPlatformAccount } from '../../../settings/models/linked-platform-account.model';
 import { PlatformAccountsApiService } from '../../../settings/services/platform-accounts-api.service';
 import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../../core/analytics/analytics.service';
 import { ShareGoduService } from '../../services/share-godu.service';
 import { ApiStepsItem } from '../../models/api-steps-item.model';
+import { linkedTikTokOwnsVideo } from '../../models/linked-tiktok-owns-video';
 import { isValidSlug, publicViewerPath, slugFromTitle } from '../../models/public-path';
 import { activityCount } from '../../models/step-entry';
 import { DemoStepsItem } from '../../models/demo-steps-item.model';
@@ -34,6 +36,7 @@ interface MyStepsView {
   authenticated: boolean;
   loading: boolean;
   items: ApiStepsItem[];
+  accounts: LinkedPlatformAccount[];
   canPublish: boolean;
   error: string | null;
   actionMessage: string | null;
@@ -48,6 +51,7 @@ const emptyView = (overrides: Partial<MyStepsView> = {}): MyStepsView => ({
   authenticated: true,
   loading: false,
   items: [],
+  accounts: [],
   canPublish: false,
   error: null,
   actionMessage: null,
@@ -92,7 +96,10 @@ export class MyStepsPageComponent {
     }
   }
 
-  startPublish(item: ApiStepsItem): void {
+  startPublish(item: ApiStepsItem, view: MyStepsView): void {
+    if (!this.canPublishItem(item, view)) {
+      return;
+    }
     this.publishingId = item.id;
     this.slugDraft = item.slug || slugFromTitle(item.title);
   }
@@ -102,7 +109,10 @@ export class MyStepsPageComponent {
     this.slugDraft = '';
   }
 
-  confirmPublish(item: ApiStepsItem): void {
+  confirmPublish(item: ApiStepsItem, view: MyStepsView): void {
+    if (!this.canPublishItem(item, view)) {
+      return;
+    }
     const slug = this.slugDraft.trim().toLowerCase();
     if (!isValidSlug(slug)) {
       return;
@@ -126,6 +136,10 @@ export class MyStepsPageComponent {
 
   isPublic(item: ApiStepsItem): boolean {
     return item.visibility.toLowerCase() === 'public';
+  }
+
+  canPublishItem(item: ApiStepsItem, view: MyStepsView): boolean {
+    return view.canPublish && linkedTikTokOwnsVideo(item.video, view.accounts);
   }
 
   publicHref(item: ApiStepsItem): string | null {
@@ -202,6 +216,7 @@ export class MyStepsPageComponent {
         );
         return emptyView({
           items,
+          accounts,
           canPublish,
           actionMessage,
         });

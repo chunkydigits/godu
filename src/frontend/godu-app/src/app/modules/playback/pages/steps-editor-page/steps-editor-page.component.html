@@ -9,6 +9,17 @@
       <button
         mat-stroked-button
         type="button"
+        class="toolbar__collapse"
+        (click)="toggleVideoCollapsed()"
+        aria-controls="editor-video-preview"
+        [attr.aria-expanded]="!videoCollapsed()"
+      >
+        <mat-icon>{{ videoCollapsed() ? 'videocam' : 'videocam_off' }}</mat-icon>
+        {{ videoCollapsed() ? 'Show video' : 'Hide video' }}
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
         class="toolbar__swap"
         (click)="toggleLayout()"
       >
@@ -30,11 +41,16 @@
           [formGroup]="form"
           (ngSubmit)="submit()"
         >
-          <aside class="editor-shell__preview">
-            <app-steps-editor-preview
-              [externalVideoId]="previewVideoId()"
-              [lookupPending]="videoLookupPending()"
-            />
+          <aside
+            class="editor-shell__preview"
+            [class.editor-shell__preview--collapsed]="videoCollapsed()"
+          >
+            <div id="editor-video-preview" class="editor-shell__player">
+              <app-steps-editor-preview
+                [externalVideoId]="previewVideoId()"
+                [lookupPending]="videoLookupPending()"
+              />
+            </div>
           </aside>
 
           <div class="editor-shell__form">

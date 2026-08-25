@@ -9,14 +9,11 @@ public static class CreatorSocialMapper
         IEnumerable<LinkedPlatformAccountDocument> accounts,
         VideoReferenceDocument? video = null)
     {
-        var socials = accounts
-            .Select(FromAccount)
-            .Where(s => s is not null)
-            .Cast<CreatorSocialResponse>()
-            .GroupBy(s => $"{s.Provider}:{s.Username}", StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First())
-            .ToList();
+        var candidates = video is null
+            ? accounts
+            : accounts.Where(account => AccountOwnsVideo(account, video));
 
+        var socials = DistinctSocials(candidates.Select(FromAccount));
         if (socials.Count > 0)
         {
             return socials;
@@ -24,6 +21,45 @@ public static class CreatorSocialMapper
 
         var fromVideo = FromVideo(video);
         return fromVideo is null ? [] : [fromVideo];
+    }
+
+    private static IReadOnlyList<CreatorSocialResponse> DistinctSocials(
+        IEnumerable<CreatorSocialResponse?> socials)
+    {
+        return socials
+            .Where(s => s is not null)
+            .Cast<CreatorSocialResponse>()
+            .GroupBy(s => $"{s.Provider}:{s.Username}", StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToList();
+    }
+
+    private static bool AccountOwnsVideo(
+        LinkedPlatformAccountDocument account,
+        VideoReferenceDocument video)
+    {
+        var provider = string.IsNullOrWhiteSpace(video.Provider)
+            ? "tiktok"
+            : video.Provider.Trim();
+        if (!string.Equals(account.Provider, provider, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var openId = video.CreatorExternalAccountId?.Trim();
+        if (!string.IsNullOrEmpty(openId))
+        {
+            return string.Equals(account.ExternalAccountId, openId, StringComparison.Ordinal);
+        }
+
+        var handle = video.CreatorUsername?.Trim().TrimStart('@');
+        if (string.IsNullOrWhiteSpace(handle))
+        {
+            return false;
+        }
+
+        return string.Equals(account.Username, handle, StringComparison.OrdinalIgnoreCase)
+            || account.UsernameAliases.Contains(handle, StringComparer.OrdinalIgnoreCase);
     }
 
     public static CreatorSocialResponse? FromAccount(LinkedPlatformAccountDocument account)

@@ -22,7 +22,22 @@ describe('creator links', () => {
     ).toEqual({ handle: 'lagomchef', url: 'https://www.tiktok.com/@lagomchef' });
   });
 
-  it('prefers a linked TikTok social account', () => {
+  it('uses the video creator even when the Godu owner has a different TikTok linked', () => {
+    expect(
+      tiktokHomepageUrl({
+        creatorSocials: [
+          {
+            provider: 'tiktok',
+            username: 'myhandle',
+            profileUrl: 'https://www.tiktok.com/@myhandle',
+          },
+        ],
+        video: { creatorUsername: 'lagomchef', sourceUrl },
+      }),
+    ).toBe('https://www.tiktok.com/@lagomchef');
+  });
+
+  it('falls back to a linked TikTok social when the video has no handle', () => {
     expect(
       tiktokHomepageUrl({
         creatorSocials: [
@@ -37,7 +52,7 @@ describe('creator links', () => {
             profileUrl: 'https://www.tiktok.com/@coach',
           },
         ],
-        video: { creatorUsername: 'stale', sourceUrl },
+        video: {},
       }),
     ).toBe('https://www.tiktok.com/@coach');
   });

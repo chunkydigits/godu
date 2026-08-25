@@ -55,7 +55,7 @@
                   <button mat-button type="button" (click)="confirmUnpublish(item)">
                     Unpublish
                   </button>
-                } @else if (view.canPublish && publishingId === item.id) {
+                } @else if (canPublishItem(item, view) && publishingId === item.id) {
                   <mat-form-field appearance="outline" class="mine-item__slug">
                     <mat-label>Public slug</mat-label>
                     <input matInput [(ngModel)]="slugDraft" name="slug" />
@@ -65,13 +65,13 @@
                     color="primary"
                     type="button"
                     [disabled]="!canConfirmPublish"
-                    (click)="confirmPublish(item)"
+                    (click)="confirmPublish(item, view)"
                   >
                     Confirm
                   </button>
                   <button mat-button type="button" (click)="cancelPublish()">Cancel</button>
-                } @else if (view.canPublish) {
-                  <button mat-stroked-button type="button" (click)="startPublish(item)">
+                } @else if (canPublishItem(item, view)) {
+                  <button mat-stroked-button type="button" (click)="startPublish(item, view)">
                     Publish
                   </button>
                 }

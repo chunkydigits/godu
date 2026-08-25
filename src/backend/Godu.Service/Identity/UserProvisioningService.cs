@@ -1,6 +1,7 @@
 using Godu.Model.Documents;
 using Godu.Repository.ExternalIdentities;
 using Godu.Repository.Users;
+using Godu.Service.Mapping;
 using Godu.Utility;
 
 namespace Godu.Service.Identity;
@@ -43,6 +44,7 @@ public sealed class UserProvisioningService : IUserProvisioningService
                 {
                     Id = userId,
                     DisplayName = displayName,
+                    CreatorSubscriptionStatus = CreatorSubscriptionMapper.NotStarted,
                     CreatedUtc = now,
                     UpdatedUtc = now,
                 },
