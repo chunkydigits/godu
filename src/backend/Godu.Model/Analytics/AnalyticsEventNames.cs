@@ -25,6 +25,13 @@ public static class AnalyticsEventNames
     public const string RegistrationStarted = "registration_started";
     public const string LoginCompleted = "login_completed";
     public const string Logout = "logout";
+    public const string TikTokAccountConnected = "tiktok_account_connected";
+    public const string TikTokAccountVerified = "tiktok_account_verified";
+    public const string FirstCreatorGoduPublished = "first_creator_godu_published";
+    public const string CreatorTrialStarted = "creator_trial_started";
+    public const string TrialExpired = "trial_expired";
+
+    public const string ServerAnonymousPrefix = "server:";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -51,6 +58,11 @@ public static class AnalyticsEventNames
         RegistrationStarted,
         LoginCompleted,
         Logout,
+        TikTokAccountConnected,
+        TikTokAccountVerified,
+        FirstCreatorGoduPublished,
+        CreatorTrialStarted,
+        TrialExpired,
     };
 
     public static bool IsKnown(string? eventName) =>

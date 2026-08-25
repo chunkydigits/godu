@@ -47,5 +47,6 @@ export interface AnalyticsSummary {
   returnRate7Day: number;
   creationFunnel: AnalyticsFunnelStep[];
   usageFunnel: AnalyticsFunnelStep[];
+  commercialFunnel?: AnalyticsFunnelStep[];
   daily: AnalyticsDailyPoint[];
 }

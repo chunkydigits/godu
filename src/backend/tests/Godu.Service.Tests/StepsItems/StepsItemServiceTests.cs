@@ -42,6 +42,7 @@ public sealed class StepsItemServiceTests
             .Setup(e => e.StartTrialIfNeededAsync(
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
+                It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _entitlement
@@ -421,6 +422,7 @@ public sealed class StepsItemServiceTests
             e => e.StartTrialIfNeededAsync(
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
+                It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -515,6 +517,7 @@ public sealed class StepsItemServiceTests
             e => e.StartTrialIfNeededAsync(
                 "usr_owner",
                 It.IsAny<DateTime>(),
+                It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -543,6 +546,7 @@ public sealed class StepsItemServiceTests
             e => e.StartTrialIfNeededAsync(
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
+                It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -599,6 +603,7 @@ public sealed class StepsItemServiceTests
             e => e.StartTrialIfNeededAsync(
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
+                It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }

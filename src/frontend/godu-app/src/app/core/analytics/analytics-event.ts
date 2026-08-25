@@ -22,6 +22,11 @@ export const AnalyticsEvent = {
   RegistrationStarted: 'registration_started',
   LoginCompleted: 'login_completed',
   Logout: 'logout',
+  TikTokAccountConnected: 'tiktok_account_connected',
+  TikTokAccountVerified: 'tiktok_account_verified',
+  FirstCreatorGoduPublished: 'first_creator_godu_published',
+  CreatorTrialStarted: 'creator_trial_started',
+  TrialExpired: 'trial_expired',
 } as const;
 
 export type AnalyticsEventName = (typeof AnalyticsEvent)[keyof typeof AnalyticsEvent];

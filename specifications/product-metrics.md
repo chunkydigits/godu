@@ -609,6 +609,30 @@ If useful, a generic property is acceptable:
 
 but do not record provider-specific user IDs.
 
+## 11.1 Creator commercial funnel
+
+These names implement `user-creator-monetisation.md` (product-level events mapped to snake_case). They may be recorded **server-side** (TikTok OAuth callback, first public publish, trial-expiry job). Do not include email, Auth0 ids, TikTok user identifiers, or handles. `platform` may be `tiktok`. `goduId` is allowed on the first public publish.
+
+### `tiktok_account_connected`
+
+First successful TikTok platform-account link for this Godu user.
+
+### `tiktok_account_verified`
+
+First time the linked TikTok account is treated as verified. Today this is the same OAuth success as connect.
+
+### `first_creator_godu_published`
+
+The publish that starts the creator trial (first public creator Godu). Includes `goduId`. Not fired for admin/internal skip-clock users.
+
+### `creator_trial_started`
+
+Persisted `TrialStartedAt`. Not fired for admin/internal skip-clock users.
+
+### `trial_expired`
+
+First time the trial is observed as ended with no active entitlement. Fired by the background check, not by opening the app.
+
 ---
 
 # 12. Save / Favourite Events

@@ -1,7 +1,9 @@
+using Godu.Model.Analytics;
 using Godu.Model.Creators;
 using Godu.Model.Documents;
 using Godu.Model.Enums;
 using Godu.Repository.Users;
+using Godu.Service.Analytics;
 using Godu.Service.Identity;
 using Godu.Service.Mapping;
 
@@ -13,11 +15,16 @@ public sealed class CreatorEntitlementService : ICreatorEntitlementService
 
     private readonly IUserRepository _users;
     private readonly IAdminAccessService _admin;
+    private readonly IAnalyticsRecorder _analytics;
 
-    public CreatorEntitlementService(IUserRepository users, IAdminAccessService admin)
+    public CreatorEntitlementService(
+        IUserRepository users,
+        IAdminAccessService admin,
+        IAnalyticsRecorder analytics)
     {
         _users = users;
         _admin = admin;
+        _analytics = analytics;
     }
 
     public CreatorEntitlement Evaluate(UserDocument user, DateTime? utcNow = null)
@@ -125,6 +132,7 @@ public sealed class CreatorEntitlementService : ICreatorEntitlementService
     public async Task StartTrialIfNeededAsync(
         string userId,
         DateTime publishedUtc,
+        string? goduId = null,
         CancellationToken cancellationToken = default)
     {
         var user = await _users.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);
@@ -145,6 +153,22 @@ public sealed class CreatorEntitlementService : ICreatorEntitlementService
         user.UpdatedUtc = DateTime.UtcNow;
 
         await _users.UpdateAsync(user, cancellationToken).ConfigureAwait(false);
+        await _analytics
+            .RecordForUserAsync(
+                userId,
+                AnalyticsEventNames.FirstCreatorGoduPublished,
+                goduId,
+                "tiktok",
+                cancellationToken)
+            .ConfigureAwait(false);
+        await _analytics
+            .RecordForUserAsync(
+                userId,
+                AnalyticsEventNames.CreatorTrialStarted,
+                goduId,
+                "tiktok",
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public async Task<bool> HasPublicEntitlementAsync(

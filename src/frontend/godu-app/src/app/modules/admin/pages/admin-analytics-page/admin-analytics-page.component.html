@@ -133,6 +133,27 @@
         </ol>
       </section>
 
+      <section class="panel" aria-labelledby="commercial-funnel-title">
+        <h2 id="commercial-funnel-title">Creator commercial funnel</h2>
+        <p class="panel__copy">
+          Unique users from TikTok connect through trial start and expiry. Connect and verify currently
+          happen together. Internal traffic is excluded.
+        </p>
+        <ol class="funnel">
+          @for (step of summary.commercialFunnel ?? []; track step.eventName) {
+            <li class="funnel__step">
+              <div class="funnel__meta">
+                <span>{{ step.label }}</span>
+                <span>{{ step.count | number: '1.0-0' }}</span>
+              </div>
+              <div class="funnel__track">
+                <div class="funnel__bar" [style.width]="funnelWidth(step)"></div>
+              </div>
+            </li>
+          }
+        </ol>
+      </section>
+
       <section class="panel" aria-labelledby="trend-title">
         <h2 id="trend-title">Daily trend</h2>
         <ul class="legend">

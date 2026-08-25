@@ -89,6 +89,24 @@ public sealed class AnalyticsIngestServiceTests
         stored[0].IsInternal.Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData(AnalyticsEventNames.TikTokAccountConnected)]
+    [InlineData(AnalyticsEventNames.TikTokAccountVerified)]
+    [InlineData(AnalyticsEventNames.FirstCreatorGoduPublished)]
+    [InlineData(AnalyticsEventNames.CreatorTrialStarted)]
+    [InlineData(AnalyticsEventNames.TrialExpired)]
+    public async Task IngestAsync_WhenCommercialEvent_ThenStores(string eventName)
+    {
+        await _sut.IngestAsync(ValidRequest(eventName), null);
+
+        var stored = await _repository.ListInRangeAsync(
+            DateTime.UtcNow.AddMinutes(-1),
+            DateTime.UtcNow.AddMinutes(1),
+            "Development");
+        stored.Should().ContainSingle();
+        stored[0].EventName.Should().Be(eventName);
+    }
+
     private static IngestAnalyticsEventRequest ValidRequest(string eventName = AnalyticsEventNames.GoduStarted) =>
         new()
         {
@@ -185,6 +203,53 @@ public sealed class AnalyticsSummaryServiceTests
         summary.Daily[0].Visitors.Should().Be(3);
         summary.Daily[1].GodusCreated.Should().Be(1);
         summary.Daily[2].Visitors.Should().Be(0);
+        summary.CommercialFunnel.Select(step => step.EventName).Should().Equal(
+            AnalyticsEventNames.TikTokAccountConnected,
+            AnalyticsEventNames.TikTokAccountVerified,
+            AnalyticsEventNames.FirstCreatorGoduPublished,
+            AnalyticsEventNames.CreatorTrialStarted,
+            AnalyticsEventNames.TrialExpired);
+        summary.CommercialFunnel.Select(step => step.Count).Should().Equal(0, 0, 0, 0, 0);
+    }
+
+    [Fact]
+    public async Task SummarizeAsync_CommercialFunnelCountsUsersAndIgnoresServerVisitors()
+    {
+        var day = new DateTime(2026, 8, 1, 12, 0, 0, DateTimeKind.Utc);
+        await Seed(AnalyticsEventNames.PageViewed, "anon-a", "s1", day);
+        await Seed(
+            AnalyticsEventNames.TikTokAccountConnected,
+            "server:usr_1",
+            "server:usr_1",
+            day,
+            userId: "usr_1");
+        await Seed(
+            AnalyticsEventNames.TikTokAccountVerified,
+            "server:usr_1",
+            "server:usr_1",
+            day,
+            userId: "usr_1");
+        await Seed(
+            AnalyticsEventNames.FirstCreatorGoduPublished,
+            "server:usr_1",
+            "server:usr_1",
+            day,
+            "steps_1",
+            "usr_1");
+        await Seed(
+            AnalyticsEventNames.CreatorTrialStarted,
+            "server:usr_1",
+            "server:usr_1",
+            day,
+            "steps_1",
+            "usr_1");
+
+        var summary = await _sut.SummarizeAsync(day, day.AddDays(1), "Development");
+
+        summary.UniqueVisitors.Should().Be(1);
+        summary.Daily[0].Visitors.Should().Be(1);
+        summary.CommercialFunnel.Select(step => step.Count).Should().Equal(1, 1, 1, 1, 0);
+        summary.CommercialFunnel[2].ConversionFromStart.Should().Be(100);
     }
 
     private async Task Seed(

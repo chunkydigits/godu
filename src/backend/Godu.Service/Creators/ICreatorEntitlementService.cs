@@ -12,6 +12,7 @@ public interface ICreatorEntitlementService
     Task StartTrialIfNeededAsync(
         string userId,
         DateTime publishedUtc,
+        string? goduId = null,
         CancellationToken cancellationToken = default);
 
     Task<bool> HasPublicEntitlementAsync(string userId, CancellationToken cancellationToken = default);

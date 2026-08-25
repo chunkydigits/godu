@@ -66,5 +66,7 @@ public sealed class AnalyticsSummaryResponse
 
     public IReadOnlyList<AnalyticsFunnelStepResponse> UsageFunnel { get; init; } = [];
 
+    public IReadOnlyList<AnalyticsFunnelStepResponse> CommercialFunnel { get; init; } = [];
+
     public IReadOnlyList<AnalyticsDailyPointResponse> Daily { get; init; } = [];
 }

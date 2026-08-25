@@ -1,7 +1,9 @@
 using FluentAssertions;
+using Godu.Model.Analytics;
 using Godu.Model.Configuration;
 using Godu.Model.Documents;
 using Godu.Repository.Users;
+using Godu.Service.Analytics;
 using Godu.Service.Creators;
 using Godu.Service.Email;
 using Godu.Service.Identity;
@@ -16,6 +18,7 @@ public sealed class TrialExpiryMailServiceTests
 {
     private readonly InMemoryUserRepository _users = new();
     private readonly Mock<IEmailSender> _email = new();
+    private readonly Mock<IAnalyticsRecorder> _analytics = new();
     private readonly TrialExpiryMailService _sut;
     private readonly DateTime _now = new(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc);
 
@@ -29,14 +32,23 @@ public sealed class TrialExpiryMailServiceTests
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+        _analytics
+            .Setup(a => a.RecordForUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         var admin = new AdminAccessService(
             new CurrentUser(),
             _users,
             Options.Create(new AnalyticsOptions()));
         _sut = new TrialExpiryMailService(
             _users,
-            new CreatorEntitlementService(_users, admin),
+            new CreatorEntitlementService(_users, admin, _analytics.Object),
             _email.Object,
+            _analytics.Object,
             Options.Create(new CreatorMonetisationOptions { MonthlyPriceGbp = 9.99m }),
             NullLogger<TrialExpiryMailService>.Instance);
     }
@@ -96,6 +108,15 @@ public sealed class TrialExpiryMailServiceTests
         var stored = await _users.GetByIdAsync("usr_ada");
         stored!.TrialEndedEmailSentAt.Should().NotBeNull();
         stored.TrialWarningEmailSentAt.Should().BeNull();
+        stored.CreatorSubscriptionStatus.Should().Be(CreatorSubscriptionMapper.Expired);
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                "usr_ada",
+                AnalyticsEventNames.TrialExpired,
+                null,
+                "tiktok",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -167,6 +188,54 @@ public sealed class TrialExpiryMailServiceTests
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessDueAsync_WhenTrialEndedAndEmailNotConfigured_ThenStillRecordsExpiryOnce()
+    {
+        await Seed(TrialUser("usr_ada", _now.AddMinutes(-1), email: "ada@example.com"));
+        _email.SetupGet(e => e.IsConfigured).Returns(false);
+
+        await _sut.ProcessDueAsync(_now);
+        await _sut.ProcessDueAsync(_now);
+
+        _email.Verify(
+            e => e.SendAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                "usr_ada",
+                AnalyticsEventNames.TrialExpired,
+                null,
+                "tiktok",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        var stored = await _users.GetByIdAsync("usr_ada");
+        stored!.CreatorSubscriptionStatus.Should().Be(CreatorSubscriptionMapper.Expired);
+    }
+
+    [Fact]
+    public async Task ProcessDueAsync_WhenExpiryRecordFails_ThenDoesNotMarkExpired()
+    {
+        await Seed(TrialUser("usr_ada", _now.AddMinutes(-1), email: "ada@example.com"));
+        _analytics
+            .Setup(a => a.RecordForUserAsync(
+                It.IsAny<string>(),
+                AnalyticsEventNames.TrialExpired,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        await _sut.ProcessDueAsync(_now);
+
+        var stored = await _users.GetByIdAsync("usr_ada");
+        stored!.CreatorSubscriptionStatus.Should().Be(CreatorSubscriptionMapper.Trial);
+        stored.TrialEndedEmailSentAt.Should().NotBeNull();
     }
 
     private async Task Seed(UserDocument user) => await _users.CreateAsync(user);

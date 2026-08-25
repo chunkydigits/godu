@@ -1,8 +1,10 @@
+using Godu.Model.Analytics;
 using Godu.Model.Configuration;
 using Godu.Model.Documents;
 using Godu.Model.Responses;
 using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
+using Godu.Service.Analytics;
 using Godu.Service.Identity;
 using Godu.Service.Mapping;
 using Godu.Service.TikTok;
@@ -21,6 +23,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
     private readonly IPlatformOAuthStateStore _oauthState;
     private readonly IPlatformTokenProtector _tokenProtector;
     private readonly ITikTokAccessTokenResolver _accessTokens;
+    private readonly IAnalyticsRecorder _analytics;
     private readonly TikTokOptions _tikTok;
     private readonly ILogger<LinkedPlatformAccountService> _logger;
 
@@ -32,6 +35,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
         IPlatformOAuthStateStore oauthState,
         IPlatformTokenProtector tokenProtector,
         ITikTokAccessTokenResolver accessTokens,
+        IAnalyticsRecorder analytics,
         IOptions<TikTokOptions> tikTokOptions,
         ILogger<LinkedPlatformAccountService> logger)
     {
@@ -42,6 +46,7 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
         _oauthState = oauthState;
         _tokenProtector = tokenProtector;
         _accessTokens = accessTokens;
+        _analytics = analytics;
         _tikTok = tikTokOptions.Value;
         _logger = logger;
     }
@@ -316,8 +321,20 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
             };
 
             await _repository.CreateAsync(created, cancellationToken).ConfigureAwait(false);
+            await RecordTikTokAsync(
+                    userId,
+                    AnalyticsEventNames.TikTokAccountConnected,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            await RecordTikTokAsync(
+                    userId,
+                    AnalyticsEventNames.TikTokAccountVerified,
+                    cancellationToken)
+                .ConfigureAwait(false);
             return;
         }
+
+        var becameVerified = existing.VerifiedUtc is null;
 
         if (!string.Equals(existing.Username, username, StringComparison.OrdinalIgnoreCase)
             && !string.IsNullOrWhiteSpace(existing.Username)
@@ -342,7 +359,21 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
         existing.Scope = tokens.Scope;
 
         await PersistProfileChangeAsync(existing, previousUsername, cancellationToken).ConfigureAwait(false);
+        if (becameVerified)
+        {
+            await RecordTikTokAsync(
+                    userId,
+                    AnalyticsEventNames.TikTokAccountVerified,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
+
+    private Task RecordTikTokAsync(
+        string userId,
+        string eventName,
+        CancellationToken cancellationToken) =>
+        _analytics.RecordForUserAsync(userId, eventName, platform: "tiktok", cancellationToken: cancellationToken);
 
     private async Task<RefreshHandleResponse> PersistProfileChangeAsync(
         LinkedPlatformAccountDocument account,

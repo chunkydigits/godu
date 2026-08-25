@@ -29,6 +29,7 @@ public static class ServiceConfiguration
         services.AddScoped<IMeService, MeService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<IAnalyticsIngestService, AnalyticsIngestService>();
+        services.AddScoped<IAnalyticsRecorder, AnalyticsRecorder>();
         services.AddScoped<IAnalyticsSummaryService, AnalyticsSummaryService>();
         services.AddScoped<IPlayHistoryService, PlayHistoryService>();
         services.AddSingleton<IPlatformOAuthStateStore, InMemoryPlatformOAuthStateStore>();

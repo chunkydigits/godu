@@ -71,7 +71,11 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
             FromUtc = fromUtc,
             ToUtc = toUtcExclusive,
             Environment = env,
-            UniqueVisitors = visible.Select(item => item.AnonymousId).Distinct(StringComparer.Ordinal).Count(),
+            UniqueVisitors = visible
+                .Where(item => !IsServerOrigin(item))
+                .Select(item => item.AnonymousId)
+                .Distinct(StringComparer.Ordinal)
+                .Count(),
             ActiveUsers = identities,
             RegisteredUsers = visible
                 .Select(item => item.UserId)
@@ -104,6 +108,7 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
             ReturnRate7Day = ReturnRateWithinDays(visible, 7),
             CreationFunnel = Funnel(
                 visible,
+                byIdentity: false,
                 (AnalyticsEventNames.LandingPageViewed, "Landing"),
                 (AnalyticsEventNames.CreateStarted, "Create started"),
                 (AnalyticsEventNames.VideoUrlSubmitted, "Video submitted"),
@@ -112,9 +117,18 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
                 (AnalyticsEventNames.GoduPublished, "Published")),
             UsageFunnel = Funnel(
                 visible,
+                byIdentity: false,
                 (AnalyticsEventNames.GoduViewed, "Viewed"),
                 (AnalyticsEventNames.GoduStarted, "Started"),
                 (AnalyticsEventNames.GoduCompleted, "Completed")),
+            CommercialFunnel = Funnel(
+                visible,
+                byIdentity: true,
+                (AnalyticsEventNames.TikTokAccountConnected, "TikTok connected"),
+                (AnalyticsEventNames.TikTokAccountVerified, "TikTok verified"),
+                (AnalyticsEventNames.FirstCreatorGoduPublished, "First public Godu"),
+                (AnalyticsEventNames.CreatorTrialStarted, "Trial started"),
+                (AnalyticsEventNames.TrialExpired, "Trial expired")),
             Daily = DailyTrend(visible, fromUtc, toUtcExclusive),
         };
     }
@@ -209,11 +223,23 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
         return Rate(returned, identities.Count);
     }
 
+    private static int Identities(IEnumerable<AnalyticsEventDocument> events, string name) =>
+        events
+            .Where(item => item.EventName == name)
+            .Select(Identity)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+
     private static IReadOnlyList<AnalyticsFunnelStepResponse> Funnel(
         IReadOnlyList<AnalyticsEventDocument> events,
+        bool byIdentity,
         params (string EventName, string Label)[] steps)
     {
-        var counts = steps.Select(step => Sessions(events, step.EventName)).ToArray();
+        var counts = steps
+            .Select(step => byIdentity
+                ? Identities(events, step.EventName)
+                : Sessions(events, step.EventName))
+            .ToArray();
         var start = counts.FirstOrDefault(count => count > 0);
         var result = new AnalyticsFunnelStepResponse[steps.Length];
         for (var i = 0; i < steps.Length; i++)
@@ -245,7 +271,11 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
             points.Add(new AnalyticsDailyPointResponse
             {
                 Date = day.ToString("yyyy-MM-dd"),
-                Visitors = slice.Select(item => item.AnonymousId).Distinct(StringComparer.Ordinal).Count(),
+                Visitors = slice
+                    .Where(item => !IsServerOrigin(item))
+                    .Select(item => item.AnonymousId)
+                    .Distinct(StringComparer.Ordinal)
+                    .Count(),
                 GodusCreated = DistinctGodus(slice, AnalyticsEventNames.GoduSaved),
                 GodusStarted = Sessions(slice, AnalyticsEventNames.GoduStarted),
                 GodusCompleted = Sessions(slice, AnalyticsEventNames.GoduCompleted),
@@ -257,6 +287,9 @@ public sealed class AnalyticsSummaryService : IAnalyticsSummaryService
 
     private static string Identity(AnalyticsEventDocument item) =>
         string.IsNullOrWhiteSpace(item.UserId) ? item.AnonymousId : item.UserId;
+
+    private static bool IsServerOrigin(AnalyticsEventDocument item) =>
+        item.AnonymousId.StartsWith(AnalyticsEventNames.ServerAnonymousPrefix, StringComparison.Ordinal);
 
     private static double Rate(int numerator, int denominator) =>
         denominator == 0 ? 0 : Math.Round(numerator * 100d / denominator, 1);

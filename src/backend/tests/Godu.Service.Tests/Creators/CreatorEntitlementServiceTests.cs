@@ -1,12 +1,15 @@
 using FluentAssertions;
+using Godu.Model.Analytics;
 using Godu.Model.Configuration;
 using Godu.Model.Documents;
 using Godu.Model.Enums;
 using Godu.Repository.Users;
+using Godu.Service.Analytics;
 using Godu.Service.Creators;
 using Godu.Service.Identity;
 using Godu.Service.Mapping;
 using Microsoft.Extensions.Options;
+using Moq;
 
 namespace Godu.Service.Tests.Creators;
 
@@ -14,15 +17,24 @@ public sealed class CreatorEntitlementServiceTests
 {
     private readonly InMemoryUserRepository _users = new();
     private readonly AnalyticsOptions _options = new() { AllowAnyAuthenticatedAdmin = true };
+    private readonly Mock<IAnalyticsRecorder> _analytics = new();
     private readonly CreatorEntitlementService _sut;
 
     public CreatorEntitlementServiceTests()
     {
+        _analytics
+            .Setup(a => a.RecordForUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         var admin = new AdminAccessService(
             new CurrentUser(),
             _users,
             Options.Create(_options));
-        _sut = new CreatorEntitlementService(_users, admin);
+        _sut = new CreatorEntitlementService(_users, admin, _analytics.Object);
     }
 
     [Fact]
@@ -31,13 +43,49 @@ public sealed class CreatorEntitlementServiceTests
         await Seed("usr_ada");
         var published = new DateTime(2026, 1, 31, 12, 0, 0, DateTimeKind.Utc);
 
-        await _sut.StartTrialIfNeededAsync("usr_ada", published);
+        await _sut.StartTrialIfNeededAsync("usr_ada", published, "steps_1");
 
         var stored = await _users.GetByIdAsync("usr_ada");
         stored.Should().NotBeNull();
         stored!.CreatorSubscriptionStatus.Should().Be(CreatorSubscriptionMapper.Trial);
         stored.TrialStartedAt.Should().Be(published);
         stored.TrialEndsAt.Should().Be(new DateTime(2026, 4, 30, 12, 0, 0, DateTimeKind.Utc));
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                "usr_ada",
+                AnalyticsEventNames.FirstCreatorGoduPublished,
+                "steps_1",
+                "tiktok",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                "usr_ada",
+                AnalyticsEventNames.CreatorTrialStarted,
+                "steps_1",
+                "tiktok",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task StartTrialIfNeededAsync_WhenAnalyticsFails_ThenStillStartsTrial()
+    {
+        await Seed("usr_ada");
+        _analytics
+            .Setup(a => a.RecordForUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        await _sut.StartTrialIfNeededAsync("usr_ada", DateTime.UtcNow, "steps_1");
+
+        var stored = await _users.GetByIdAsync("usr_ada");
+        stored!.TrialStartedAt.Should().NotBeNull();
+        stored.CreatorSubscriptionStatus.Should().Be(CreatorSubscriptionMapper.Trial);
     }
 
     [Fact]
@@ -52,6 +100,14 @@ public sealed class CreatorEntitlementServiceTests
         var stored = await _users.GetByIdAsync("usr_ada");
         stored!.TrialStartedAt.Should().Be(first);
         stored.TrialEndsAt.Should().Be(first.AddMonths(3));
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                "usr_ada",
+                AnalyticsEventNames.CreatorTrialStarted,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -66,6 +122,14 @@ public sealed class CreatorEntitlementServiceTests
         stored.CreatorSubscriptionStatus.Should().Be(CreatorSubscriptionMapper.NotStarted);
         _sut.Evaluate(stored).HasActiveEntitlement.Should().BeTrue();
         _sut.Evaluate(stored).TrialClockSkipped.Should().BeTrue();
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

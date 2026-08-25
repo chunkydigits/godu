@@ -371,7 +371,7 @@ public sealed class StepsItemService : IStepsItemService
 
         var updated = await _repository.UpdateAsync(existing, cancellationToken).ConfigureAwait(false);
         await _entitlement
-            .StartTrialIfNeededAsync(userId, publishedUtc, cancellationToken)
+            .StartTrialIfNeededAsync(userId, publishedUtc, existing.Id, cancellationToken)
             .ConfigureAwait(false);
         return await ToResponseAsync(updated, cancellationToken).ConfigureAwait(false);
     }

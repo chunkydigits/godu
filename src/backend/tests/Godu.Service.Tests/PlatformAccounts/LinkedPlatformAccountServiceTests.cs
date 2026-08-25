@@ -1,8 +1,10 @@
 using FluentAssertions;
+using Godu.Model.Analytics;
 using Godu.Model.Configuration;
 using Godu.Model.Documents;
 using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
+using Godu.Service.Analytics;
 using Godu.Service.Identity;
 using Godu.Service.PlatformAccounts;
 using Godu.Service.TikTok;
@@ -20,10 +22,20 @@ public sealed class LinkedPlatformAccountServiceTests
     private readonly Mock<ITikTokOAuthClient> _tikTok = new();
     private readonly InMemoryPlatformOAuthStateStore _stateStore = new();
     private readonly PassThroughProtector _protector = new();
+    private readonly Mock<IAnalyticsRecorder> _analytics = new();
     private readonly LinkedPlatformAccountService _sut;
 
     public LinkedPlatformAccountServiceTests()
     {
+        _analytics
+            .Setup(a => a.RecordForUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
         var options = Options.Create(new TikTokOptions
         {
             ClientKey = "client-key",
@@ -50,6 +62,7 @@ public sealed class LinkedPlatformAccountServiceTests
             _stateStore,
             _protector,
             TokenResolver(),
+            _analytics.Object,
             options,
             NullLogger<LinkedPlatformAccountService>.Instance);
     }
@@ -162,6 +175,22 @@ public sealed class LinkedPlatformAccountServiceTests
         saved.EncryptedAccessToken.Should().Be("p:access-token");
         saved.EncryptedRefreshToken.Should().Be("p:refresh-token");
         LinkedPlatformAccountMapperTokensAreHidden(saved);
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                "usr_owner",
+                AnalyticsEventNames.TikTokAccountConnected,
+                null,
+                "tiktok",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                "usr_owner",
+                AnalyticsEventNames.TikTokAccountVerified,
+                null,
+                "tiktok",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -186,6 +215,14 @@ public sealed class LinkedPlatformAccountServiceTests
         url.Should().Be("http://localhost:4200/settings?error=conflict");
         _repository.Verify(
             r => r.CreateAsync(It.IsAny<LinkedPlatformAccountDocument>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -235,6 +272,14 @@ public sealed class LinkedPlatformAccountServiceTests
                 "therealjoe",
                 It.IsAny<CancellationToken>()),
             Times.Once);
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -256,6 +301,14 @@ public sealed class LinkedPlatformAccountServiceTests
         url.Should().Be("http://localhost:4200/settings?error=failed");
         _repository.Verify(
             r => r.CreateAsync(It.IsAny<LinkedPlatformAccountDocument>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _analytics.Verify(
+            a => a.RecordForUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -470,6 +523,7 @@ public sealed class LinkedPlatformAccountServiceTests
             _stateStore,
             _protector,
             TokenResolver(),
+            _analytics.Object,
             Options.Create(new TikTokOptions()),
             NullLogger<LinkedPlatformAccountService>.Instance);
     }
