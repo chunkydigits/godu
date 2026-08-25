@@ -10,7 +10,7 @@ public sealed class StepDefinitionRequest
     [Range(1, int.MaxValue)]
     public int Order { get; set; }
 
-    /// <summary>"step" or "gap"; treated as "step" when omitted.</summary>
+    /// <summary>"step", "gap", or "card"; treated as "step" when omitted.</summary>
     public string? Kind { get; set; }
 
     /// <summary>Required for steps; gaps have no title. Enforced by kind.</summary>
@@ -34,4 +34,13 @@ public sealed class StepDefinitionRequest
 
     [MaxLength(StepEntryKinds.GapMessageMaxLength)]
     public string? Message { get; set; }
+
+    [MaxLength(7)]
+    public string? BackgroundColor { get; set; }
+
+    [MaxLength(7)]
+    public string? TextColor { get; set; }
+
+    [Range(0, double.MaxValue)]
+    public double? StillSeconds { get; set; }
 }

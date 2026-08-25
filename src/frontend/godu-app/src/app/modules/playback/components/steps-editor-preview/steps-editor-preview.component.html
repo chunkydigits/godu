@@ -27,6 +27,9 @@
       @if (lookupPending) {
         <mat-spinner diameter="36" />
         <p aria-live="polite">Looking up this TikTok…</p>
+      } @else if (cardsOnly) {
+        <mat-icon>style</mat-icon>
+        <p>No video on this Godu. Cards and gaps play on their own.</p>
       } @else {
         <mat-icon>smart_display</mat-icon>
         <p>Paste a TikTok URL to preview the video while you set timestamps.</p>

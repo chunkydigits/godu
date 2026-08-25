@@ -16,11 +16,15 @@ import { StepDefinition } from '../models/step-definition.model';
 import { StepsItem } from '../models/steps-item.model';
 import {
   activityCount,
+  activityDisplayTitle,
   activityIndexAtOrAfter,
   activityIndexToEntryIndex,
+  activityMediaSeconds,
   activityNumberAt,
+  activityUsesClip,
   firstActivityIndex,
   hasMoreIterations,
+  isCardEntry,
   lastActivityIndex,
   previousActivityIndex,
   resolveStartGapSeconds,
@@ -28,6 +32,7 @@ import {
   resolvedRepeatCount,
   shouldLoopVideo,
 } from '../models/step-entry';
+import { usesVideoContent } from '../models/video-reference.model';
 import { StepTransition, resolveStepTransition, resolveWrapTransition } from '../models/step-transition';
 import { isContinuousSoundtrackEnabled } from '../models/continuous-soundtrack.feature';
 import { ControllableVideoPlayer } from '../models/video-player.interface';
@@ -241,11 +246,12 @@ export class StepPlaybackService implements OnDestroy {
     const timed = step.durationSeconds != null && step.durationSeconds > 0;
     const useSoundtrack = isContinuousSoundtrackEnabled(stepsItem) && timed;
     const introSeconds = resolveStartGapSeconds(stepsItem);
+    const useClip = this.stepUsesClip(step);
 
     if (introSeconds > 0) {
-      if (!this.visualSuspended) {
+      if (!this.visualSuspended && useClip) {
         this.soundtrackPlayer?.pause();
-        this.player?.kickstartFromUserGesture(step.startSeconds, {
+        this.player?.kickstartFromUserGesture(activityMediaSeconds(step), {
           muted: this.clipAudioMuted(),
         });
       }
@@ -266,22 +272,22 @@ export class StepPlaybackService implements OnDestroy {
     }
 
     // Synchronous kickstarts — preserve user activation
-    if (!this.visualSuspended) {
+    if (!this.visualSuspended && useClip) {
       if (useSoundtrack) {
         this.soundtrackPlayer?.kickstartFromUserGesture(0, {
           muted: this.clipAudioMuted(),
         });
-        this.player?.kickstartFromUserGesture(step.startSeconds, { muted: true });
+        this.player?.kickstartFromUserGesture(activityMediaSeconds(step), { muted: true });
       } else {
         this.soundtrackPlayer?.pause();
-        this.player?.kickstartFromUserGesture(step.startSeconds, {
+        this.player?.kickstartFromUserGesture(activityMediaSeconds(step), {
           muted: this.clipAudioMuted(),
         });
       }
     }
 
     // Speak in this tap so iOS unlocks TTS for later auto-advanced steps.
-    this.voiceCues.announceActivityStart(step.title, step.durationSeconds, null);
+    this.voiceCues.announceActivityStart(activityDisplayTitle(step), step.durationSeconds, null);
 
     await this.selectStep(index, {
       activate: true,
@@ -349,9 +355,9 @@ export class StepPlaybackService implements OnDestroy {
         clipHoldActive: false,
       });
 
-      if (this.player) {
+      if (this.player && this.stepUsesClip(step)) {
         await this.player.pause();
-        await this.player.seek(step.startSeconds);
+        await this.player.seek(activityMediaSeconds(step));
       }
       if (this.soundtrackPlayer) {
         await this.soundtrackPlayer.pause();
@@ -372,38 +378,52 @@ export class StepPlaybackService implements OnDestroy {
       clipHoldActive: false,
     });
 
+    const useClip = this.stepUsesClip(step);
+    const stillCard = isCardEntry(step) && useClip;
+
     if (!options.mediaAlreadyKickstarted) {
-      if (continuousSoundtrackActive) {
+      if (continuousSoundtrackActive && useClip) {
         if (this.soundtrackPlayer) {
           await this.soundtrackPlayer.play();
         }
         if (this.player) {
-          await this.player.seek(step.startSeconds);
+          await this.player.seek(activityMediaSeconds(step));
           await this.player.play();
         }
       } else {
         if (this.soundtrackPlayer) {
           await this.soundtrackPlayer.pause();
         }
-        if (this.player) {
-          await this.player.seek(step.startSeconds);
-          await this.player.play();
+        if (this.player && useClip) {
+          await this.player.seek(activityMediaSeconds(step));
+          if (stillCard) {
+            await this.player.pause();
+          } else {
+            await this.player.play();
+          }
+        } else {
+          await this.player?.pause();
         }
       }
+    } else if (stillCard && this.player) {
+      await this.player.pause();
     }
 
     this.applyAudioRouting();
 
     if (isTimed) {
-      const started = await this.waitUntilPlaybackStarted(generation);
+      const started =
+        useClip && !stillCard
+          ? await this.waitUntilPlaybackStarted(generation)
+          : generation === this.sessionGeneration && this.snapshot.phase === 'playing';
       if (!started) {
         return;
       }
-      this.setLoopArmed(true);
+      this.setLoopArmed(useClip && !stillCard);
       this.startTimer(step.durationSeconds!, 'activity');
       if (!options.skipVoiceAnnounce) {
         this.voiceCues.announceActivityStart(
-          step.title,
+          activityDisplayTitle(step),
           step.durationSeconds,
           options.fromGapSeconds ?? null,
         );
@@ -411,10 +431,10 @@ export class StepPlaybackService implements OnDestroy {
       return;
     }
 
-    this.setLoopArmed(true);
+    this.setLoopArmed(useClip);
     if (!options.skipVoiceAnnounce) {
       this.voiceCues.announceActivityStart(
-        step.title,
+        activityDisplayTitle(step),
         step.durationSeconds,
         options.fromGapSeconds ?? null,
       );
@@ -651,9 +671,9 @@ export class StepPlaybackService implements OnDestroy {
       return;
     }
 
-    if (phase === 'playing') {
+    if (phase === 'playing' && this.stepUsesClip(selectedStep)) {
       this.setLoopArmed(true);
-      this.player.kickstartFromUserGesture(selectedStep.startSeconds, {
+      this.player.kickstartFromUserGesture(activityMediaSeconds(selectedStep), {
         muted: continuousSoundtrackActive ? true : this.clipAudioMuted(),
       });
       this.applyAudioRouting();
@@ -661,20 +681,24 @@ export class StepPlaybackService implements OnDestroy {
     }
 
     if (phase === 'gap') {
+      if (!this.stepUsesClip(selectedStep)) {
+        this.applyAudioRouting();
+        return;
+      }
       if (this.gapMediaStarted) {
         void this.resumeGapMedia();
       } else if (this.shouldPrerollGapMedia(this.snapshot.remainingSeconds)) {
         void this.startGapMedia();
       } else {
-        void this.player.seek(selectedStep.startSeconds);
+        void this.player.seek(activityMediaSeconds(selectedStep));
         void this.player.pause();
       }
       this.applyAudioRouting();
       return;
     }
 
-    if (phase === 'ready' || phase === 'paused') {
-      void this.player.seek(selectedStep.startSeconds);
+    if ((phase === 'ready' || phase === 'paused') && this.stepUsesClip(selectedStep)) {
+      void this.player.seek(activityMediaSeconds(selectedStep));
       void this.player.pause();
       this.applyAudioRouting();
     }
@@ -711,8 +735,8 @@ export class StepPlaybackService implements OnDestroy {
     this.gapMediaStarted = false;
     this.gapTotalSeconds = gapSeconds;
 
-    if (!options.mediaAlreadyKickstarted && this.player) {
-      await this.player.seek(nextStep.startSeconds);
+    if (!options.mediaAlreadyKickstarted && this.player && this.stepUsesClip(nextStep)) {
+      await this.player.seek(activityMediaSeconds(nextStep));
       if (!options.startMediaImmediately && gapSeconds > gapPrerollImmediateMaxSeconds()) {
         await this.player.pause();
       }
@@ -745,7 +769,7 @@ export class StepPlaybackService implements OnDestroy {
       await this.startGapMedia();
     }
 
-    this.voiceCues.announceGapStart(nextStep.title, nextStep.durationSeconds);
+    this.voiceCues.announceGapStart(activityDisplayTitle(nextStep), nextStep.durationSeconds);
     this.startTimer(gapSeconds, 'gap');
   }
 
@@ -780,7 +804,8 @@ export class StepPlaybackService implements OnDestroy {
       return;
     }
     const step = this.snapshot.selectedStep;
-    if (!step) {
+    if (!step || !this.stepUsesClip(step)) {
+      this.gapMediaStarted = true;
       return;
     }
 
@@ -792,10 +817,14 @@ export class StepPlaybackService implements OnDestroy {
       return;
     }
 
-    await this.player.seek(step.startSeconds);
-    await this.player.play();
+    await this.player.seek(activityMediaSeconds(step));
+    if (isCardEntry(step)) {
+      await this.player.pause();
+    } else {
+      await this.player.play();
+    }
     this.applyAudioRouting();
-    this.setLoopArmed(true);
+    this.setLoopArmed(!isCardEntry(step));
   }
 
   private async resumeGapMedia(): Promise<void> {
@@ -882,6 +911,9 @@ export class StepPlaybackService implements OnDestroy {
   private onVisualTime(currentTime: number): void {
     const { selectedStep, phase } = this.snapshot;
     if (!selectedStep || phase !== 'playing' || !this.loopArmed || !this.player) {
+      return;
+    }
+    if (isCardEntry(selectedStep)) {
       return;
     }
 
@@ -1060,6 +1092,14 @@ export class StepPlaybackService implements OnDestroy {
       return false;
     }
     return lastActivityIndex(stepsItem.steps) === selectedIndex;
+  }
+
+  private stepUsesClip(step: StepDefinition | null | undefined): boolean {
+    const item = this.snapshot.stepsItem;
+    if (!item || !step) {
+      return false;
+    }
+    return activityUsesClip(step, usesVideoContent(item));
   }
 
   private bumpSession(): void {

@@ -5,9 +5,13 @@ import {
   activityIndexAtOrAfter,
   activityIndexToEntryIndex,
   activityNumberAt,
+  activityUsesClip,
+  defaultEntryKind,
+  entryKindsForVideo,
   firstActivityIndex,
   hasStartGapOverride,
   isGapEntry,
+  isCardEntry,
   canGoToNextStep,
   canGoToPreviousStep,
   formatElapsed,
@@ -27,6 +31,8 @@ import {
   resolvedRepeatCount,
   shouldLoopVideo,
   stepEntryKind,
+  stillCardOverlay,
+  visibleInstructionCard,
 } from './step-entry';
 
 /** step, gap, step, step */
@@ -42,7 +48,32 @@ describe('step entries', () => {
     expect(stepEntryKind({})).toBe('step');
     expect(stepEntryKind(undefined)).toBe('step');
     expect(isGapEntry({ kind: 'gap' })).toBe(true);
-    expect(isGapEntry({ kind: 'GAP' })).toBe(false);
+    expect(isGapEntry({ kind: 'GAP' })).toBe(true);
+    expect(isCardEntry({ kind: 'card' })).toBe(true);
+    expect(isCardEntry({ kind: 'CARD' })).toBe(true);
+    expect(stepEntryKind({ kind: 'card' })).toBe('card');
+  });
+
+  it('counts cards as numbered activity', () => {
+    const mixed = [{ kind: 'card' }, { kind: 'gap' }, { kind: 'step' }];
+    expect(activityCount(mixed)).toBe(2);
+    expect(hasTimedActivity([{ kind: 'card', durationSeconds: 30 }])).toBe(true);
+    expect(entryKindsForVideo(false).map((option) => option.kind)).toEqual(['card', 'gap']);
+    expect(defaultEntryKind(false)).toBe('card');
+    expect(activityUsesClip({ kind: 'card' }, true)).toBe(false);
+    expect(activityUsesClip({ kind: 'card', stillSeconds: 3 }, true)).toBe(true);
+    expect(activityUsesClip({ kind: 'card', stillSeconds: 3 }, false)).toBe(false);
+  });
+
+  it('shows a colour card, and the next card during a gap', () => {
+    const colour = { kind: 'card' as const, stillSeconds: null };
+    const still = { kind: 'card' as const, stillSeconds: 4 };
+    expect(visibleInstructionCard(colour, false)).toBe(colour);
+    expect(visibleInstructionCard(still, false)).toBeNull();
+    expect(visibleInstructionCard(still, true)).toBe(still);
+    expect(stillCardOverlay(still, false)).toBe(still);
+    expect(stillCardOverlay(still, true)).toBeNull();
+    expect(stillCardOverlay(colour, false)).toBeNull();
   });
 
   it('counts and filters activity steps, ignoring gaps', () => {

@@ -1159,4 +1159,114 @@ describe('StepPlaybackService', () => {
     await service.load(createDemoItem({ id: 'steps_other' }));
     expect(service.snapshot.loopAll).toBe(false);
   });
+
+  it('runs a colour card timer without a player', async () => {
+    await service.load(
+      createDemoItem({
+        useVideoContent: false,
+        video: {
+          provider: VideoProvider.None,
+          externalVideoId: '',
+          sourceUrl: '',
+        },
+        steps: [
+          {
+            id: 'c1',
+            order: 1,
+            kind: 'card',
+            title: '',
+            startSeconds: 0,
+            endSeconds: 0,
+            durationSeconds: 3,
+            autoAdvance: true,
+            message: 'Hold',
+            backgroundColor: '#02c998',
+            textColor: '#002116',
+          },
+        ],
+      }),
+    );
+    await service.start();
+
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.isTimedStep).toBe(true);
+    expect(service.snapshot.remainingSeconds).toBe(3);
+
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(service.snapshot.remainingSeconds).toBe(2);
+  });
+
+  it('pauses a still card on the chosen frame', async () => {
+    const { player, seek, play, pause, kickstartFromUserGesture } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 'c1',
+            order: 1,
+            kind: 'card',
+            title: '',
+            startSeconds: 0,
+            endSeconds: 0,
+            durationSeconds: 5,
+            autoAdvance: true,
+            stillSeconds: 4,
+            message: 'Hold this',
+          },
+        ],
+      }),
+    );
+    await service.start();
+
+    expect(kickstartFromUserGesture).toHaveBeenCalledWith(4, { muted: false });
+    expect(seek).toHaveBeenCalledWith(4);
+    expect(pause).toHaveBeenCalled();
+    expect(play).not.toHaveBeenCalled();
+    expect(service.snapshot.phase).toBe('playing');
+    expect(service.snapshot.remainingSeconds).toBe(5);
+  });
+
+  it('keeps the next card selected during a gap', async () => {
+    await service.load(
+      createDemoItem({
+        useVideoContent: false,
+        gapSeconds: 2,
+        video: {
+          provider: VideoProvider.None,
+          externalVideoId: '',
+          sourceUrl: '',
+        },
+        steps: [
+          {
+            id: 'c1',
+            order: 1,
+            kind: 'card',
+            title: '',
+            startSeconds: 0,
+            endSeconds: 0,
+            durationSeconds: 2,
+            autoAdvance: true,
+            message: 'First',
+          },
+          {
+            id: 'c2',
+            order: 2,
+            kind: 'card',
+            title: '',
+            startSeconds: 0,
+            endSeconds: 0,
+            durationSeconds: 2,
+            autoAdvance: true,
+            message: 'Second',
+          },
+        ],
+      }),
+    );
+    await service.start();
+    await vi.advanceTimersByTimeAsync(2100);
+
+    expect(service.snapshot.phase).toBe('gap');
+    expect(service.snapshot.selectedStep?.id).toBe('c2');
+  });
 });

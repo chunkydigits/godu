@@ -12,7 +12,7 @@
     } @else if (view.item; as item) {
     <div
       class="viewer"
-      [class.viewer--video-off]="(showVideo$ | async) === false"
+      [class.viewer--video-off]="hasVideo(item) && (showVideo$ | async) === false"
       [class.viewer--complete]="(showVideoPane$ | async) === false"
     >
       @if (state$ | async; as state) {
@@ -38,15 +38,17 @@
           @if (state.phase !== 'completed') {
             <div class="viewer__chrome">
               @if (!settingsOpen) {
-                <button
-                  mat-icon-button
-                  type="button"
-                  class="viewer__mute"
-                  (click)="toggleMute()"
-                  [attr.aria-label]="state.userMuted ? 'Unmute' : 'Mute'"
-                >
-                  <mat-icon>{{ state.userMuted ? 'volume_off' : 'volume_up' }}</mat-icon>
-                </button>
+                @if (hasVideo(item)) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="viewer__mute"
+                    (click)="toggleMute()"
+                    [attr.aria-label]="state.userMuted ? 'Unmute' : 'Mute'"
+                  >
+                    <mat-icon>{{ state.userMuted ? 'volume_off' : 'volume_up' }}</mat-icon>
+                  </button>
+                }
                 <button
                   mat-icon-button
                   type="button"
@@ -92,14 +94,16 @@
                         aria-label="Sound"
                       />
                     </div>
-                    <div class="viewer__settings-row">
-                      <span>Video</span>
-                      <mat-slide-toggle
-                        [checked]="(showVideo$ | async) ?? true"
-                        (change)="onShowVideoChange($event.checked)"
-                        aria-label="Video"
-                      />
-                    </div>
+                    @if (hasVideo(item)) {
+                      <div class="viewer__settings-row">
+                        <span>Video</span>
+                        <mat-slide-toggle
+                          [checked]="(showVideo$ | async) ?? true"
+                          (change)="onShowVideoChange($event.checked)"
+                          aria-label="Video"
+                        />
+                      </div>
+                    }
                     <div
                       class="viewer__settings-row"
                       [class.viewer__settings-row--disabled]="state.userMuted"
@@ -139,55 +143,74 @@
       }
 
       @if ((showVideoPane$ | async) !== false) {
-        <div
-          class="viewer__video"
-          [class.viewer__video--hidden]="(showVideo$ | async) === false"
-        >
-          <app-video-host
-            [provider]="item.video.provider"
-            [externalVideoId]="item.video.externalVideoId"
-            (playerReady)="onPlayerReady($event)"
-          />
-          @if (state$ | async; as videoState) {
-            @if (videoState.clipHoldActive && videoState.selectedStep) {
-              <div class="viewer__clip-hold" aria-live="polite">
-                <h2 class="viewer__clip-hold-title">{{ videoState.selectedStep.title }}</h2>
-                @if (videoState.selectedStep.description) {
-                  <p class="viewer__clip-hold-copy">{{ videoState.selectedStep.description }}</p>
-                }
-                <div class="viewer__clip-hold-actions">
-                  <button
-                    mat-stroked-button
-                    type="button"
-                    (click)="replayClip()"
-                    aria-label="Replay step"
-                  >
-                    <mat-icon>replay</mat-icon>
-                    Replay step
-                  </button>
-                  <button
-                    mat-flat-button
-                    color="primary"
-                    type="button"
-                    (click)="onHoldAdvance(videoState)"
-                  >
-                    {{ isFinalStep(videoState) ? 'End' : 'Next' }}
-                  </button>
+        @if (state$ | async; as videoState) {
+          @if (instructionCard(videoState); as card) {
+            <div class="viewer__card">
+              <app-instruction-card
+                [card]="card"
+                [remainingSeconds]="instructionCardPreview(videoState) ? null : videoState.remainingSeconds"
+                [preview]="instructionCardPreview(videoState)"
+              />
+            </div>
+          } @else if (showVideoHost(item, videoState)) {
+            <div
+              class="viewer__video"
+              [class.viewer__video--hidden]="(showVideo$ | async) === false"
+            >
+              <app-video-host
+                [provider]="item.video.provider"
+                [externalVideoId]="item.video.externalVideoId"
+                (playerReady)="onPlayerReady($event)"
+              />
+              @if ((showVideo$ | async) !== false && stillOverlay(videoState); as still) {
+                <div class="viewer__still-overlay">
+                  <app-instruction-card
+                    [card]="still"
+                    [remainingSeconds]="videoState.remainingSeconds"
+                    [overlay]="true"
+                  />
                 </div>
+              }
+              @if (videoState.clipHoldActive && videoState.selectedStep) {
+                <div class="viewer__clip-hold" aria-live="polite">
+                  <h2 class="viewer__clip-hold-title">{{ stepTitle(videoState.selectedStep) }}</h2>
+                  @if (videoState.selectedStep.description) {
+                    <p class="viewer__clip-hold-copy">{{ videoState.selectedStep.description }}</p>
+                  }
+                  <div class="viewer__clip-hold-actions">
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      (click)="replayClip()"
+                      aria-label="Replay step"
+                    >
+                      <mat-icon>replay</mat-icon>
+                      Replay step
+                    </button>
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      type="button"
+                      (click)="onHoldAdvance(videoState)"
+                    >
+                      {{ isFinalStep(videoState) ? 'End' : 'Next' }}
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+
+            @if ((showVideo$ | async) === false) {
+              <div class="viewer__video-off" aria-live="polite">
+                <mat-icon>videocam_off</mat-icon>
+                <p>Video guidance off — timers and step text only.</p>
               </div>
             }
           }
-        </div>
-
-        @if ((showVideo$ | async) === false) {
-          <div class="viewer__video-off" aria-live="polite">
-            <mat-icon>videocam_off</mat-icon>
-            <p>Video guidance off — timers and step text only.</p>
-          </div>
         }
       }
 
-      @if (usesContinuousSoundtrack(item) && (showVideoPane$ | async) !== false) {
+      @if (hasVideo(item) && usesContinuousSoundtrack(item) && (showVideoPane$ | async) !== false) {
         <div class="viewer__soundtrack" aria-hidden="true">
           <app-video-host
             [provider]="item.video.provider"
@@ -227,9 +250,14 @@
               }
             </p>
 
-            <h2 class="viewer__step-title">
-              {{ state.selectedStep?.title || '—' }}
-            </h2>
+            @if (
+              (!instructionCard(state) || instructionCardPreview(state)) &&
+              !stillOverlay(state)
+            ) {
+              <h2 class="viewer__step-title">
+                {{ stepTitle(state.selectedStep) }}
+              </h2>
+            }
 
             @if (isGap(state) && state.gapMessage) {
               <p class="viewer__gap-message">{{ state.gapMessage }}</p>
@@ -262,7 +290,7 @@
                 {{ state.remainingSeconds ?? 0 }}
                 {{ (state.remainingSeconds ?? 0) === 1 ? 'second' : 'seconds' }}
               </p>
-            } @else if (!state.clipHoldActive) {
+            } @else if (!state.clipHoldActive && !instructionCard(state) && !stillOverlay(state)) {
               <p
                 class="viewer__timer"
                 [class.viewer__timer--untimed]="!state.isTimedStep"
@@ -285,7 +313,7 @@
                   Start Steps
                 </button>
                 <p class="viewer__start-hint">
-                  @if (showVideo$ | async) {
+                  @if (hasVideo(item) && (showVideo$ | async)) {
                     @if (state.voiceCuesEnabled) {
                       Starts the video muted, with spoken step names and beeps.
                     } @else if (usesContinuousSoundtrack(item)) {
@@ -293,8 +321,10 @@
                     } @else {
                       Starts the video and step timer together.
                     }
-                  } @else {
+                  } @else if (hasVideo(item)) {
                     Starts the step timer (video is off).
+                  } @else {
+                    Starts the card and step timers.
                   }
                 </p>
               </div>

@@ -700,6 +700,104 @@ public sealed class StepsItemServiceTests
             ],
         };
 
+    [Fact]
+    public async Task CreateMineAsync_WhenCardEntryIncluded_ThenPersistsCard()
+    {
+        Authenticate("usr_owner");
+        StepsItemDocument? saved = null;
+        _repository
+            .Setup(r => r.CreateAsync(It.IsAny<StepsItemDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StepsItemDocument doc, CancellationToken _) =>
+            {
+                saved = doc;
+                return doc;
+            });
+
+        var request = ValidCreateRequest();
+        request.UseVideoContent = false;
+        request.Video = null;
+        request.Steps =
+        [
+            new StepDefinitionRequest
+            {
+                Order = 1,
+                Kind = "card",
+                DurationSeconds = 60,
+                Message = "Rest for 60 seconds",
+                BackgroundColor = "#02c998",
+                TextColor = "#002116",
+            },
+        ];
+
+        var result = await _sut.CreateMineAsync(request);
+
+        saved.Should().NotBeNull();
+        saved!.UseVideoContent.Should().BeFalse();
+        saved.Video.Provider.Should().Be("none");
+        var card = saved.Steps.Single();
+        card.Kind.Should().Be("card");
+        card.DurationSeconds.Should().Be(60);
+        card.Message.Should().Be("Rest for 60 seconds");
+        card.BackgroundColor.Should().Be("#02C998");
+        result.UseVideoContent.Should().BeFalse();
+        result.Steps[0].Kind.Should().Be("card");
+    }
+
+    [Fact]
+    public async Task CreateMineAsync_WhenStillWithoutVideo_ThenThrowsArgumentException()
+    {
+        Authenticate("usr_owner");
+        var request = ValidCreateRequest();
+        request.UseVideoContent = false;
+        request.Steps =
+        [
+            new StepDefinitionRequest
+            {
+                Order = 1,
+                Kind = "card",
+                DurationSeconds = 20,
+                StillSeconds = 4,
+            },
+        ];
+
+        var act = async () => await _sut.CreateMineAsync(request);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*a still needs a TikTok*");
+    }
+
+    [Fact]
+    public async Task CreateMineAsync_WhenStepWithoutVideo_ThenThrowsArgumentException()
+    {
+        Authenticate("usr_owner");
+        var request = ValidCreateRequest();
+        request.UseVideoContent = false;
+
+        var act = async () => await _sut.CreateMineAsync(request);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*video steps need a TikTok*");
+    }
+
+    [Fact]
+    public async Task PublishMineAsync_WhenNoVideo_ThenThrows()
+    {
+        Authenticate("usr_owner");
+        var existing = SampleDocument("usr_owner", "published");
+        existing.UseVideoContent = false;
+        existing.Video.Provider = "none";
+        existing.Video.ExternalVideoId = "";
+        existing.Video.SourceUrl = "";
+        _repository
+            .Setup(r => r.GetByIdAsync(existing.Id, "usr_owner", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var act = () => _sut.PublishMineAsync(existing.Id, new PublishStepsItemRequest { Slug = "cards" });
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*TikTok video is required to publish*");
+    }
+
     private static StepsItemDocument SampleDocument(string userId, string status) =>
         new()
         {

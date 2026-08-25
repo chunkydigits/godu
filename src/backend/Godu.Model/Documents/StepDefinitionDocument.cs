@@ -7,8 +7,8 @@ public sealed class StepDefinitionDocument
     public required int Order { get; set; }
 
     /// <summary>
-    /// Entry kind: "step" or "gap". Absent on entries saved before gaps existed,
-    /// which are activity steps.
+    /// Entry kind: "step", "gap", or "card". Absent on entries saved before gaps
+    /// existed, which are activity steps.
     /// </summary>
     public string Kind { get; set; } = StepEntryKinds.Step;
 
@@ -32,6 +32,17 @@ public sealed class StepDefinitionDocument
     /// </summary>
     public bool LoopVideo { get; set; } = true;
 
-    /// <summary>Gap entries only: copy shown while the gap counts down.</summary>
+    /// <summary>Gap or card copy shown while the entry counts down.</summary>
     public string? Message { get; set; }
+
+    /// <summary>Card colour fill. Hex <c>#RRGGBB</c>.</summary>
+    public string? BackgroundColor { get; set; }
+
+    /// <summary>Card text colour. Hex <c>#RRGGBB</c>.</summary>
+    public string? TextColor { get; set; }
+
+    /// <summary>
+    /// When set, the card shows a paused video frame at this time instead of a colour fill.
+    /// </summary>
+    public double? StillSeconds { get; set; }
 }

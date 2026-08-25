@@ -208,6 +208,7 @@ public sealed class InMemoryStepsItemRepository : IStepsItemRepository
             StartGapSeconds = item.StartGapSeconds,
             StartGapMessage = item.StartGapMessage,
             RepeatCount = item.RepeatCount,
+            UseVideoContent = item.UseVideoContent,
             CreatedUtc = item.CreatedUtc,
             UpdatedUtc = item.UpdatedUtc,
             PublishedUtc = item.PublishedUtc,
@@ -235,6 +236,9 @@ public sealed class InMemoryStepsItemRepository : IStepsItemRepository
                     AutoAdvance = s.AutoAdvance,
                     LoopVideo = s.LoopVideo,
                     Message = s.Message,
+                    BackgroundColor = s.BackgroundColor,
+                    TextColor = s.TextColor,
+                    StillSeconds = s.StillSeconds,
                 })
                 .ToList(),
         };

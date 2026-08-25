@@ -124,6 +124,23 @@
   background: #000;
 }
 
+.viewer__card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1.25rem 0.25rem;
+}
+
+.viewer__still-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
 .viewer__clip-hold {
   position: absolute;
   inset: 0;

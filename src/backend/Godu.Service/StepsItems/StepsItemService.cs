@@ -69,7 +69,9 @@ public sealed class StepsItemService : IStepsItemService
         CancellationToken cancellationToken = default)
     {
         var userId = RequireUserId();
-        ValidateSteps(request.Steps, request.Video.DurationSeconds);
+        var useVideo = request.UseVideoContent;
+        ValidateSteps(request.Steps, useVideo ? request.Video?.DurationSeconds : null, useVideo);
+        var video = StepsItemMapper.ToVideoDocument(request.Video, useVideo);
 
         var now = DateTime.UtcNow;
         var slug = SlugUtilities.Canonicalise(request.Slug);
@@ -89,18 +91,19 @@ public sealed class StepsItemService : IStepsItemService
             Title = request.Title.Trim(),
             Description = request.Description,
             CreatorDisplayName = request.CreatorDisplayName,
-            ContinuousSoundtrack = request.ContinuousSoundtrack,
+            ContinuousSoundtrack = useVideo && request.ContinuousSoundtrack,
             GapSeconds = NormalizeGapSeconds(request.GapSeconds),
             GapMessage = NormalizeGapMessage(request.GapMessage, request.GapSeconds),
-            PlayGapPriorToStart = request.PlayGapPriorToStart,
-            StartGapSeconds = request.PlayGapPriorToStart
+            PlayGapPriorToStart = useVideo && request.PlayGapPriorToStart,
+            StartGapSeconds = useVideo && request.PlayGapPriorToStart
                 ? NormalizeGapSeconds(request.StartGapSeconds)
                 : null,
-            StartGapMessage = request.PlayGapPriorToStart
+            StartGapMessage = useVideo && request.PlayGapPriorToStart
                 ? TrimGapMessage(request.StartGapMessage)
                 : null,
             RepeatCount = NormalizeRepeatCount(request.RepeatCount),
-            Video = StepsItemMapper.ToVideoDocument(request.Video),
+            UseVideoContent = useVideo,
+            Video = video,
             Steps = StepsItemMapper.ToStepDocuments(request.Steps),
             CreatedUtc = now,
             UpdatedUtc = now,
@@ -117,7 +120,9 @@ public sealed class StepsItemService : IStepsItemService
         CancellationToken cancellationToken = default)
     {
         var userId = RequireUserId();
-        ValidateSteps(request.Steps, request.Video.DurationSeconds);
+        var useVideo = request.UseVideoContent;
+        ValidateSteps(request.Steps, useVideo ? request.Video?.DurationSeconds : null, useVideo);
+        var video = StepsItemMapper.ToVideoDocument(request.Video, useVideo);
 
         var existing = await _repository.GetByIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
         if (existing is null)
@@ -135,19 +140,20 @@ public sealed class StepsItemService : IStepsItemService
         existing.Title = request.Title.Trim();
         existing.Description = request.Description;
         existing.CreatorDisplayName = request.CreatorDisplayName;
-        existing.ContinuousSoundtrack = request.ContinuousSoundtrack;
+        existing.ContinuousSoundtrack = useVideo && request.ContinuousSoundtrack;
         existing.GapSeconds = NormalizeGapSeconds(request.GapSeconds);
         existing.GapMessage = NormalizeGapMessage(request.GapMessage, request.GapSeconds);
-        existing.PlayGapPriorToStart = request.PlayGapPriorToStart;
-        existing.StartGapSeconds = request.PlayGapPriorToStart
+        existing.PlayGapPriorToStart = useVideo && request.PlayGapPriorToStart;
+        existing.StartGapSeconds = useVideo && request.PlayGapPriorToStart
             ? NormalizeGapSeconds(request.StartGapSeconds)
             : null;
-        existing.StartGapMessage = request.PlayGapPriorToStart
+        existing.StartGapMessage = useVideo && request.PlayGapPriorToStart
             ? TrimGapMessage(request.StartGapMessage)
             : null;
         existing.RepeatCount = NormalizeRepeatCount(request.RepeatCount);
+        existing.UseVideoContent = useVideo;
         existing.Slug = slug;
-        existing.Video = StepsItemMapper.ToVideoDocument(request.Video);
+        existing.Video = video;
         existing.Steps = StepsItemMapper.ToStepDocuments(request.Steps);
         existing.UpdatedUtc = DateTime.UtcNow;
 
@@ -322,6 +328,12 @@ public sealed class StepsItemService : IStepsItemService
         if (string.IsNullOrEmpty(slug))
         {
             throw new ArgumentException("A public URL slug is required.");
+        }
+
+        if (!StepsItemMapper.UsesVideoContent(existing)
+            || string.IsNullOrWhiteSpace(existing.Video.ExternalVideoId))
+        {
+            throw new InvalidOperationException("A TikTok video is required to publish.");
         }
 
         var account = await ResolvePublishAccountAsync(userId, existing, request.LinkedPlatformAccountId, cancellationToken)
@@ -574,9 +586,12 @@ public sealed class StepsItemService : IStepsItemService
         return _currentUser.UserId;
     }
 
-    private static void ValidateSteps(IEnumerable<StepDefinitionRequest> steps, double? videoDuration)
+    private static void ValidateSteps(
+        IEnumerable<StepDefinitionRequest> steps,
+        double? videoDuration,
+        bool useVideoContent = true)
     {
-        var errors = StepDefinitionValidator.Validate(steps, videoDuration);
+        var errors = StepDefinitionValidator.Validate(steps, videoDuration, useVideoContent);
         if (errors.Count > 0)
         {
             throw new ArgumentException(string.Join(" ", errors));

@@ -65,6 +65,46 @@ describe('mapApiStepsItem', () => {
     expect(item.publicPath).toBe('/t/coach/mobility');
   });
 
+  it('maps a card and a video-free Godu', () => {
+    const api: ApiStepsItem = {
+      id: 'steps_cards',
+      createdByUserId: 'usr_1',
+      visibility: 'private',
+      status: 'published',
+      title: 'Cards',
+      continuousSoundtrack: false,
+      useVideoContent: false,
+      createdUtc: '2026-08-25T08:00:00Z',
+      updatedUtc: '2026-08-25T08:00:00Z',
+      video: {
+        provider: 'none',
+        externalVideoId: '',
+        sourceUrl: '',
+      },
+      steps: [
+        {
+          id: 'card_1',
+          order: 1,
+          kind: 'card',
+          title: '',
+          startSeconds: 0,
+          endSeconds: 0,
+          durationSeconds: 40,
+          autoAdvance: true,
+          message: 'Hold',
+          backgroundColor: '#02C998',
+          textColor: '#002116',
+        },
+      ],
+    };
+
+    const item = mapApiStepsItem(api);
+    expect(item.useVideoContent).toBe(false);
+    expect(item.steps[0].kind).toBe('card');
+    expect(item.steps[0].message).toBe('Hold');
+    expect(item.steps[0].backgroundColor).toBe('#02C998');
+  });
+
   it('maps a repeating Godu repeatCount', () => {
     const api: ApiStepsItem = {
       id: 'steps_repeat',

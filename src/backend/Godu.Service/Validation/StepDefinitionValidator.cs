@@ -5,7 +5,10 @@ namespace Godu.Service.Validation;
 
 public static class StepDefinitionValidator
 {
-    public static IReadOnlyList<string> Validate(IEnumerable<StepDefinitionRequest> steps, double? videoDurationSeconds = null)
+    public static IReadOnlyList<string> Validate(
+        IEnumerable<StepDefinitionRequest> steps,
+        double? videoDurationSeconds = null,
+        bool useVideoContent = true)
     {
         var errors = new List<string>();
         var entries = steps.ToList();
@@ -27,6 +30,19 @@ public static class StepDefinitionValidator
             if (StepEntryKinds.IsGap(step.Kind))
             {
                 ValidateGap(step, errors);
+                continue;
+            }
+
+            if (StepEntryKinds.IsCard(step.Kind))
+            {
+                activityCount++;
+                ValidateCard(step, videoDurationSeconds, useVideoContent, errors);
+                continue;
+            }
+
+            if (!useVideoContent)
+            {
+                errors.Add($"Step {step.Order}: video steps need a TikTok. Turn video content on, or use a card.");
                 continue;
             }
 
@@ -54,6 +70,51 @@ public static class StepDefinitionValidator
         {
             errors.Add(
                 $"Gap {step.Order}: message must be {StepEntryKinds.GapMessageMaxLength} characters or fewer.");
+        }
+    }
+
+    private static void ValidateCard(
+        StepDefinitionRequest step,
+        double? videoDurationSeconds,
+        bool useVideoContent,
+        List<string> errors)
+    {
+        if (step.DurationSeconds is null or < StepEntryKinds.GapSecondsMin or > StepEntryKinds.GapSecondsMax)
+        {
+            errors.Add(
+                $"Card {step.Order}: durationSeconds must be between {StepEntryKinds.GapSecondsMin} and {StepEntryKinds.GapSecondsMax}.");
+        }
+
+        if (step.Message?.Trim().Length > StepEntryKinds.GapMessageMaxLength)
+        {
+            errors.Add(
+                $"Card {step.Order}: message must be {StepEntryKinds.GapMessageMaxLength} characters or fewer.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(step.BackgroundColor) && !StepEntryKinds.IsHexColour(step.BackgroundColor))
+        {
+            errors.Add($"Card {step.Order}: backgroundColor must be a hex colour such as #02C998.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(step.TextColor) && !StepEntryKinds.IsHexColour(step.TextColor))
+        {
+            errors.Add($"Card {step.Order}: textColor must be a hex colour such as #002116.");
+        }
+
+        if (step.StillSeconds is { } still)
+        {
+            if (!useVideoContent)
+            {
+                errors.Add($"Card {step.Order}: a still needs a TikTok. Turn video content on, or use a colour card.");
+            }
+            else if (still < 0)
+            {
+                errors.Add($"Card {step.Order}: stillSeconds must be >= 0.");
+            }
+            else if (videoDurationSeconds is > 0 && still > videoDurationSeconds)
+            {
+                errors.Add($"Card {step.Order}: stillSeconds must be <= video duration.");
+            }
         }
     }
 

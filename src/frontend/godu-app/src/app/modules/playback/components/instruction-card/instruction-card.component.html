@@ -1,0 +1,17 @@
+<section
+  class="instruction-card"
+  [class.instruction-card--preview]="preview"
+  [class.instruction-card--overlay]="overlay"
+  [style.--card-bg]="background"
+  [style.background]="overlay ? undefined : background"
+  [style.color]="text"
+  aria-live="polite"
+>
+  @if (preview) {
+    <p class="instruction-card__eyebrow">Up next</p>
+  }
+  <p class="instruction-card__title">{{ title }}</p>
+  @if (remainingSeconds != null) {
+    <p class="instruction-card__timer">{{ remainingSeconds }}</p>
+  }
+</section>

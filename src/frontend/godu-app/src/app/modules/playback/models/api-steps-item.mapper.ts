@@ -5,8 +5,8 @@ import { stepEntryKind } from './step-entry';
 import { StepsItem } from './steps-item.model';
 import { StepsItemStatus } from './steps-item-status.enum';
 import { StepsVisibility } from './steps-visibility.enum';
+import { usesVideoContent, VideoReference } from './video-reference.model';
 import { VideoProvider } from './video-provider.enum';
-import { VideoReference } from './video-reference.model';
 
 export function mapApiStepsItem(api: ApiStepsItem): StepsItem {
   return {
@@ -27,6 +27,7 @@ export function mapApiStepsItem(api: ApiStepsItem): StepsItem {
     startGapSeconds: api.startGapSeconds ?? null,
     startGapMessage: api.startGapMessage ?? null,
     repeatCount: api.repeatCount ?? null,
+    useVideoContent: usesVideoContent(api),
     createdUtc: api.createdUtc,
     updatedUtc: api.updatedUtc,
     publishedUtc: api.publishedUtc ?? undefined,
@@ -61,6 +62,9 @@ function mapStep(step: ApiStepsItem['steps'][number]): StepDefinition {
     autoAdvance: step.autoAdvance,
     loopVideo: step.loopVideo !== false,
     message: step.message ?? null,
+    backgroundColor: step.backgroundColor ?? null,
+    textColor: step.textColor ?? null,
+    stillSeconds: step.stillSeconds ?? null,
   };
 }
 
@@ -88,6 +92,8 @@ function parseStatus(value: string): StepsItemStatus {
 
 function parseProvider(value: string): VideoProvider {
   switch (value.toLowerCase()) {
+    case VideoProvider.None:
+      return VideoProvider.None;
     case VideoProvider.YouTube:
       return VideoProvider.YouTube;
     case VideoProvider.Instagram:

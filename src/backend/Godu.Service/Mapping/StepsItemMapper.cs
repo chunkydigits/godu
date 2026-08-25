@@ -31,6 +31,7 @@ public static class StepsItemMapper
             StartGapSeconds = document.StartGapSeconds,
             StartGapMessage = document.StartGapMessage,
             RepeatCount = document.RepeatCount,
+            UseVideoContent = UsesVideoContent(document),
             CreatedUtc = document.CreatedUtc,
             UpdatedUtc = document.UpdatedUtc,
             PublishedUtc = document.PublishedUtc,
@@ -63,6 +64,9 @@ public static class StepsItemMapper
                     AutoAdvance = s.AutoAdvance,
                     LoopVideo = s.LoopVideo,
                     Message = s.Message,
+                    BackgroundColor = s.BackgroundColor,
+                    TextColor = s.TextColor,
+                    StillSeconds = s.StillSeconds,
                 })
                 .ToList(),
         };
@@ -100,7 +104,7 @@ public static class StepsItemMapper
         // A gap has no clip of its own, so only its length and message are kept.
         if (kind == StepEntryKinds.Gap)
         {
-            var message = step.Message?.Trim();
+            var message = StepEntryKinds.TrimMessage(step.Message);
             return new StepDefinitionDocument
             {
                 Id = id,
@@ -111,7 +115,31 @@ public static class StepsItemMapper
                 EndSeconds = 0,
                 DurationSeconds = step.DurationSeconds,
                 AutoAdvance = true,
-                Message = string.IsNullOrEmpty(message) ? null : message,
+                Message = message,
+            };
+        }
+
+        if (kind == StepEntryKinds.Card)
+        {
+            var message = StepEntryKinds.TrimMessage(step.Message);
+            return new StepDefinitionDocument
+            {
+                Id = id,
+                Order = step.Order,
+                Kind = kind,
+                Title = string.Empty,
+                StartSeconds = 0,
+                EndSeconds = 0,
+                DurationSeconds = step.DurationSeconds,
+                AutoAdvance = true,
+                Message = message,
+                BackgroundColor = StepEntryKinds.NormaliseColour(
+                    step.BackgroundColor,
+                    StepEntryKinds.DefaultCardBackground),
+                TextColor = StepEntryKinds.NormaliseColour(
+                    step.TextColor,
+                    StepEntryKinds.DefaultCardText),
+                StillSeconds = step.StillSeconds,
             };
         }
 
@@ -130,8 +158,26 @@ public static class StepsItemMapper
         };
     }
 
-    public static VideoReferenceDocument ToVideoDocument(VideoReferenceRequest video)
+    public static bool UsesVideoContent(StepsItemDocument document) =>
+        document.UseVideoContent != false
+        && !string.Equals(document.Video.Provider, VideoProviders.None, StringComparison.OrdinalIgnoreCase)
+        && !string.IsNullOrWhiteSpace(document.Video.ExternalVideoId);
+
+    public static VideoReferenceDocument ToVideoDocument(VideoReferenceRequest? video, bool useVideoContent)
     {
+        if (!useVideoContent)
+        {
+            return EmptyVideo();
+        }
+
+        if (video is null
+            || string.IsNullOrWhiteSpace(video.Provider)
+            || string.IsNullOrWhiteSpace(video.ExternalVideoId)
+            || string.IsNullOrWhiteSpace(video.SourceUrl))
+        {
+            throw new ArgumentException("A TikTok video is required when video content is on.");
+        }
+
         return new VideoReferenceDocument
         {
             Provider = video.Provider.Trim().ToLowerInvariant(),
@@ -143,6 +189,17 @@ public static class StepsItemMapper
             DurationSeconds = video.DurationSeconds,
         };
     }
+
+    public static VideoReferenceDocument EmptyVideo() =>
+        new()
+        {
+            Provider = VideoProviders.None,
+            ExternalVideoId = string.Empty,
+            SourceUrl = string.Empty,
+        };
+
+    public static VideoReferenceDocument ToVideoDocument(VideoReferenceRequest video) =>
+        ToVideoDocument(video, useVideoContent: true);
 
     public static string VisibilityName(StepsVisibility visibility) =>
         visibility switch

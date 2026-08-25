@@ -17,6 +17,8 @@ export interface StepsItem {
   creatorSocials?: CreatorSocial[];
   video: VideoReference;
   steps: StepDefinition[];
+  /** False for a cards-only Godu with no TikTok. Missing means true. */
+  useVideoContent?: boolean;
   /**
    * When true, timed steps use a continuous full-video soundtrack (looped)
    * while visual clips play muted. Untimed steps keep normal segment audio.

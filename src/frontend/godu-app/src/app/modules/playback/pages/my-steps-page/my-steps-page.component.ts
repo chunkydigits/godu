@@ -26,6 +26,7 @@ import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../../core/analytics/analytics.service';
 import { ShareGoduService } from '../../services/share-godu.service';
 import { ApiStepsItem } from '../../models/api-steps-item.model';
+import { usesVideoContent } from '../../models/video-reference.model';
 import { linkedTikTokOwnsVideo } from '../../models/linked-tiktok-owns-video';
 import { isValidSlug, publicViewerPath, slugFromTitle } from '../../models/public-path';
 import { activityCount } from '../../models/step-entry';
@@ -147,7 +148,11 @@ export class MyStepsPageComponent {
   }
 
   canPublishItem(item: ApiStepsItem, view: MyStepsView): boolean {
-    return view.canPublish && linkedTikTokOwnsVideo(item.video, view.accounts);
+    return (
+      view.canPublish &&
+      usesVideoContent(item) &&
+      linkedTikTokOwnsVideo(item.video, view.accounts)
+    );
   }
 
   publicHref(item: ApiStepsItem): string | null {

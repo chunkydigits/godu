@@ -36,8 +36,10 @@ public sealed class UpdateStepsItemRequest
     [Range(2, 99)]
     public int? RepeatCount { get; set; }
 
-    [Required]
-    public required VideoReferenceRequest Video { get; set; }
+    /// <summary>False for a cards-only Godu with no TikTok. Defaults to true.</summary>
+    public bool UseVideoContent { get; set; } = true;
+
+    public VideoReferenceRequest? Video { get; set; }
 
     [Required]
     [MinLength(1)]

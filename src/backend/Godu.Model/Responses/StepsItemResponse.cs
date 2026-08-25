@@ -22,6 +22,9 @@ public sealed class StepsItemResponse
 
     public IReadOnlyList<CreatorSocialResponse> CreatorSocials { get; init; } = [];
 
+    /// <summary>False for cards-only Godus. Omitted/true when a TikTok is attached.</summary>
+    public bool UseVideoContent { get; init; } = true;
+
     public required VideoReferenceResponse Video { get; init; }
 
     public required IReadOnlyList<StepDefinitionResponse> Steps { get; init; }

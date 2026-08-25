@@ -6,7 +6,7 @@ public sealed class StepDefinitionResponse
 
     public required int Order { get; init; }
 
-    /// <summary>"step" or "gap".</summary>
+    /// <summary>"step", "gap", or "card".</summary>
     public required string Kind { get; init; }
 
     /// <summary>Empty on gap entries.</summary>
@@ -24,6 +24,12 @@ public sealed class StepDefinitionResponse
 
     public bool LoopVideo { get; init; }
 
-    /// <summary>Gap entries only: copy shown while the gap counts down.</summary>
+    /// <summary>Gap or card copy shown while the entry counts down.</summary>
     public string? Message { get; init; }
+
+    public string? BackgroundColor { get; init; }
+
+    public string? TextColor { get; init; }
+
+    public double? StillSeconds { get; init; }
 }

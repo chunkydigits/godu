@@ -1,7 +1,7 @@
 export interface ApiStepDefinition {
   id: string;
   order: number;
-  /** 'step' or 'gap'; absent on entries saved before gaps existed. */
+  /** 'step', 'gap', or 'card'; absent on entries saved before gaps existed. */
   kind?: string | null;
   title: string;
   description?: string | null;
@@ -11,6 +11,9 @@ export interface ApiStepDefinition {
   autoAdvance: boolean;
   loopVideo?: boolean;
   message?: string | null;
+  backgroundColor?: string | null;
+  textColor?: string | null;
+  stillSeconds?: number | null;
 }
 
 export interface ApiVideoReference {
@@ -48,6 +51,7 @@ export interface ApiStepsItem {
   repeatCount?: number | null;
   video: ApiVideoReference;
   steps: ApiStepDefinition[];
+  useVideoContent?: boolean;
   createdUtc: string;
   updatedUtc: string;
   publishedUtc?: string | null;
@@ -66,6 +70,9 @@ export interface ApiStepDefinitionRequest {
   autoAdvance: boolean;
   loopVideo?: boolean;
   message?: string | null;
+  backgroundColor?: string | null;
+  textColor?: string | null;
+  stillSeconds?: number | null;
 }
 
 export interface ApiVideoReferenceRequest {
@@ -90,6 +97,7 @@ export interface CreateStepsItemRequest {
   startGapSeconds?: number | null;
   startGapMessage?: string | null;
   repeatCount?: number | null;
+  useVideoContent?: boolean;
   video: ApiVideoReferenceRequest;
   steps: ApiStepDefinitionRequest[];
 }

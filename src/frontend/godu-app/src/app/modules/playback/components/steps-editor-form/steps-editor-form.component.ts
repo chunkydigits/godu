@@ -10,15 +10,17 @@ import {
   EditorSectionId,
 } from '../../models/editor-sections';
 import {
-  DEFAULT_STEP_ENTRY_KIND,
+  DEFAULT_CARD_BACKGROUND,
   GAP_MESSAGE_MAX_LENGTH,
   GAP_SECONDS_MAX,
   GAP_SECONDS_MIN,
   REPEAT_COUNT_MAX,
   REPEAT_COUNT_MIN,
-  STEP_ENTRY_KINDS,
   StepEntryKind,
   activityNumberAt,
+  defaultEntryKind,
+  entryKindsForVideo,
+  isCardEntry,
   isGapEntry,
   shouldLoopVideo,
 } from '../../models/step-entry';
@@ -52,13 +54,28 @@ export class StepsEditorFormComponent {
   @Output() readonly previewFrom = new EventEmitter<StepPreviewRange>();
 
   readonly sections = EDITOR_SECTIONS;
-  readonly entryKinds = STEP_ENTRY_KINDS;
-  readonly defaultKind = DEFAULT_STEP_ENTRY_KIND;
   readonly gapSecondsMin = GAP_SECONDS_MIN;
   readonly gapSecondsMax = GAP_SECONDS_MAX;
   readonly gapMessageMaxLength = GAP_MESSAGE_MAX_LENGTH;
   readonly repeatCountMin = REPEAT_COUNT_MIN;
   readonly repeatCountMax = REPEAT_COUNT_MAX;
+  readonly defaultCardBackground = DEFAULT_CARD_BACKGROUND;
+
+  get useVideoContent(): boolean {
+    return !this.form.get('noVideoContent')?.value;
+  }
+
+  get entryKinds() {
+    return entryKindsForVideo(this.useVideoContent);
+  }
+
+  get defaultKind(): StepEntryKind {
+    return defaultEntryKind(this.useVideoContent);
+  }
+
+  get addLabel(): string {
+    return this.defaultKind === 'card' ? 'Add card' : 'Add step';
+  }
 
   /** Tips are a peek at one section at a time rather than a pinned panel. */
   private openTips: EditorSectionId | null = null;
@@ -90,6 +107,10 @@ export class StepsEditorFormComponent {
     return isGapEntry(this.entryAt(index));
   }
 
+  isCard(index: number): boolean {
+    return isCardEntry(this.entryAt(index));
+  }
+
   /** Editor heading number, counting activity steps only. */
   activityNumber(index: number): number | null {
     return activityNumberAt(this.entries, index);
@@ -105,7 +126,11 @@ export class StepsEditorFormComponent {
   }
 
   stepTitle(index: number): string {
-    return this.entryAt(index)?.title?.trim() || 'Untitled step';
+    const entry = this.entryAt(index);
+    if (isCardEntry(entry)) {
+      return entry?.message?.trim() || 'Card';
+    }
+    return entry?.title?.trim() || 'Untitled step';
   }
 
   /** Clip window and timed length, e.g. "0 → 10 (8s)". */
@@ -159,6 +184,21 @@ export class StepsEditorFormComponent {
     return message ? `${length} · ${message}` : length;
   }
 
+  cardSummary(index: number): string {
+    const entry = this.entryAt(index);
+    const seconds = toNumber(entry?.durationSeconds);
+    const length = seconds != null && seconds > 0 ? `${seconds}s` : '—';
+    if (this.useVideoContent && entry?.useStill) {
+      const still = toNumber(entry.stillSeconds);
+      return still != null ? `${length} · still @ ${formatClock(still)}` : `${length} · still`;
+    }
+    return length;
+  }
+
+  cardBackground(index: number): string {
+    return this.entryAt(index)?.backgroundColor?.trim() || this.defaultCardBackground;
+  }
+
   private get entries(): StepEntrySummary[] {
     return this.steps.controls.map((control) => this.toEntry(control.getRawValue()));
   }
@@ -189,6 +229,9 @@ interface StepEntrySummary {
   autoAdvance?: boolean;
   loopVideo?: boolean;
   message?: string;
+  backgroundColor?: string;
+  stillSeconds?: number | string | null;
+  useStill?: boolean;
 }
 
 function toNumber(value: number | string | null | undefined): number | null {
@@ -212,4 +255,11 @@ function loopFields(entry: StepEntrySummary | null): {
 function formatSeconds(value: number | string | null | undefined): string {
   const parsed = toNumber(value);
   return parsed == null ? '—' : `${parsed}s`;
+}
+
+function formatClock(value: number): string {
+  const total = Math.max(0, Math.floor(value));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }

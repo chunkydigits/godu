@@ -1,6 +1,6 @@
 <app-page-template
   [title]="isEditMode ? 'Edit Godu' : 'Create Godus'"
-  subtitle="Set timestamps while watching the TikTok preview."
+  subtitle="Mark steps on a TikTok, or build a cards-only Godu with no video."
   [lockContentScroll]="true"
 >
   <div class="editor-page">
@@ -49,6 +49,7 @@
               <app-steps-editor-preview
                 [externalVideoId]="previewVideoId()"
                 [lookupPending]="videoLookupPending()"
+                [cardsOnly]="form.controls.noVideoContent.value"
               />
             </div>
           </aside>

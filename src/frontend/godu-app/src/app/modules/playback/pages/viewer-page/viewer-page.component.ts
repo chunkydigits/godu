@@ -29,11 +29,13 @@ import { MaterialModule } from '../../../../core/material.module';
 import { ShareGoduService } from '../../services/share-godu.service';
 import { ScreenWakeLockService } from '../../../../core/services/screen-wake-lock.service';
 import { CompletionPanelComponent } from '../../components/completion-panel/completion-panel.component';
+import { InstructionCardComponent } from '../../components/instruction-card/instruction-card.component';
 import { StepNavigatorComponent } from '../../components/step-navigator/step-navigator.component';
 import { VideoHostComponent } from '../../components/video-host/video-host.component';
 import { StepDefinition } from '../../models/step-definition.model';
 import { StepsItem } from '../../models/steps-item.model';
 import {
+  activityDisplayTitle,
   activityEntries,
   hasMoreIterations,
   hasPreviousIteration,
@@ -41,7 +43,10 @@ import {
   isOnFinalStep,
   iterationCaption as formatIterationCaption,
   resolvedRepeatCount,
+  stillCardOverlay,
+  visibleInstructionCard,
 } from '../../models/step-entry';
+import { usesVideoContent } from '../../models/video-reference.model';
 import { TikTokCreatorLink, creatorLabel, tiktokCreatorLink } from '../../models/creator-link';
 import { isContinuousSoundtrackEnabled } from '../../models/continuous-soundtrack.feature';
 import { ControllableVideoPlayer } from '../../models/video-player.interface';
@@ -72,6 +77,7 @@ interface ViewerLoadView {
     VideoHostComponent,
     StepNavigatorComponent,
     CompletionPanelComponent,
+    InstructionCardComponent,
   ],
   providers: [StepPlaybackService],
   templateUrl: './viewer-page.component.html',
@@ -274,6 +280,33 @@ export class ViewerPageComponent implements OnDestroy {
 
   usesContinuousSoundtrack(item: StepsItem): boolean {
     return isContinuousSoundtrackEnabled(item);
+  }
+
+  hasVideo(item: StepsItem): boolean {
+    return usesVideoContent(item);
+  }
+
+  stepTitle(step: StepDefinition | null | undefined): string {
+    return step ? activityDisplayTitle(step) : '—';
+  }
+
+  instructionCard(state: PlaybackState): StepDefinition | null {
+    return visibleInstructionCard(state.selectedStep, this.isGap(state));
+  }
+
+  stillOverlay(state: PlaybackState): StepDefinition | null {
+    return stillCardOverlay(state.selectedStep, this.isGap(state));
+  }
+
+  instructionCardPreview(state: PlaybackState): boolean {
+    return this.isGap(state);
+  }
+
+  showVideoHost(item: StepsItem, state: PlaybackState): boolean {
+    if (!this.hasVideo(item) || this.instructionCard(state)) {
+      return false;
+    }
+    return true;
   }
 
   creatorLink(item: StepsItem): TikTokCreatorLink | null {

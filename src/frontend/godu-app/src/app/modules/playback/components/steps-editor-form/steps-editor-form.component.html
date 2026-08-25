@@ -6,30 +6,40 @@
 
     @if (isSectionOpen('video')) {
       <div class="section__body">
-        <mat-form-field appearance="outline" class="full">
-          <mat-label>TikTok video URL or ID</mat-label>
-          <input
-            matInput
-            formControlName="videoInput"
-            required
-            placeholder="https://www.tiktok.com/@user/video/…"
-            [attr.aria-busy]="videoLookupPending"
-          />
-          @if (videoLookupPending) {
-            <mat-spinner
-              matSuffix
-              diameter="20"
-              aria-hidden="true"
+        <div class="field-block">
+          <mat-checkbox formControlName="noVideoContent">Don’t use video content</mat-checkbox>
+          <p class="field-hint">
+            Build this Godu from cards and gaps only. A TikTok URL is not required, and you
+            cannot publish it publicly until a video is attached.
+          </p>
+        </div>
+
+        @if (useVideoContent) {
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>TikTok video URL or ID</mat-label>
+            <input
+              matInput
+              formControlName="videoInput"
+              required
+              placeholder="https://www.tiktok.com/@user/video/…"
+              [attr.aria-busy]="videoLookupPending"
             />
-          }
-          <mat-hint>
             @if (videoLookupPending) {
-              <span class="lookup-status" aria-live="polite">Looking up this TikTok…</span>
-            } @else {
-              Paste a link to autofill creator, title, and description. Mobile share links (vm.tiktok.com) work too.
+              <mat-spinner
+                matSuffix
+                diameter="20"
+                aria-hidden="true"
+              />
             }
-          </mat-hint>
-        </mat-form-field>
+            <mat-hint>
+              @if (videoLookupPending) {
+                <span class="lookup-status" aria-live="polite">Looking up this TikTok…</span>
+              } @else {
+                Paste a link to autofill creator, title, and description. Mobile share links (vm.tiktok.com) work too.
+              }
+            </mat-hint>
+          </mat-form-field>
+        }
 
         <mat-form-field appearance="outline" class="full">
           <mat-label>Title</mat-label>
@@ -56,7 +66,7 @@
           }
         </mat-form-field>
 
-        @if (continuousSoundtrackEnabled) {
+        @if (useVideoContent && continuousSoundtrackEnabled) {
           <mat-checkbox formControlName="continuousSoundtrack">Continuous soundtrack</mat-checkbox>
         }
       </div>
@@ -79,15 +89,17 @@
         </div>
 
         @if (!form.get('noGaps')?.value) {
-          <div class="field-block">
-            <mat-checkbox formControlName="playGapPriorToStart">Play gap prior to start</mat-checkbox>
-            <p class="field-hint">
-              Useful when you want the video to play and give a demo before the timer starts.
-              Uses the gap and gap message below unless you override them.
-            </p>
-          </div>
+          @if (useVideoContent) {
+            <div class="field-block">
+              <mat-checkbox formControlName="playGapPriorToStart">Play gap prior to start</mat-checkbox>
+              <p class="field-hint">
+                Useful when you want the video to play and give a demo before the timer starts.
+                Uses the gap and gap message below unless you override them.
+              </p>
+            </div>
+          }
 
-          @if (form.get('playGapPriorToStart')?.value) {
+          @if (useVideoContent && form.get('playGapPriorToStart')?.value) {
             <div class="field-block">
               <mat-checkbox formControlName="overrideStartGap">Override start gap</mat-checkbox>
               <p class="field-hint">
@@ -190,7 +202,7 @@
           (cdkDropListDropped)="entryDropped.emit($event)"
         >
           @for (entry of steps.controls; track entry; let i = $index) {
-            <div class="step" [class.step--gap]="isGap(i)" [formGroupName]="i" cdkDrag>
+            <div class="step" [class.step--gap]="isGap(i)" [class.step--card]="isCard(i)" [formGroupName]="i" cdkDrag>
               <div class="step__header">
                 <button
                   mat-icon-button
@@ -214,6 +226,14 @@
                   @if (isGap(i)) {
                     <span class="step__name">Gap</span>
                     <span class="step__timing">{{ gapSummary(i) }}</span>
+                  } @else if (isCard(i)) {
+                    <span
+                      class="step__swatch"
+                      [style.background]="cardBackground(i)"
+                      aria-hidden="true"
+                    ></span>
+                    <span class="step__name">Card</span>
+                    <span class="step__timing">{{ cardSummary(i) }}</span>
                   } @else {
                     <span class="step__number">{{ activityNumber(i) }}</span>
                     <span class="step__name">{{ stepTitle(i) }}</span>
@@ -276,6 +296,61 @@
                     ></textarea>
                     <mat-hint>Shown on screen while this gap counts down.</mat-hint>
                   </mat-form-field>
+                } @else if (isCard(i)) {
+                  <div class="step__nums">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Duration (s)</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        formControlName="durationSeconds"
+                        [min]="gapSecondsMin"
+                        [max]="gapSecondsMax"
+                        required
+                      />
+                    </mat-form-field>
+                  </div>
+
+                  <mat-form-field appearance="outline" class="full">
+                    <mat-label>Comment (optional)</mat-label>
+                    <textarea
+                      matInput
+                      rows="2"
+                      formControlName="message"
+                      [maxlength]="gapMessageMaxLength"
+                      placeholder="Rest for 60 seconds"
+                    ></textarea>
+                    <mat-hint>Shown on the card while it counts down.</mat-hint>
+                  </mat-form-field>
+
+                  @if (useVideoContent) {
+                    <div class="field-block">
+                      <mat-checkbox formControlName="useStill">Use a still from the video</mat-checkbox>
+                      <p class="field-hint">
+                        Freeze the TikTok at a timestamp instead of filling the screen with colour.
+                      </p>
+                    </div>
+                  }
+
+                  @if (useVideoContent && entry.get('useStill')?.value) {
+                    <div class="step__nums">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Still (s)</mat-label>
+                        <input matInput type="number" formControlName="stillSeconds" min="0" />
+                      </mat-form-field>
+                    </div>
+                  } @else {
+                    <div class="card-colours">
+                      <label class="card-colours__swatch">
+                        <span>Background</span>
+                        <input type="color" formControlName="backgroundColor" />
+                      </label>
+                      <label class="card-colours__swatch">
+                        <span>Text</span>
+                        <input type="color" formControlName="textColor" />
+                      </label>
+                    </div>
+                  }
                 } @else {
                   <mat-form-field appearance="outline" class="full">
                     <mat-label>Title</mat-label>
@@ -360,7 +435,7 @@
               class="steps-header__add-main"
               (click)="addEntry.emit(defaultKind)"
             >
-              Add step
+              Add {{ defaultKind === 'card' ? 'card' : 'step' }}
             </button>
             <button
               mat-stroked-button

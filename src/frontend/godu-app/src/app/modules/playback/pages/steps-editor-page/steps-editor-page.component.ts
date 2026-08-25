@@ -41,7 +41,11 @@ import {
   UpdateStepsItemRequest,
 } from '../../models/api-steps-item.model';
 import { EDITOR_SECTIONS, EditorSectionId } from '../../models/editor-sections';
+import { mapEditorEntryToApiStep, EditorEntryValue } from '../../models/editor-entry-request';
 import {
+  DEFAULT_CARD_BACKGROUND,
+  DEFAULT_CARD_SECONDS,
+  DEFAULT_CARD_TEXT,
   DEFAULT_GAP_SECONDS,
   DEFAULT_STEP_ENTRY_KIND,
   GAP_MESSAGE_MAX_LENGTH,
@@ -52,11 +56,10 @@ import {
   StepEntryKind,
   activityCount,
   hasStartGapOverride,
-  normaliseGapMessage,
-  normaliseGapSeconds,
   resolvedRepeatCount,
   stepEntryKind,
 } from '../../models/step-entry';
+import { usesVideoContent } from '../../models/video-reference.model';
 import {
   buildTikTokSourceUrl,
   canonicalTikTokShortUrl,
@@ -73,21 +76,6 @@ import {
 interface EditorSaveState {
   saving: boolean;
   error: string | null;
-}
-
-/** Raw value of one entry in the steps form array; shape depends on its kind. */
-interface StepEntryFormValue {
-  id?: string;
-  order?: number;
-  kind?: string;
-  title?: string;
-  description?: string;
-  startSeconds?: number | string;
-  endSeconds?: number | string;
-  durationSeconds?: number | string | null;
-  autoAdvance?: boolean;
-  loopVideo?: boolean;
-  message?: string;
 }
 
 const LAYOUT_KEY = 'godu.editor.videoOnEnd';
@@ -157,6 +145,7 @@ export class StepsEditorPageComponent {
   );
 
   readonly form = this.fb.nonNullable.group({
+    noVideoContent: [false],
     videoInput: ['', [Validators.required]],
     title: ['', [Validators.required, Validators.minLength(1)]],
     description: [''],
@@ -185,6 +174,13 @@ export class StepsEditorPageComponent {
   });
 
   /** Keeps the gap fields locked in step with the checkbox for the component lifetime. */
+  private readonly noVideoLock = toSignal(
+    this.form.controls.noVideoContent.valueChanges.pipe(
+      tap((noVideo) => this.applyNoVideoContent(noVideo)),
+    ),
+    { initialValue: false },
+  );
+
   private readonly gapLock = toSignal(
     this.form.controls.noGaps.valueChanges.pipe(
       tap((noGaps) => this.applyNoGaps(noGaps)),
@@ -225,6 +221,9 @@ export class StepsEditorPageComponent {
   readonly videoLookupPending = signal(false);
 
   readonly previewVideoId = computed(() => {
+    if (this.form.controls.noVideoContent.value) {
+      return null;
+    }
     const value = this.videoInputValue() ?? this.form.controls.videoInput.value;
     return parseTikTokVideo(value)?.videoId ?? this.resolvedVideoId();
   });
@@ -243,6 +242,10 @@ export class StepsEditorPageComponent {
       debounceTime(350),
       distinctUntilChanged(),
       switchMap((value) => {
+        if (this.form.controls.noVideoContent.value) {
+          this.videoLookupPending.set(false);
+          return of(null);
+        }
         const parsed = parseTikTokVideo(value);
         const shortUrl = canonicalTikTokShortUrl(value);
         this.applyUrlAutofill(parsed?.username ?? null);
@@ -311,9 +314,11 @@ export class StepsEditorPageComponent {
             this.lastTrackedVideoId =
               parseTikTokVideo(item.video.sourceUrl || item.video.externalVideoId)?.videoId ?? null;
             const noGaps = (item.gapSeconds ?? 0) <= 0;
+            const noVideo = !usesVideoContent(item);
             this.form.patchValue(
               {
-                videoInput: item.video.sourceUrl || item.video.externalVideoId,
+                noVideoContent: noVideo,
+                videoInput: noVideo ? '' : item.video.sourceUrl || item.video.externalVideoId,
                 title: item.title,
                 description: item.description ?? '',
                 creatorDisplayName: item.creatorDisplayName ?? '',
@@ -334,28 +339,39 @@ export class StepsEditorPageComponent {
               { emitEvent: true },
             );
             this.applyNoGaps(noGaps);
-            this.applyPlayGapPriorToStart(!!item.playGapPriorToStart);
+            this.applyNoVideoContent(noVideo);
+            this.applyPlayGapPriorToStart(!!item.playGapPriorToStart && !noVideo);
             this.applyRepeatVideo(resolvedRepeatCount(item) > 1);
             this.steps.clear();
             this.collapsedEntries.clear();
             for (const step of [...item.steps].sort((a, b) => a.order - b.order)) {
+              const kind = stepEntryKind(step);
               const group =
-                stepEntryKind(step) === 'gap'
+                kind === 'gap'
                   ? this.createGapGroup(step.order, {
                       id: step.id,
                       durationSeconds: step.durationSeconds ?? DEFAULT_GAP_SECONDS,
                       message: step.message ?? '',
                     })
-                  : this.createStepGroup(step.order, {
-                      id: step.id,
-                      title: step.title,
-                      description: step.description ?? '',
-                      startSeconds: step.startSeconds,
-                      endSeconds: step.endSeconds,
-                      durationSeconds: step.durationSeconds ?? null,
-                      autoAdvance: step.autoAdvance,
-                      loopVideo: step.loopVideo !== false,
-                    });
+                  : kind === 'card'
+                    ? this.createCardGroup(step.order, {
+                        id: step.id,
+                        durationSeconds: step.durationSeconds ?? DEFAULT_CARD_SECONDS,
+                        message: step.message ?? '',
+                        backgroundColor: step.backgroundColor ?? DEFAULT_CARD_BACKGROUND,
+                        textColor: step.textColor ?? DEFAULT_CARD_TEXT,
+                        stillSeconds: step.stillSeconds ?? null,
+                      })
+                    : this.createStepGroup(step.order, {
+                        id: step.id,
+                        title: step.title,
+                        description: step.description ?? '',
+                        startSeconds: step.startSeconds,
+                        endSeconds: step.endSeconds,
+                        durationSeconds: step.durationSeconds ?? null,
+                        autoAdvance: step.autoAdvance,
+                        loopVideo: step.loopVideo !== false,
+                      });
               this.steps.push(group);
               // Saved entries start collapsed so the whole run is visible at once.
               this.collapsedEntries.add(group);
@@ -387,7 +403,7 @@ export class StepsEditorPageComponent {
     switchMap(() => {
       const request = this.buildRequest();
       if (!request) {
-        return of({ saving: false, error: 'Check title, TikTok video, and step times.' });
+        return of({ saving: false, error: 'Check the title and that each step or card is complete.' });
       }
 
       const id = this.route.snapshot.paramMap.get('id');
@@ -401,7 +417,7 @@ export class StepsEditorPageComponent {
             goduId: saved.id,
             stepCount: activityCount(saved.steps),
             visibility: saved.visibility,
-            platform: saved.video.provider || 'tiktok',
+            platform: saved.video.provider || 'none',
           });
           this.applySavedIds(saved);
           if (!id) {
@@ -441,13 +457,47 @@ export class StepsEditorPageComponent {
 
   addEntry(kind: StepEntryKind = DEFAULT_STEP_ENTRY_KIND): void {
     const order = this.steps.length + 1;
-    // Left expanded: a new entry still needs filling in.
-    this.steps.push(
-      kind === 'gap' ? this.createGapGroup(order) : this.createStepGroup(order),
-    );
-    if (kind === 'step') {
+    const resolved =
+      !this.form.controls.noVideoContent.value || kind !== 'step' ? kind : 'card';
+    this.steps.push(this.createEntryGroup(resolved, order));
+    if (resolved === 'step' || resolved === 'card') {
       this.analytics.track(AnalyticsEvent.StepAdded, { stepNumber: this.activityStepCount });
     }
+  }
+
+  private applyNoVideoContent(noVideo: boolean): void {
+    const videoInput = this.form.controls.videoInput;
+    if (noVideo) {
+      videoInput.clearValidators();
+      videoInput.updateValueAndValidity({ emitEvent: false });
+      this.form.controls.playGapPriorToStart.setValue(false, { emitEvent: true });
+      this.form.controls.continuousSoundtrack.setValue(false, { emitEvent: false });
+      this.videoLookupPending.set(false);
+      this.replaceBlankStepWithCard();
+      return;
+    }
+    videoInput.setValidators([Validators.required]);
+    videoInput.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private replaceBlankStepWithCard(): void {
+    if (this.steps.length !== 1) {
+      return;
+    }
+    const control = this.steps.at(0);
+    const raw = control.getRawValue() as EditorEntryValue;
+    if (stepEntryKind(raw) !== 'step' || raw.title?.trim()) {
+      return;
+    }
+    this.collapsedEntries.delete(control);
+    this.steps.setControl(
+      0,
+      this.createCardGroup(1, {
+        id: raw.id,
+        durationSeconds: DEFAULT_CARD_SECONDS,
+        message: '',
+      }),
+    );
   }
 
   /**
@@ -536,7 +586,7 @@ export class StepsEditorPageComponent {
 
   /** Gaps can always go; the last remaining activity step cannot. */
   canRemoveEntry(index: number): boolean {
-    const entry = this.steps.at(index)?.getRawValue() as StepEntryFormValue | undefined;
+    const entry = this.steps.at(index)?.getRawValue() as EditorEntryValue | undefined;
     if (!entry) {
       return false;
     }
@@ -547,9 +597,9 @@ export class StepsEditorPageComponent {
     if (!this.canRemoveEntry(index)) {
       return;
     }
-    const entry = this.steps.at(index)?.getRawValue() as StepEntryFormValue | undefined;
+    const entry = this.steps.at(index)?.getRawValue() as EditorEntryValue | undefined;
     if (entry && stepEntryKind(entry) === 'step') {
-      const entries = this.steps.getRawValue() as StepEntryFormValue[];
+      const entries = this.steps.getRawValue() as EditorEntryValue[];
       this.analytics.track(AnalyticsEvent.StepDeleted, {
         stepNumber: activityCount(entries.slice(0, index + 1)),
       });
@@ -563,7 +613,7 @@ export class StepsEditorPageComponent {
   }
 
   get activityStepCount(): number {
-    return activityCount(this.steps.getRawValue() as StepEntryFormValue[]);
+    return activityCount(this.steps.getRawValue() as EditorEntryValue[]);
   }
 
   submit(): void {
@@ -698,6 +748,16 @@ export class StepsEditorPageComponent {
     }
   }
 
+  private createEntryGroup(kind: StepEntryKind, order: number) {
+    if (kind === 'gap') {
+      return this.createGapGroup(order);
+    }
+    if (kind === 'card') {
+      return this.createCardGroup(order);
+    }
+    return this.createStepGroup(order);
+  }
+
   private createStepGroup(
     order: number,
     values?: {
@@ -722,6 +782,38 @@ export class StepsEditorPageComponent {
       durationSeconds: [values?.durationSeconds ?? (null as number | null)],
       autoAdvance: [values?.autoAdvance ?? true],
       loopVideo: [values?.loopVideo ?? true],
+    });
+  }
+
+  private createCardGroup(
+    order: number,
+    values?: {
+      id?: string;
+      durationSeconds?: number | null;
+      message?: string;
+      backgroundColor?: string | null;
+      textColor?: string | null;
+      stillSeconds?: number | null;
+    },
+  ) {
+    const still = values?.stillSeconds != null && Number.isFinite(values.stillSeconds);
+    return this.fb.nonNullable.group({
+      id: [values?.id ?? ''],
+      order: [order],
+      kind: ['card'],
+      durationSeconds: [
+        values?.durationSeconds ?? DEFAULT_CARD_SECONDS,
+        [
+          Validators.required,
+          Validators.min(GAP_SECONDS_MIN),
+          Validators.max(GAP_SECONDS_MAX),
+        ],
+      ],
+      message: [values?.message ?? '', [Validators.maxLength(GAP_MESSAGE_MAX_LENGTH)]],
+      backgroundColor: [values?.backgroundColor ?? DEFAULT_CARD_BACKGROUND],
+      textColor: [values?.textColor ?? DEFAULT_CARD_TEXT],
+      useStill: [still],
+      stillSeconds: [still ? values?.stillSeconds ?? null : (null as number | null), [Validators.min(0)]],
     });
   }
 
@@ -757,9 +849,10 @@ export class StepsEditorPageComponent {
     }
 
     const raw = this.form.getRawValue();
+    const useVideo = !raw.noVideoContent;
     const parsed = parseTikTokVideo(raw.videoInput);
     const videoId = parsed?.videoId ?? this.resolvedVideoId();
-    if (!videoId) {
+    if (useVideo && !videoId) {
       return null;
     }
 
@@ -767,54 +860,30 @@ export class StepsEditorPageComponent {
       importedTikTokHandle(this.importedCreatorHandle) ??
       importedTikTokHandle(raw.creatorDisplayName) ??
       importedTikTokHandle(parsed?.username);
-    const entries = raw.steps as StepEntryFormValue[];
-    const steps = entries.map((entry, index) => {
-      const order = index + 1;
+    const steps = raw.steps.map((entry, index) =>
+      mapEditorEntryToApiStep(entry, index, useVideo),
+    );
 
-      if (stepEntryKind(entry) === 'gap') {
-        return {
-          id: entry.id || null,
-          order,
-          kind: 'gap',
-          title: null,
-          description: null,
-          startSeconds: 0,
-          endSeconds: 0,
-          durationSeconds: normaliseGapSeconds(Number(entry.durationSeconds)),
-          autoAdvance: true,
-          message: normaliseGapMessage(entry.message),
-        };
-      }
+    if (steps.some((step) => step == null)) {
+      return null;
+    }
+    const mapped = steps.filter((step): step is NonNullable<typeof step> => step != null);
 
-      const duration =
-        entry.durationSeconds === null || entry.durationSeconds === ''
-          ? null
-          : Number(entry.durationSeconds);
-
-      return {
-        id: entry.id || null,
-        order,
-        kind: 'step',
-        title: entry.title?.trim() ?? '',
-        description: entry.description?.trim() || null,
-        startSeconds: Number(entry.startSeconds),
-        endSeconds: Number(entry.endSeconds),
-        durationSeconds:
-          duration != null && Number.isFinite(duration) && duration > 0 ? duration : null,
-        autoAdvance: !!entry.autoAdvance,
-        loopVideo: entry.loopVideo !== false,
-        message: null,
-      };
-    });
-
-    const activitySteps = steps.filter((s) => s.kind !== 'gap');
+    const activitySteps = mapped.filter((s) => s.kind !== 'gap');
     if (activitySteps.length === 0) {
       return null;
     }
-    if (activitySteps.some((s) => s.endSeconds <= s.startSeconds || !s.title)) {
+    if (
+      activitySteps.some((s) => {
+        if (s.kind === 'card') {
+          return !s.durationSeconds;
+        }
+        return s.endSeconds <= s.startSeconds || !s.title;
+      })
+    ) {
       return null;
     }
-    if (steps.some((s) => s.kind === 'gap' && s.durationSeconds === 0)) {
+    if (mapped.some((s) => (s.kind === 'gap' || s.kind === 'card') && s.durationSeconds === 0)) {
       return null;
     }
 
@@ -829,7 +898,7 @@ export class StepsEditorPageComponent {
     }
     const gapMessage =
       gapSeconds != null ? raw.gapMessage.trim().slice(0, 200) || null : null;
-    const playGapPriorToStart = !!raw.playGapPriorToStart;
+    const playGapPriorToStart = useVideo && !!raw.playGapPriorToStart;
     const overrideStartGap = playGapPriorToStart && !!raw.overrideStartGap;
     const startGapSeconds = overrideStartGap
       ? parseOptionalGapSeconds(raw.startGapSeconds as number | string | null)
@@ -857,23 +926,31 @@ export class StepsEditorPageComponent {
       title: raw.title.trim(),
       description: raw.description.trim() || null,
       creatorDisplayName: formatCreatorDisplayName(username),
-      continuousSoundtrack: this.continuousSoundtrackEnabled
-        ? !!raw.continuousSoundtrack
-        : false,
+      continuousSoundtrack:
+        useVideo && this.continuousSoundtrackEnabled ? !!raw.continuousSoundtrack : false,
       gapSeconds,
       gapMessage,
       playGapPriorToStart,
       startGapSeconds,
       startGapMessage,
       repeatCount,
-      video: {
-        provider: 'tiktok',
-        externalVideoId: videoId,
-        sourceUrl: buildTikTokSourceUrl(videoId, username),
-        creatorUsername: username,
-        durationSeconds: null,
-      },
-      steps,
+      useVideoContent: useVideo,
+      video: useVideo
+        ? {
+            provider: 'tiktok',
+            externalVideoId: videoId!,
+            sourceUrl: buildTikTokSourceUrl(videoId!, username),
+            creatorUsername: username,
+            durationSeconds: null,
+          }
+        : {
+            provider: 'none',
+            externalVideoId: '',
+            sourceUrl: '',
+            creatorUsername: username,
+            durationSeconds: null,
+          },
+      steps: mapped,
     };
   }
 }

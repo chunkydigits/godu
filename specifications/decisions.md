@@ -232,6 +232,19 @@ See `field-feedback.md` §3.
 
 ---
 
+## 9f. Cards and video-free Godus
+
+| Decision | Choice |
+| --- | --- |
+| Entry kind | `card` sits with `step` and `gap`. Cards are numbered activity. Gaps are not. |
+| Card fields | Duration (1–600s), optional comment, background + text colour (default `#02c998` / `#002116`), or a TikTok still timestamp when video is on |
+| Playback | Colour card fills the viewer with a countdown. A still pauses the TikTok at that time and counts down over it |
+| No video | Creator may tick “Don’t use video content”. URL is then optional; only cards and gaps can be added; still timestamps are hidden |
+| Gaps before cards | Gap message + countdown, with the next card shown as “Up next” |
+| Public publish | Still requires a TikTok the linked account owns. Video-free Godus stay private |
+
+---
+
 ## 10. Testing
 
 | Decision | Choice |

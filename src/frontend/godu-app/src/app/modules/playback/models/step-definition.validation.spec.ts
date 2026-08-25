@@ -87,6 +87,47 @@ describe('validateStepDefinition', () => {
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Message must be 256 characters or fewer');
   });
+
+  it('accepts a colour card', () => {
+    const result = validateStepDefinition(
+      step({
+        id: 'c',
+        title: '',
+        kind: 'card',
+        durationSeconds: 30,
+        backgroundColor: '#02c998',
+        textColor: '#002116',
+      }),
+      undefined,
+      false,
+    );
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it('rejects a still card when video is off', () => {
+    const result = validateStepDefinition(
+      step({
+        id: 'c',
+        title: '',
+        kind: 'card',
+        durationSeconds: 20,
+        stillSeconds: 4,
+      }),
+      undefined,
+      false,
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain(
+      'A still needs a TikTok. Turn video content on, or use a colour card',
+    );
+  });
+
+  it('rejects leftover video steps when video is off', () => {
+    expect(validateStepDefinition(step({ id: 'a', title: 'Warm-up' }), undefined, false).valid).toBe(
+      false,
+    );
+  });
 });
 
 describe('validateStepsItemSteps', () => {

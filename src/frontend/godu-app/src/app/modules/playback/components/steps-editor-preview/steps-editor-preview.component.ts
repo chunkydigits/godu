@@ -33,6 +33,7 @@ export class StepsEditorPreviewComponent implements OnDestroy {
 
   videoId: string | null = null;
   @Input() lookupPending = false;
+  @Input() cardsOnly = false;
 
   @Input() set externalVideoId(value: string | null) {
     this.videoId = value?.trim() || null;

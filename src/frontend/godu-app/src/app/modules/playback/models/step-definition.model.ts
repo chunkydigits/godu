@@ -17,6 +17,10 @@ export interface StepDefinition {
    * Timed play-once still runs the duration timer; untimed play-once holds the step copy.
    */
   loopVideo?: boolean;
-  /** Gap entries only: copy shown while the gap counts down. */
+  /** Gap or card copy shown while the entry counts down. */
   message?: string | null;
+  backgroundColor?: string | null;
+  textColor?: string | null;
+  /** When set, the card shows a paused video frame at this time. */
+  stillSeconds?: number | null;
 }

@@ -20,6 +20,12 @@ public sealed class StepsItemDocument
 
     public string? CreatorDisplayName { get; set; }
 
+    /// <summary>
+    /// False when this Godu is cards-only. Null on documents saved before the flag
+    /// existed, which always had a TikTok and should be treated as true.
+    /// </summary>
+    public bool? UseVideoContent { get; set; }
+
     public required VideoReferenceDocument Video { get; set; }
 
     public required List<StepDefinitionDocument> Steps { get; set; }

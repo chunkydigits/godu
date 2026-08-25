@@ -22,6 +22,7 @@ export const EDITOR_SECTIONS = {
     id: 'video',
     label: 'Video and Creator',
     controls: [
+      'noVideoContent',
       'videoInput',
       'title',
       'description',
@@ -30,6 +31,7 @@ export const EDITOR_SECTIONS = {
     ],
     tips: [
       'Paste a TikTok link or a bare video ID — including mobile share links like vm.tiktok.com. Creator, title and description autofill from TikTok where it allows it. Title and description you have typed yourself are left alone.',
+      'Tick Don’t use video content for a cards-only Godu. The URL is then optional, steps are hidden, and cards cannot freeze a TikTok still.',
       'Title and description are what people see in listings and above the player.',
       'Creator display name is locked to the TikTok handle once the video is imported, so the original creator stays credited.',
     ],
@@ -48,7 +50,7 @@ export const EDITOR_SECTIONS = {
     ],
     tips: [
       'A gap is a rest that counts down before the next step starts. Set one here and it applies between every step.',
-      'Play gap prior to start uses that same gap as a demo before the first timer.',
+      'Play gap prior to start uses that same gap as a demo before the first timer. It needs a TikTok, so it is hidden on cards-only Godus.',
       'Override start gap if the demo needs a different length or message. Leave it off to reuse the gap below.',
       'Tick No gaps to run every step back to back, with no rest between the end of one step and the start of the next. Gap entries you have added in Steps still play.',
       `Add a Gap entry in Steps to override this default at a single point. Consecutive gap entries add together, and a gap after the last step is ignored. Either way a gap runs ${GAP_SECONDS_MIN}–${GAP_SECONDS_MAX} seconds.`,
@@ -72,11 +74,12 @@ export const EDITOR_SECTIONS = {
     controls: ['steps'],
     tips: [
       'Each step loops a slice of the video: Start and End trim the clip, Duration is how long the set / step runs.',
+      'A card is a timed countdown with a comment. It can fill the screen in Godu colours, or freeze a still from the TikTok when video is on.',
       'Loop repeats that clip while the step is active. Play once plays it once. Repeating the whole Godu (sets of the workout) is configured under Repeat configuration, not here.',
       'Leave Duration blank for an untimed step that waits for you to move on. Untimed play-once holds the step name and description on screen until Next.',
       'Turn on Auto-advance to roll straight into the next step when the timer ends.',
       'The summary line shows the clip window, the length, a loop or play-once symbol, and a fast-forward symbol when the step auto-advances.',
-      'Use the arrow beside Add step to insert a gap. Gaps sit between steps and are not numbered.',
+      'Use the arrow beside Add step to insert a card or a gap. Gaps sit between steps and are not numbered. Cards are numbered with steps.',
       'Drag the handle to reorder, and tap a summary line to fold a step away.',
     ],
   },
