@@ -6,7 +6,7 @@
     @if (stepsItem.creatorDisplayName) {
       <span> from <app-creator-name [item]="stepsItem" /></span>
     }
-    — {{ stepCount(stepsItem) }} steps.
+    — {{ stepsSummary() }}.
   </p>
   @if (timeSummary(); as summary) {
     <p class="completion__time">{{ summary }}</p>

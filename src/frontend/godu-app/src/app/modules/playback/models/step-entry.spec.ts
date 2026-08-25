@@ -18,6 +18,7 @@ import {
   iterationCaption,
   lastActivityIndex,
   sessionTimeSummary,
+  sessionStepsSummary,
   normaliseGapMessage,
   normaliseGapSeconds,
   previousActivityIndex,
@@ -188,5 +189,9 @@ describe('step entries', () => {
     expect(sessionTimeSummary(94, true)).toBe('It took 1 minute 34 seconds.');
     expect(sessionTimeSummary(94, false)).toBeNull();
     expect(sessionTimeSummary(null, true)).toBeNull();
+    expect(sessionStepsSummary(12, 1)).toBe('12 steps');
+    expect(sessionStepsSummary(1, 1)).toBe('1 step');
+    expect(sessionStepsSummary(12, 7)).toBe('12 steps, 7 iterations');
+    expect(sessionStepsSummary(1, 3)).toBe('1 step, 3 iterations');
   });
 });

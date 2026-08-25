@@ -320,3 +320,12 @@ export function sessionTimeSummary(
   }
   return `It took ${formatElapsed(elapsedSeconds)}.`;
 }
+
+/** Completion line after the title: steps, then iterations when the Godu repeats. */
+export function sessionStepsSummary(stepCount: number, iterationCount: number): string {
+  const steps = stepCount === 1 ? '1 step' : `${Math.max(0, Math.floor(stepCount))} steps`;
+  if (iterationCount < REPEAT_COUNT_MIN) {
+    return steps;
+  }
+  return `${steps}, ${iterationCount} iterations`;
+}
