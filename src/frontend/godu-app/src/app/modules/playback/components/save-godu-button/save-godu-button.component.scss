@@ -68,8 +68,14 @@
 }
 
 .save-godu--row .save-godu__panel {
-  right: auto;
+  position: relative;
+  top: 0;
   left: 0;
+  right: auto;
+  width: 100%;
+  margin-top: 0.35rem;
+  box-sizing: border-box;
+  box-shadow: none;
 }
 
 .save-godu__lead {

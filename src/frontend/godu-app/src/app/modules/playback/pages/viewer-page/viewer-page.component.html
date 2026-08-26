@@ -15,6 +15,88 @@
       [class.viewer--video-off]="hasVideo(item) && (showVideo$ | async) === false"
       [class.viewer--complete]="(showVideoPane$ | async) === false"
     >
+      <mat-sidenav-container class="viewer__shell">
+        <mat-sidenav
+          #settingsDrawer
+          id="viewer-settings-panel"
+          class="viewer__settings-drawer"
+          mode="over"
+          position="end"
+          [fixedInViewport]="true"
+          [autoFocus]="false"
+          (openedChange)="onSettingsOpenedChange($event)"
+        >
+          <div class="viewer__settings-drawer-inner">
+            <div class="viewer__settings-drawer-head">
+              <button
+                mat-icon-button
+                type="button"
+                class="viewer__settings-drawer-close"
+                (click)="closeSettingsPanel()"
+                aria-label="Close settings"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+              <h2>Settings</h2>
+            </div>
+
+            @if (state$ | async; as state) {
+              <div class="viewer__settings-drawer-body">
+                <div class="viewer__settings-row">
+                  <span>Sound</span>
+                  <mat-slide-toggle
+                    [checked]="!state.userMuted"
+                    (change)="onSoundChange($event.checked)"
+                    aria-label="Sound"
+                  />
+                </div>
+                @if (hasVideo(item)) {
+                  <div class="viewer__settings-row">
+                    <span>Video</span>
+                    <mat-slide-toggle
+                      [checked]="(showVideo$ | async) ?? true"
+                      (change)="onShowVideoChange($event.checked)"
+                      aria-label="Video"
+                    />
+                  </div>
+                }
+                <div
+                  class="viewer__settings-row"
+                  [class.viewer__settings-row--disabled]="state.userMuted"
+                >
+                  <span>Voice cues</span>
+                  <mat-slide-toggle
+                    [checked]="(voiceCues$ | async) ?? false"
+                    [disabled]="state.userMuted"
+                    (change)="onVoiceCuesChange($event.checked)"
+                    aria-label="Voice cues"
+                  />
+                </div>
+                <div class="viewer__settings-row">
+                  <span>Loop all</span>
+                  <mat-slide-toggle
+                    [checked]="state.loopAll"
+                    (change)="onLoopAllChange($event.checked)"
+                    aria-label="Loop all"
+                  />
+                </div>
+                @if (state.iterationCount > 1) {
+                  <div class="viewer__settings-row">
+                    <span>Show iteration</span>
+                    <mat-slide-toggle
+                      [checked]="(showIteration$ | async) ?? true"
+                      (change)="onShowIterationChange($event.checked)"
+                      aria-label="Show iteration"
+                    />
+                  </div>
+                }
+                <app-save-godu-button [item]="item" appearance="row" />
+              </div>
+            }
+          </div>
+        </mat-sidenav>
+
+        <mat-sidenav-content class="viewer__main">
       @if (state$ | async; as state) {
         <header class="viewer__header">
           <button mat-icon-button type="button" (click)="goBack()" aria-label="Back">
@@ -37,111 +119,38 @@
 
           @if (state.phase !== 'completed') {
             <div class="viewer__chrome">
-              @if (!settingsOpen) {
-                @if (hasVideo(item)) {
-                  <button
-                    mat-icon-button
-                    type="button"
-                    class="viewer__mute"
-                    (click)="toggleMute()"
-                    [attr.aria-label]="state.userMuted ? 'Unmute' : 'Mute'"
-                  >
-                    <mat-icon>{{ state.userMuted ? 'volume_off' : 'volume_up' }}</mat-icon>
-                  </button>
-                }
+              @if (hasVideo(item)) {
                 <button
                   mat-icon-button
                   type="button"
-                  class="viewer__share"
-                  (click)="share(item)"
-                  [attr.aria-label]="shareCopied ? 'Link copied' : 'Share'"
+                  class="viewer__mute"
+                  (click)="toggleMute()"
+                  [attr.aria-label]="state.userMuted ? 'Unmute' : 'Mute'"
                 >
-                  <mat-icon>{{ shareCopied ? 'check' : 'share' }}</mat-icon>
+                  <mat-icon>{{ state.userMuted ? 'volume_off' : 'volume_up' }}</mat-icon>
                 </button>
               }
-
-              <div
-                class="viewer__settings"
-                (pointerdown)="onSettingsActivity()"
-                (pointermove)="onSettingsActivity()"
-                (focusin)="onSettingsActivity()"
+              <button
+                mat-icon-button
+                type="button"
+                class="viewer__share"
+                (click)="share(item)"
+                [attr.aria-label]="shareCopied ? 'Link copied' : 'Share'"
               >
-                <button
-                  mat-icon-button
-                  type="button"
-                  class="viewer__settings-btn"
-                  [class.viewer__settings-btn--open]="settingsOpen"
-                  (click)="toggleSettingsPanel()"
-                  [attr.aria-expanded]="settingsOpen"
-                  aria-controls="viewer-settings-panel"
-                  aria-label="Playback settings"
-                >
-                  <mat-icon>settings</mat-icon>
-                </button>
-
-                @if (settingsOpen) {
-                  <div
-                    id="viewer-settings-panel"
-                    class="viewer__settings-panel"
-                    role="dialog"
-                    aria-label="Playback settings"
-                  >
-                    <div class="viewer__settings-row">
-                      <span>Sound</span>
-                      <mat-slide-toggle
-                        [checked]="!state.userMuted"
-                        (change)="onSoundChange($event.checked)"
-                        aria-label="Sound"
-                      />
-                    </div>
-                    @if (hasVideo(item)) {
-                      <div class="viewer__settings-row">
-                        <span>Video</span>
-                        <mat-slide-toggle
-                          [checked]="(showVideo$ | async) ?? true"
-                          (change)="onShowVideoChange($event.checked)"
-                          aria-label="Video"
-                        />
-                      </div>
-                    }
-                    <div
-                      class="viewer__settings-row"
-                      [class.viewer__settings-row--disabled]="state.userMuted"
-                    >
-                      <span>Voice cues</span>
-                      <mat-slide-toggle
-                        [checked]="(voiceCues$ | async) ?? false"
-                        [disabled]="state.userMuted"
-                        (change)="onVoiceCuesChange($event.checked)"
-                        aria-label="Voice cues"
-                      />
-                    </div>
-                    <div class="viewer__settings-row">
-                      <span>Loop all</span>
-                      <mat-slide-toggle
-                        [checked]="state.loopAll"
-                        (change)="onLoopAllChange($event.checked)"
-                        aria-label="Loop all"
-                      />
-                    </div>
-                    @if (state.iterationCount > 1) {
-                      <div class="viewer__settings-row">
-                        <span>Show iteration</span>
-                        <mat-slide-toggle
-                          [checked]="(showIteration$ | async) ?? true"
-                          (change)="onShowIterationChange($event.checked)"
-                          aria-label="Show iteration"
-                        />
-                      </div>
-                    }
-                    <app-save-godu-button
-                      [item]="item"
-                      appearance="row"
-                      (openChange)="onSavePanelOpenChange($event)"
-                    />
-                  </div>
-                }
-              </div>
+                <mat-icon>{{ shareCopied ? 'check' : 'share' }}</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                class="viewer__settings-btn"
+                [class.viewer__settings-btn--open]="settingsOpen"
+                (click)="toggleSettingsPanel()"
+                [attr.aria-expanded]="settingsOpen"
+                aria-controls="viewer-settings-panel"
+                aria-label="Playback settings"
+              >
+                <mat-icon>settings</mat-icon>
+              </button>
             </div>
           }
         </header>
@@ -379,6 +388,8 @@
           </div>
         }
       }
+        </mat-sidenav-content>
+      </mat-sidenav-container>
     </div>
     }
   }

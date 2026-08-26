@@ -34,22 +34,24 @@
           }
         </div>
 
-        <div class="save-godu__add">
-          <mat-form-field appearance="outline" class="save-godu__field">
-            <mat-label>New category</mat-label>
-            <input
-              matInput
-              [(ngModel)]="customCategory"
-              name="customCategory"
-              maxlength="40"
-              autocomplete="off"
-              (keydown.enter)="addCustomCategory(); $event.preventDefault()"
-            />
-          </mat-form-field>
-          <button mat-button type="button" [disabled]="!customCategory.trim()" (click)="addCustomCategory()">
-            Add
-          </button>
-        </div>
+        @if (!selectedCategory) {
+          <div class="save-godu__add">
+            <mat-form-field appearance="outline" class="save-godu__field">
+              <mat-label>New category</mat-label>
+              <input
+                matInput
+                [(ngModel)]="customCategory"
+                name="customCategory"
+                maxlength="40"
+                autocomplete="off"
+                (keydown.enter)="addCustomCategory(); $event.preventDefault()"
+              />
+            </mat-form-field>
+            <button mat-button type="button" [disabled]="!customCategory.trim()" (click)="addCustomCategory()">
+              Add
+            </button>
+          </div>
+        }
 
         @if (error) {
           <p class="save-godu__error">{{ error }}</p>

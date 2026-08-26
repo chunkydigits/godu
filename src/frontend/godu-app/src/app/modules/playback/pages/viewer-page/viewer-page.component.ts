@@ -7,7 +7,9 @@ import {
   OnDestroy,
   ViewChild,
   inject,
+  viewChild,
 } from '@angular/core';
+import { MatSidenav } from '@angular/material/sidenav';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import {
   Observable,
@@ -105,12 +107,11 @@ export class ViewerPageComponent implements OnDestroy {
   private lastCompletedStep: number | null = null;
 
   @ViewChild('descriptionHost') private descriptionHost?: ElementRef<HTMLElement>;
+  private readonly settingsDrawer = viewChild<MatSidenav>('settingsDrawer');
 
   private pendingItem: StepsItem | null = null;
-  private settingsIdleTimer: ReturnType<typeof setTimeout> | null = null;
 
   settingsOpen = false;
-  savePanelOpen = false;
   shareCopied = false;
   descriptionMarquee = false;
   descriptionMarqueeDuration = '14s';
@@ -341,7 +342,6 @@ export class ViewerPageComponent implements OnDestroy {
     } else {
       void this.playback.suspendVisualKeepSession();
     }
-    this.onSettingsActivity();
     setTimeout(() => this.measureDescriptionMarquee());
   }
 
@@ -354,12 +354,10 @@ export class ViewerPageComponent implements OnDestroy {
     if (enabled) {
       this.playback.unlockVoiceCuesFromUserGesture();
     }
-    this.onSettingsActivity();
   }
 
   onSoundChange(enabled: boolean): void {
     this.setMuted(!enabled);
-    this.onSettingsActivity();
   }
 
   onLoopAllChange(enabled: boolean): void {
@@ -367,12 +365,10 @@ export class ViewerPageComponent implements OnDestroy {
     if (enabled && this.playback.snapshot.clipHoldActive) {
       void this.playback.replayCurrentClip();
     }
-    this.onSettingsActivity();
   }
 
   onShowIterationChange(enabled: boolean): void {
     this.preferences.setShowIteration(enabled);
-    this.onSettingsActivity();
   }
 
   toggleMute(): void {
@@ -380,30 +376,11 @@ export class ViewerPageComponent implements OnDestroy {
   }
 
   toggleSettingsPanel(): void {
-    if (this.settingsOpen) {
-      this.closeSettingsPanel();
-      return;
-    }
-    this.settingsOpen = true;
-    this.onSettingsActivity();
+    void this.settingsDrawer()?.toggle();
   }
 
-  onSettingsActivity(): void {
-    if (!this.settingsOpen || this.savePanelOpen) {
-      return;
-    }
-    this.clearSettingsIdle();
-    this.settingsIdleTimer = setTimeout(() => this.closeSettingsPanel(), 2000);
-  }
-
-  onSavePanelOpenChange(open: boolean): void {
-    this.savePanelOpen = open;
-    if (open) {
-      this.clearSettingsIdle();
-      return;
-    }
-
-    this.onSettingsActivity();
+  onSettingsOpenedChange(open: boolean): void {
+    this.settingsOpen = open;
   }
 
   start(): void {
@@ -573,17 +550,9 @@ export class ViewerPageComponent implements OnDestroy {
     );
   }
 
-  private closeSettingsPanel(): void {
+  closeSettingsPanel(): void {
     this.settingsOpen = false;
-    this.savePanelOpen = false;
-    this.clearSettingsIdle();
-  }
-
-  private clearSettingsIdle(): void {
-    if (this.settingsIdleTimer != null) {
-      clearTimeout(this.settingsIdleTimer);
-      this.settingsIdleTimer = null;
-    }
+    void this.settingsDrawer()?.close();
   }
 
   private resolveItem(params: ParamMap): Observable<StepsItem> {
