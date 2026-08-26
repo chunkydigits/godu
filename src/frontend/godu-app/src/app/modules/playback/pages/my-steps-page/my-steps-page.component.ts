@@ -206,7 +206,7 @@ export class MyStepsPageComponent {
         this.loadView(true).pipe(
           map((view) => ({
             ...view,
-            error: problemDetail(err, `Could not ${action.kind} Steps.`),
+            error: problemDetail(err, `Could not ${action.kind} this Godu.`),
           })),
         ),
       ),

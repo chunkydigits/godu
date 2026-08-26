@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 
 /**
- * Keeps the screen awake while a Steps session is actively playing.
+ * Keeps the screen awake while a Godu session is actively playing.
  * Uses the Screen Wake Lock API when available; fails soft otherwise.
  *
  * Safari only grants the lock from a user gesture and may mark it released

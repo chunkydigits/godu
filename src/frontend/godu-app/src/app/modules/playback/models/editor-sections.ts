@@ -1,7 +1,7 @@
 import { environment } from '../../../../environments/environment';
 import { GAP_MESSAGE_MAX_LENGTH, GAP_SECONDS_MAX, GAP_SECONDS_MIN, CARD_SECONDS_MAX } from './step-entry';
 
-/** Collapsible groups of fields on the Steps editor page. */
+/** Collapsible groups of fields on the Godu editor page. */
 export type EditorSectionId = 'video' | 'gaps' | 'repeat' | 'steps';
 
 export interface EditorSection {
@@ -52,8 +52,8 @@ export const EDITOR_SECTIONS = {
       'A gap is a rest that counts down before the next step starts. Set one here and it applies between every step.',
       'Play gap prior to start uses that same gap as a demo before the first timer. It needs a TikTok, so it is hidden on cards-only Godus.',
       'Override start gap if the demo needs a different length or message. Leave it off to reuse the gap below.',
-      'Tick No gaps to run every step back to back, with no rest between the end of one step and the start of the next. Gap entries you have added in Steps still play.',
-      `Add a Gap entry in Steps to override this default at a single point. Consecutive gap entries add together, and a gap after the last step is ignored. Either way a gap runs ${GAP_SECONDS_MIN}–${GAP_SECONDS_MAX} seconds.`,
+      'Tick No gaps to run every step back to back, with no rest between the end of one step and the start of the next. Gap entries you have added in the Godu still play.',
+      `Add a Gap entry in the Godu to override this default at a single point. Consecutive gap entries add together, and a gap after the last step is ignored. Either way a gap runs ${GAP_SECONDS_MIN}–${GAP_SECONDS_MAX} seconds.`,
       `Gaps of ${immediateGapSeconds} seconds or less keep the next clip playing throughout the rest. Longer gaps hold the video and start it ${prerollLeadSeconds} seconds before the gap ends.`,
       `With voice cues on, a gap announces the next step as it begins and says “Go” as the timer starts. Gaps under ${goCueMaxSeconds} seconds only say “Go”.`,
       `The message shows on screen while the gap counts down — up to ${GAP_MESSAGE_MAX_LENGTH} characters, or leave it blank for just the countdown.`,

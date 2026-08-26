@@ -46,7 +46,7 @@ export class CreatorDashboardPageComponent {
             this.loadView().pipe(
               map((view) => ({
                 ...view,
-                error: problemDetail(err, 'Could not unpublish Steps.'),
+                error: problemDetail(err, 'Could not unpublish this Godu.'),
               })),
             ),
           ),
@@ -94,7 +94,7 @@ export class CreatorDashboardPageComponent {
       ),
       startWith(emptyView({ loading: true })),
       catchError((err: unknown) =>
-        of(emptyView({ error: problemDetail(err, 'Could not load published Steps.') })),
+        of(emptyView({ error: problemDetail(err, 'Could not load published Godus.') })),
       ),
     );
   }

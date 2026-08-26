@@ -128,12 +128,12 @@ export function canonicalTikTokShortUrl(input: string): string | null {
   return null;
 }
 
-/** Suggested Steps title when only the creator handle is known. */
+/** Suggested Godu title when only the creator handle is known. */
 export function suggestTitleFromTikTok(username: string | null): string | null {
   if (!username) {
     return null;
   }
-  return `Steps from @${username.replace(/^@/, '')}`;
+  return `Godu from @${username.replace(/^@/, '')}`;
 }
 
 export function formatCreatorDisplayName(username: string | null): string | null {

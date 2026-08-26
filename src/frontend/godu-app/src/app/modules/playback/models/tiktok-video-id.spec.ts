@@ -112,7 +112,7 @@ describe('canonicalTikTokShortUrl', () => {
 describe('suggestTitleFromTikTok / formatCreatorDisplayName', () => {
   it('formats creator and title suggestions', () => {
     expect(formatCreatorDisplayName('lagomchef')).toBe('@lagomchef');
-    expect(suggestTitleFromTikTok('lagomchef')).toBe('Steps from @lagomchef');
+    expect(suggestTitleFromTikTok('lagomchef')).toBe('Godu from @lagomchef');
     expect(suggestTitleFromTikTok(null)).toBeNull();
   });
 });

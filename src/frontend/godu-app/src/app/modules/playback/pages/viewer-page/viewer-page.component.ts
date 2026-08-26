@@ -593,7 +593,7 @@ export class ViewerPageComponent implements OnDestroy {
         catchError(() =>
           this.myStepsApi.getAsStepsItem(id).pipe(
             catchError(() => {
-              throw new Error(`Steps item not found: ${id}`);
+              throw new Error('This Godu was not found.');
             }),
           ),
         ),
@@ -606,12 +606,12 @@ export class ViewerPageComponent implements OnDestroy {
     if (username && slug && provider) {
       return this.publicStepsApi.getAsStepsItem(provider, username, slug).pipe(
         catchError(() => {
-          throw new Error('This public Steps page was not found.');
+          throw new Error('This public Godu was not found.');
         }),
       );
     }
 
-    return throwError(() => new Error('Steps item not found.'));
+    return throwError(() => new Error('This Godu was not found.'));
   }
 
   private resolveRelated(item: StepsItem): Observable<StepsItem[]> {

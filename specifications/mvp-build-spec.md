@@ -177,7 +177,7 @@ Build:
 - `VideoPlayer` + `TikTokVideoPlayer`
 - Hard-coded `StepsItem`(s) using demo TikTok IDs from `decisions.md`
 - Mobile viewer: select / previous / next / segment loop / timed + untimed behaviour / completion view
-- Explicit **Start Steps** (no auto-start); video + timers begin together on user gesture
+- Explicit **Start Godu** (no auto-start); video + timers begin together on user gesture
 - Unit tests for `StepPlaybackService` / step validation logic where pure
 
 Phase 1 scope excluded Auth0 / Cosmos / ASP.NET (those land in Phases 3–4).
