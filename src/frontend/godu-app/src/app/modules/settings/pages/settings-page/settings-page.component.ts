@@ -16,6 +16,7 @@ import {
   tap,
 } from 'rxjs';
 import { PageTemplateComponent } from '../../../../components/page-template/page-template.component';
+import { problemDetail } from '../../../../core/http-problem';
 import { MaterialModule } from '../../../../core/material.module';
 import {
   CreatorProfile,
@@ -34,6 +35,7 @@ import {
 } from '../../models/linked-platform-account.model';
 import { PlatformAccountsApiService } from '../../services/platform-accounts-api.service';
 import { UserSettingsService } from '../../services/user-settings.service';
+import { SavedGodusService } from '../../../playback/services/saved-godus.service';
 
 interface SettingsView {
   loading: boolean;
@@ -65,6 +67,7 @@ export class SettingsPageComponent {
   private readonly userSettings = inject(UserSettingsService);
   private readonly currentUser = inject(CurrentUserService);
   private readonly creatorProfile = inject(MineCreatorProfileApiService);
+  private readonly savedGodus = inject(SavedGodusService);
   private readonly changeDetector = inject(ChangeDetectorRef);
 
   private readonly connect$ = new Subject<void>();
@@ -81,6 +84,9 @@ export class SettingsPageComponent {
   imageFailed = false;
   previewKey = 0;
   private lastProfile: CreatorProfile | null = null;
+  importingId: string | null = null;
+  importNotice: string | null = null;
+  importError: string | null = null;
 
   readonly user$ = this.auth.user$;
   readonly voiceCues$ = this.userSettings.voiceCues$;
@@ -198,6 +204,30 @@ export class SettingsPageComponent {
 
   refreshHandle(account: LinkedPlatformAccount): void {
     this.refreshId$.next(account.id);
+  }
+
+  importGodus(account: LinkedPlatformAccount): void {
+    if (this.importingId || !account.isVerified) {
+      return;
+    }
+
+    this.importingId = account.id;
+    this.savedGodus.importAssociatedFromTikTok(account).subscribe({
+      next: (result) => {
+        this.importingId = null;
+        this.finishImport(result.message);
+      },
+      error: (err: unknown) => {
+        this.importingId = null;
+        this.finishImport(null, err);
+      },
+    });
+  }
+
+  private finishImport(message: string | null, err?: unknown): void {
+    this.importNotice = message;
+    this.importError = err ? problemDetail(err, 'Could not import Godus for this TikTok account.') : null;
+    this.changeDetector.markForCheck();
   }
 
   savePublicProfile(): void {

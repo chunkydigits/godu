@@ -176,7 +176,8 @@
     <p class="panel__copy">
       Connect TikTok to prove you own that account. You will need a verified link before
       publishing public Steps. If you rename on TikTok, use Refresh handle so Godu URLs follow
-      the new @name. Old links still reach your Godus.
+      the new @name. Old links still reach your Godus. Import Godus adds public Godus for this
+      account — including matching demos — to Saved.
     </p>
 
     @if (view$ | async; as view) {
@@ -190,6 +191,12 @@
       }
       @if (view.actionMessage) {
         <p class="notice">{{ view.actionMessage }}</p>
+      }
+      @if (importNotice) {
+        <p class="notice">{{ importNotice }}</p>
+      }
+      @if (importError) {
+        <p class="error">{{ importError }}</p>
       }
 
       @if (!view.loading) {
@@ -232,16 +239,24 @@
                   <button
                     mat-stroked-button
                     type="button"
-                    [disabled]="view.connecting || view.refreshing"
+                    [disabled]="view.connecting || view.refreshing || importingId !== null"
                     (click)="refreshHandle(account)"
                   >
                     Refresh handle
+                  </button>
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="view.connecting || view.refreshing || importingId !== null"
+                    (click)="importGodus(account)"
+                  >
+                    {{ importingId === account.id ? 'Importing…' : 'Import Godus' }}
                   </button>
                 }
                 <button
                   mat-button
                   type="button"
-                  [disabled]="view.connecting || view.refreshing"
+                  [disabled]="view.connecting || view.refreshing || importingId !== null"
                   (click)="confirmDisconnect(account)"
                 >
                   Disconnect

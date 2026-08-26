@@ -30,6 +30,7 @@ import { ShareGoduService } from '../../services/share-godu.service';
 import { ScreenWakeLockService } from '../../../../core/services/screen-wake-lock.service';
 import { CompletionPanelComponent } from '../../components/completion-panel/completion-panel.component';
 import { InstructionCardComponent } from '../../components/instruction-card/instruction-card.component';
+import { SaveGoduButtonComponent } from '../../components/save-godu-button/save-godu-button.component';
 import { StepNavigatorComponent } from '../../components/step-navigator/step-navigator.component';
 import { VideoHostComponent } from '../../components/video-host/video-host.component';
 import { countdownUsesMinutes, formatCountdown } from '../../models/duration';
@@ -79,6 +80,7 @@ interface ViewerLoadView {
     StepNavigatorComponent,
     CompletionPanelComponent,
     InstructionCardComponent,
+    SaveGoduButtonComponent,
   ],
   providers: [StepPlaybackService],
   templateUrl: './viewer-page.component.html',
@@ -108,6 +110,7 @@ export class ViewerPageComponent implements OnDestroy {
   private settingsIdleTimer: ReturnType<typeof setTimeout> | null = null;
 
   settingsOpen = false;
+  savePanelOpen = false;
   shareCopied = false;
   descriptionMarquee = false;
   descriptionMarqueeDuration = '14s';
@@ -386,11 +389,21 @@ export class ViewerPageComponent implements OnDestroy {
   }
 
   onSettingsActivity(): void {
-    if (!this.settingsOpen) {
+    if (!this.settingsOpen || this.savePanelOpen) {
       return;
     }
     this.clearSettingsIdle();
     this.settingsIdleTimer = setTimeout(() => this.closeSettingsPanel(), 2000);
+  }
+
+  onSavePanelOpenChange(open: boolean): void {
+    this.savePanelOpen = open;
+    if (open) {
+      this.clearSettingsIdle();
+      return;
+    }
+
+    this.onSettingsActivity();
   }
 
   start(): void {
@@ -562,6 +575,7 @@ export class ViewerPageComponent implements OnDestroy {
 
   private closeSettingsPanel(): void {
     this.settingsOpen = false;
+    this.savePanelOpen = false;
     this.clearSettingsIdle();
   }
 

@@ -17,4 +17,6 @@ public static class IdGenerator
     public static string NewAnalyticsEventId() => $"evt_{Ulid.NewUlid()}";
 
     public static string PlayHistoryId(string userId, string goduId) => $"hist_{userId}_{goduId}";
+
+    public static string SavedGoduId(string userId, string goduId) => $"saved_{userId}_{goduId}";
 }

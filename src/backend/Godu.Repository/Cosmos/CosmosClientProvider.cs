@@ -42,6 +42,7 @@ public sealed class CosmosClientProvider : IAsyncDisposable
         EnsureContainer(_database, "Creators", "/userId");
         EnsureContainer(_database, "analytics-events", "/partitionKey");
         EnsureContainer(_database, "PlayHistory", "/userId");
+        EnsureContainer(_database, "SavedGodus", "/userId");
     }
 
     public bool IsEnabled => _enabled;
@@ -59,6 +60,8 @@ public sealed class CosmosClientProvider : IAsyncDisposable
     public Container AnalyticsEvents => GetContainer("analytics-events");
 
     public Container PlayHistory => GetContainer("PlayHistory");
+
+    public Container SavedGodus => GetContainer("SavedGodus");
 
     public ValueTask DisposeAsync()
     {

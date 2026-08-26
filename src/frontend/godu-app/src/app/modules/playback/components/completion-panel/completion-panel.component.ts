@@ -14,10 +14,11 @@ import {
 } from '../../models/step-entry';
 import { CreatorNameComponent } from '../creator-name/creator-name.component';
 import { PlatformMarkComponent } from '../platform-mark/platform-mark.component';
+import { SaveGoduButtonComponent } from '../save-godu-button/save-godu-button.component';
 
 @Component({
   selector: 'app-completion-panel',
-  imports: [MaterialModule, RouterLink, PlatformMarkComponent, CreatorNameComponent],
+  imports: [MaterialModule, RouterLink, PlatformMarkComponent, CreatorNameComponent, SaveGoduButtonComponent],
   templateUrl: './completion-panel.component.html',
   styleUrl: './completion-panel.component.scss',
 })

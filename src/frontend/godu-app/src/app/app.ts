@@ -5,6 +5,7 @@ import { CurrentUserService } from './core/auth/current-user.service';
 import { ServiceWorkerUpdateService } from './core/pwa/service-worker-update.service';
 import { ViewportHeightService } from './core/pwa/viewport-height.service';
 import { PlayHistoryService } from './modules/playback/services/play-history.service';
+import { SavedGodusService } from './modules/playback/services/saved-godus.service';
 
 @Component({
   selector: 'app-root',
@@ -17,6 +18,7 @@ export class App {
     inject(AnalyticsService).initialize();
     inject(CurrentUserService).initialize();
     inject(PlayHistoryService).initialize();
+    inject(SavedGodusService).initialize();
     inject(ServiceWorkerUpdateService).initialize();
     inject(ViewportHeightService).initialize();
   }

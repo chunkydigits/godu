@@ -134,6 +134,11 @@
                         />
                       </div>
                     }
+                    <app-save-godu-button
+                      [item]="item"
+                      appearance="row"
+                      (openChange)="onSavePanelOpenChange($event)"
+                    />
                   </div>
                 }
               </div>

@@ -8,6 +8,8 @@ export const AnalyticsEvent = {
   StepAdded: 'step_added',
   StepDeleted: 'step_deleted',
   GoduSaved: 'godu_saved',
+  GoduBookmarked: 'godu_bookmarked',
+  GoduBookmarkRemoved: 'godu_bookmark_removed',
   GoduPublished: 'godu_published',
   GoduViewed: 'godu_viewed',
   GoduStarted: 'godu_started',

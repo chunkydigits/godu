@@ -1,0 +1,71 @@
+@if (visible$ | async) {
+  <div class="save-godu" [class.save-godu--row]="appearance === 'row'">
+    @if (appearance === 'row') {
+      <button class="save-godu__row" type="button" (click)="toggle($event)">
+        <span>Save</span>
+        <mat-icon>bookmark_border</mat-icon>
+      </button>
+    } @else {
+      <button
+        mat-icon-button
+        class="save-godu__icon"
+        type="button"
+        (click)="toggle($event)"
+        aria-label="Save Godu"
+      >
+        <mat-icon>bookmark_border</mat-icon>
+      </button>
+    }
+
+    @if (open) {
+      <div class="save-godu__panel" role="dialog" aria-label="Save Godu" (click)="$event.stopPropagation()">
+        <p class="save-godu__lead">Save this Godu? You can add a category, or skip it.</p>
+
+        <div class="save-godu__chips" role="list">
+          @for (category of categories$ | async; track category) {
+            <button
+              type="button"
+              class="save-godu__chip"
+              [class.save-godu__chip--selected]="isSelected(category)"
+              (click)="selectCategory(category)"
+            >
+              {{ category }}
+            </button>
+          }
+        </div>
+
+        <div class="save-godu__add">
+          <mat-form-field appearance="outline" class="save-godu__field">
+            <mat-label>New category</mat-label>
+            <input
+              matInput
+              [(ngModel)]="customCategory"
+              name="customCategory"
+              maxlength="40"
+              autocomplete="off"
+              (keydown.enter)="addCustomCategory(); $event.preventDefault()"
+            />
+          </mat-form-field>
+          <button mat-button type="button" [disabled]="!customCategory.trim()" (click)="addCustomCategory()">
+            Add
+          </button>
+        </div>
+
+        @if (error) {
+          <p class="save-godu__error">{{ error }}</p>
+        }
+
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          class="save-godu__confirm"
+          [disabled]="saving"
+          (click)="confirmSave()"
+        >
+          {{ saving ? 'Saving…' : 'Save' }}
+        </button>
+      </div>
+    }
+  </div>
+}

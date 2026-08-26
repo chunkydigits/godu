@@ -245,6 +245,19 @@ See `field-feedback.md` §3.
 
 ---
 
+## 9g. Saved Godus (bookmarks)
+
+| Decision | Choice |
+| --- | --- |
+| What is stored | A **pointer** only: Godu id, saved timestamp, play path, optional category. Not a copy of the Godu. |
+| Who can save | Signed-in users, for **public** Godus and catalogue demos. Private library items cannot be saved this way. |
+| Surfaces | Save in viewer **settings**, and on the **completion** screen. Hide the control when the Godu is already saved. |
+| Category | Optional. Presets match demo categories; users may type a new name. Saving with no category is allowed. |
+| List | Signed-in home **Saved** section and `/saved`. Opening the row goes to the stored play path. Category is returned on each item when set. |
+| TikTok import | Settings → linked TikTok: import public Godus for that handle (and catalogue demos with the same @name) into Saved. Demo categories are kept; other public Godus import without a category. Already-saved items are skipped. |
+
+---
+
 ## 10. Testing
 
 | Decision | Choice |

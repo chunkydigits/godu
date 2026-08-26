@@ -11,6 +11,8 @@ public static class AnalyticsEventNames
     public const string StepAdded = "step_added";
     public const string StepDeleted = "step_deleted";
     public const string GoduSaved = "godu_saved";
+    public const string GoduBookmarked = "godu_bookmarked";
+    public const string GoduBookmarkRemoved = "godu_bookmark_removed";
     public const string GoduPublished = "godu_published";
     public const string GoduViewed = "godu_viewed";
     public const string GoduStarted = "godu_started";
@@ -44,6 +46,8 @@ public static class AnalyticsEventNames
         StepAdded,
         StepDeleted,
         GoduSaved,
+        GoduBookmarked,
+        GoduBookmarkRemoved,
         GoduPublished,
         GoduViewed,
         GoduStarted,

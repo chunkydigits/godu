@@ -40,6 +40,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'saved',
+    canActivate: [authGuardFn],
+    loadComponent: () =>
+      import('./modules/playback/pages/saved-godus-page/saved-godus-page.component').then(
+        (m) => m.SavedGodusPageComponent,
+      ),
+  },
+  {
     path: 'my-steps/new',
     canActivate: [authGuardFn],
     loadComponent: () =>

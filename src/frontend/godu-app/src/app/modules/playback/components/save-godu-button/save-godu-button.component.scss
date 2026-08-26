@@ -1,0 +1,137 @@
+:host {
+  display: contents;
+}
+
+.save-godu {
+  position: relative;
+}
+
+.save-godu--row {
+  display: block;
+}
+
+.save-godu__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  min-height: 2.4rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.save-godu__row mat-icon {
+  color: var(--steps-accent);
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.save-godu__icon {
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 1px solid var(--steps-border);
+  background: var(--steps-surface-elevated);
+}
+
+.save-godu__icon mat-icon {
+  font-size: 1.6rem;
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.save-godu__panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 30;
+  width: min(18.5rem, calc(100vw - 2rem));
+  padding: 0.85rem 0.9rem 0.95rem;
+  border: 1px solid var(--steps-border);
+  border-radius: 12px;
+  background: var(--steps-surface-elevated);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  color: var(--steps-text);
+}
+
+.save-godu:not(.save-godu--row) .save-godu__panel {
+  top: auto;
+  bottom: calc(100% + 0.35rem);
+}
+
+.save-godu--row .save-godu__panel {
+  right: auto;
+  left: 0;
+}
+
+.save-godu__lead {
+  margin: 0 0 0.7rem;
+  color: var(--steps-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.save-godu__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.save-godu__chip {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--steps-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--steps-text);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.save-godu__chip--selected {
+  border-color: var(--steps-accent);
+  background: color-mix(in srgb, var(--steps-accent) 18%, transparent);
+  color: var(--steps-accent);
+}
+
+.save-godu__add {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.save-godu__field {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+}
+
+:host ::ng-deep .save-godu__field .mat-mdc-form-field-infix {
+  min-width: 0;
+  width: 100%;
+}
+
+.save-godu__field .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.save-godu__error {
+  margin: 0.35rem 0 0;
+  color: var(--steps-danger);
+  font-size: 0.8rem;
+}
+
+.save-godu__confirm {
+  width: 100%;
+  margin-top: 0.55rem;
+}

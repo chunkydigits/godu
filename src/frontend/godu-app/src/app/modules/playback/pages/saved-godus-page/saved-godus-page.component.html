@@ -1,0 +1,77 @@
+<app-page-template
+  title="Saved Godus"
+  subtitle="Public Godus you’ve kept for later. These are links, not copies."
+>
+  @if (view$ | async; as view) {
+    @if (view.loading) {
+      <div class="status-row">
+        <mat-progress-bar mode="indeterminate" />
+      </div>
+    } @else if (view.error) {
+      <p class="error">{{ view.error }}</p>
+    } @else if (view.items.length === 0 && !view.filter) {
+      <p class="empty">
+        Nothing saved yet. Open a public Godu and use Save in settings or on the end screen.
+      </p>
+    } @else {
+      @if (view.categories.length > 0) {
+        <div class="filters" role="group" aria-label="Categories">
+          <button
+            type="button"
+            class="filter"
+            [class.filter--selected]="!filter"
+            (click)="setFilter(null)"
+          >
+            All
+          </button>
+          @for (category of view.categories; track category) {
+            <button
+              type="button"
+              class="filter"
+              [class.filter--selected]="filter === category"
+              (click)="setFilter(category)"
+            >
+              {{ category }}
+            </button>
+          }
+        </div>
+      }
+
+      @if (view.items.length === 0) {
+        <p class="empty">Nothing in {{ filter }}.</p>
+      } @else {
+        <ul class="saved-list">
+          @for (item of view.items; track item.goduId) {
+            <li class="saved-item">
+              <div class="saved-item__body">
+                <h2>{{ item.title }}</h2>
+                <p>
+                  @if (item.category) {
+                    {{ item.category }}
+                    ·
+                  }
+                  @if (item.creatorDisplayName) {
+                    {{ item.creatorDisplayName }}
+                    ·
+                  }
+                  Saved {{ item.savedUtc | date: 'd MMM y' }}
+                </p>
+              </div>
+              <div class="saved-item__actions">
+                <a mat-stroked-button [routerLink]="item.playPath">Open</a>
+                <button
+                  mat-button
+                  type="button"
+                  [disabled]="removingId === item.goduId"
+                  (click)="remove(item)"
+                >
+                  Remove
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+</app-page-template>

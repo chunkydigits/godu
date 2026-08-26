@@ -22,12 +22,60 @@
       <span class="action__label">My Godus</span>
       <span class="action__hint">Your private library</span>
     </a>
+    <a class="action" routerLink="/saved">
+      <mat-icon>bookmark</mat-icon>
+      <span class="action__label">Saved</span>
+      <span class="action__hint">Public Godus you kept</span>
+    </a>
     <a class="action" routerLink="/history">
       <mat-icon>history</mat-icon>
       <span class="action__label">Godu’n</span>
       <span class="action__hint">Ones you’ve started</span>
     </a>
   </nav>
+
+  @if (saved$ | async; as saved) {
+    <section class="recent">
+      <div class="recent__head">
+        <h2>Saved</h2>
+        <a routerLink="/saved">See all</a>
+      </div>
+
+      @if (saved.loading) {
+        <mat-progress-bar mode="indeterminate" />
+      } @else if (saved.error) {
+        <p class="recent__error">{{ saved.error }}</p>
+      } @else if (saved.items.length === 0) {
+        <p class="recent__empty">
+          Save a public Godu from its settings or the end screen and it lands here.
+        </p>
+      } @else {
+        <ul class="recent__list">
+          @for (item of saved.items; track item.goduId) {
+            <li class="recent__item">
+              <div class="recent__body">
+                <h3>{{ item.title }}</h3>
+                <p>
+                  @if (item.category) {
+                    {{ item.category }}
+                  }
+                  @if (item.category && item.creatorDisplayName) {
+                    ·
+                  }
+                  @if (item.creatorDisplayName) {
+                    {{ item.creatorDisplayName }}
+                  }
+                </p>
+              </div>
+              <div class="recent__cta">
+                <a mat-stroked-button [routerLink]="item.playPath">Open</a>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
 
   @if (history$ | async; as history) {
     <section class="recent">
@@ -86,7 +134,7 @@
         <p class="recent__error">{{ library.error }}</p>
       } @else if (library.items.length === 0) {
         <p class="recent__empty">
-          Nothing saved yet.
+          Nothing created yet.
           <a routerLink="/my-steps/new">Create your first Godu</a>
         </p>
       } @else {

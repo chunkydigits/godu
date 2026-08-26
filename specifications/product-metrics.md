@@ -637,17 +637,15 @@ First time the trial is observed as ended with no active entitlement. Fired by t
 
 # 12. Save / Favourite Events
 
-If saved/favourite GODUs currently exist:
+Saved public Godus (bookmarks) fire:
 
 ### `godu_bookmarked`
 
 ### `godu_bookmark_removed`
 
-These will help determine whether GODU is also being used as:
+These help determine whether GODU is also being used as:
 
 > "I want to do this video later."
-
-This may prove to be an important product behaviour.
 
 ---
 
