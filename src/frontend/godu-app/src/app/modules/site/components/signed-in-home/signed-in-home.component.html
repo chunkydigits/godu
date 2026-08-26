@@ -107,33 +107,4 @@
       }
     </section>
   }
-
-  @if (demos$ | async; as demos) {
-    @if (demos.length > 0) {
-      <section class="recent">
-        <div class="recent__head">
-          <h2>Demos</h2>
-          <a routerLink="/demos">See all</a>
-        </div>
-        <ul class="recent__list">
-          @for (item of demos; track item.id) {
-            <li class="recent__item">
-              <div class="recent__body">
-                <h3>{{ item.title }}</h3>
-                <p>
-                  {{ item.category }}
-                  @if (item.creatorDisplayName) {
-                    · {{ item.creatorDisplayName }}
-                  }
-                </p>
-              </div>
-              <div class="recent__cta">
-                <a mat-stroked-button [routerLink]="['/play', item.id]">Open</a>
-              </div>
-            </li>
-          }
-        </ul>
-      </section>
-    }
-  }
 </div>

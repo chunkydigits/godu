@@ -7,8 +7,6 @@ import { MaterialModule } from '../../../../core/material.module';
 import { problemDetail } from '../../../../core/http-problem';
 import { ApiStepsItem } from '../../../playback/models/api-steps-item.model';
 import { PlayHistoryItem, playHistoryStepsSummary, playHistoryTimeSummary } from '../../../playback/models/play-history.model';
-import { DemoStepsItem } from '../../../playback/models/demo-steps-item.model';
-import { DemoStepsService } from '../../../playback/services/demo-steps.service';
 import { MyStepsApiService } from '../../../playback/services/my-steps-api.service';
 import { PlayHistoryApiService } from '../../../playback/services/play-history-api.service';
 
@@ -34,7 +32,6 @@ export class SignedInHomeComponent {
   private readonly currentUser = inject(CurrentUserService);
   private readonly mySteps = inject(MyStepsApiService);
   private readonly playHistory = inject(PlayHistoryApiService);
-  private readonly demoSteps = inject(DemoStepsService);
 
   readonly profile$ = this.currentUser.profile$;
   readonly history$: Observable<HistoryView> = this.playHistory.list(8).pipe(
@@ -63,10 +60,6 @@ export class SignedInHomeComponent {
       }),
     ),
   );
-
-  readonly demos$: Observable<DemoStepsItem[]> = this.demoSteps
-    .list()
-    .pipe(map((items) => items.slice(0, 4)));
 
   sourceLabel(source: string): string {
     switch (source) {
