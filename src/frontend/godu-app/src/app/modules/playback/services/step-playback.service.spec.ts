@@ -259,6 +259,49 @@ describe('StepPlaybackService', () => {
     expect(seek).toHaveBeenCalledWith(0);
   });
 
+  it('loops on the next time update at or past endSeconds', async () => {
+    const { player, seek, timeUpdates } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+    await service.start();
+    seek.mockClear();
+
+    timeUpdates.next({ currentTime: 4.9, duration: 20 });
+    expect(seek).not.toHaveBeenCalled();
+
+    timeUpdates.next({ currentTime: 5.4, duration: 20 });
+    expect(seek).toHaveBeenCalledWith(0);
+  });
+
+  it('holds an untimed play-once clip when time jumps past endSeconds', async () => {
+    const { player, pause, timeUpdates } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Dice',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: null,
+            autoAdvance: false,
+            loopVideo: false,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    pause.mockClear();
+
+    timeUpdates.next({ currentTime: 5.8, duration: 20 });
+    await Promise.resolve();
+
+    expect(service.snapshot.clipHoldActive).toBe(true);
+    expect(pause).toHaveBeenCalled();
+  });
+
   it('auto-advances when timed step elapses after start', async () => {
     const { player } = createMockPlayer();
     await service.attachPlayer(player);

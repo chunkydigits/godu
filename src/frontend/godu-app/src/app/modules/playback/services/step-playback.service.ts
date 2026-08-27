@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, NgZone, OnDestroy, Optional } from '@angular/core';
 import {
   BehaviorSubject,
   Observable,
@@ -101,6 +101,11 @@ const initialState: PlaybackState = {
   elapsedSeconds: null,
 };
 
+/**
+ * Backup poll if a TikTok `onCurrentTime` message is dropped. Clip ends use
+ * `>= endSeconds`, so any later report stops the clip — this only covers a
+ * missed event, not an exact timestamp.
+ */
 const MEDIA_POLL_MS = 500;
 /**
  * How long a step timer waits for the embed to confirm playback. Long enough to
@@ -116,6 +121,8 @@ export class StepPlaybackService implements OnDestroy {
   private readonly stateSubject = new BehaviorSubject<PlaybackState>(initialState);
   private timerSub: Subscription | null = null;
   private mediaPollSub: Subscription | null = null;
+  private visualTimeSub: Subscription | null = null;
+  private soundtrackTimeSub: Subscription | null = null;
   private loopArmed = false;
   private visualSuspended = false;
   private sessionGeneration = 0;
@@ -127,6 +134,8 @@ export class StepPlaybackService implements OnDestroy {
   private sessionStartedAt: number | null = null;
   private completing = false;
   private readonly voiceCues = new PlaybackVoiceCues();
+
+  constructor(@Optional() private readonly ngZone?: NgZone) {}
 
   readonly state$: Observable<PlaybackState> = this.stateSubject.asObservable();
 
@@ -142,6 +151,9 @@ export class StepPlaybackService implements OnDestroy {
     await this.detachVisualPlayer();
     this.player = player;
     await player.initialise();
+    this.visualTimeSub = player.timeUpdates.subscribe((update) => {
+      this.runInApp(() => this.onVisualTime(update.currentTime));
+    });
     this.applyAudioRouting();
   }
 
@@ -149,6 +161,9 @@ export class StepPlaybackService implements OnDestroy {
     await this.detachSoundtrackPlayer();
     this.soundtrackPlayer = player;
     await player.initialise();
+    this.soundtrackTimeSub = player.timeUpdates.subscribe((update) => {
+      this.runInApp(() => this.onSoundtrackTime(update.currentTime, update.duration));
+    });
     this.applyAudioRouting();
   }
 
@@ -872,6 +887,8 @@ export class StepPlaybackService implements OnDestroy {
   }
 
   private async detachVisualPlayer(): Promise<void> {
+    this.visualTimeSub?.unsubscribe();
+    this.visualTimeSub = null;
     if (this.player) {
       await this.player.destroy();
       this.player = null;
@@ -879,10 +896,20 @@ export class StepPlaybackService implements OnDestroy {
   }
 
   private async detachSoundtrackPlayer(): Promise<void> {
+    this.soundtrackTimeSub?.unsubscribe();
+    this.soundtrackTimeSub = null;
     if (this.soundtrackPlayer) {
       await this.soundtrackPlayer.destroy();
       this.soundtrackPlayer = null;
     }
+  }
+
+  private runInApp(work: () => void): void {
+    if (this.ngZone) {
+      this.ngZone.run(work);
+      return;
+    }
+    work();
   }
 
   private clipAudioMuted(): boolean {
