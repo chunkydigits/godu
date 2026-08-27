@@ -55,7 +55,7 @@ export const EDITOR_SECTIONS = {
       'Tick No gaps to run every step back to back, with no rest between the end of one step and the start of the next. Gap entries you have added in the Godu still play.',
       `Add a Gap entry in the Godu to override this default at a single point. Consecutive gap entries add together, and a gap after the last step is ignored. Either way a gap runs ${GAP_SECONDS_MIN}–${GAP_SECONDS_MAX} seconds.`,
       `Gaps of ${immediateGapSeconds} seconds or less keep the next clip playing throughout the rest. Longer gaps hold the video and start it ${prerollLeadSeconds} seconds before the gap ends.`,
-      `With voice cues on, a gap announces the next step as it begins and says “Go” as the timer starts. Gaps under ${goCueMaxSeconds} seconds only say “Go”.`,
+      `With voice cues on, a gap announces the next step as it begins and says “Go” as the timer starts. Gaps under ${goCueMaxSeconds} seconds only say “Go”. When the last step finishes, it says “That’s the end” before the results screen.`,
       `The message shows on screen while the gap counts down — up to ${GAP_MESSAGE_MAX_LENGTH} characters, or leave it blank for just the countdown.`,
     ],
   },

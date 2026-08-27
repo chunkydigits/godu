@@ -50,6 +50,10 @@ export function formatTimerStartAnnouncement(
   return formatStepAnnouncement(title, durationSeconds);
 }
 
+export function formatEndAnnouncement(): string {
+  return "That's the end";
+}
+
 export function estimateSpeechSeconds(text: string): number {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
   return Math.min(12, Math.max(0.7, words / WORDS_PER_SECOND));
@@ -68,6 +72,7 @@ export class PlaybackVoiceCues {
   private speakTimer: ReturnType<typeof setTimeout> | null = null;
   private speechWatch: ReturnType<typeof setInterval> | null = null;
   private voicesListenerAttached = false;
+  private pendingEnded: (() => void) | null = null;
 
   unlockFromUserGesture(): void {
     if (!this.enabled || typeof window === 'undefined') {
@@ -89,6 +94,7 @@ export class PlaybackVoiceCues {
     if (typeof window !== 'undefined') {
       window.speechSynthesis?.cancel();
     }
+    this.finishPendingSpeech();
   }
 
   announceGapStart(title: string, durationSeconds: number | null | undefined): void {
@@ -137,6 +143,44 @@ export class PlaybackVoiceCues {
     this.speak(formatTimerStartAnnouncement(title, durationSeconds, fromGapSeconds));
   }
 
+  /** Spoken once the last step is done, before the results screen. */
+  announceSessionEnd(): Promise<void> {
+    if (!this.enabled) {
+      return Promise.resolve();
+    }
+    return this.speakAndWait(formatEndAnnouncement());
+  }
+
+  private speakAndWait(text: string): Promise<void> {
+    if (typeof window === 'undefined' || !window.speechSynthesis || !text.trim()) {
+      return Promise.resolve();
+    }
+
+    const timeoutMs = Math.ceil(estimateSpeechSeconds(text) * 1000) + 1200;
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (this.pendingEnded === finish) {
+          this.pendingEnded = null;
+        }
+        resolve();
+      };
+      this.pendingEnded = finish;
+      window.setTimeout(finish, timeoutMs);
+      this.speak(text);
+    });
+  }
+
+  private finishPendingSpeech(): void {
+    const ended = this.pendingEnded;
+    this.pendingEnded = null;
+    ended?.();
+  }
+
   private speak(text: string): void {
     if (typeof window === 'undefined' || !window.speechSynthesis || !text.trim()) {
       return;
@@ -180,7 +224,9 @@ export class PlaybackVoiceCues {
         if (this.pendingText === text) {
           this.pendingText = null;
         }
+        this.finishPendingSpeech();
       };
+      utterance.onerror = () => this.finishPendingSpeech();
       synth.speak(utterance);
       this.startSpeechWatch();
     } catch {

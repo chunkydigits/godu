@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { environment } from '../../../../environments/environment';
 import {
   estimateSpeechSeconds,
+  formatEndAnnouncement,
   formatNextUpAnnouncement,
   formatStepAnnouncement,
   formatTimerStartAnnouncement,
@@ -20,6 +21,10 @@ describe('playback voice cue phrases', () => {
     expect(formatNextUpAnnouncement('Body Waves', 60)).toBe(
       'Next up Body Waves for 1 minute',
     );
+  });
+
+  it('uses a short end line before the results screen', () => {
+    expect(formatEndAnnouncement()).toBe("That's the end");
   });
 
   it('uses Go only when the gap is under the configured threshold', () => {

@@ -26,6 +26,45 @@ describe('DemoStepsService related', () => {
     expect(listed.some((item) => item.id === 'steps_demo_fitness_core')).toBe(false);
   });
 
+  it('uses the notorious_foodie confit recipe steps', async () => {
+    const confit = await firstValueFrom(service.getById('steps_demo_cook_confit'));
+    expect(confit.video.externalVideoId).toBe('7179661469712174342');
+    expect(confit.gapSeconds).toBeNull();
+    expect(confit.steps).toHaveLength(18);
+    expect(confit.steps.map((step) => step.title)).toEqual([
+      'Cut the wagyu',
+      'Finely dice the shallot',
+      'Cut the pickles',
+      'Finely chop the capers',
+      'Mince the anchovies',
+      'Finely chop the parsley',
+      'Finely chop the chives',
+      'Season and mix',
+      'Peel and slice the potatoes',
+      'Season the potatoes',
+      'Melt 3 tablespoons of duck-fat in the microwave',
+      'Mix and layer the potatoes',
+      'Oven bake, compress and chill',
+      'Turn out and cut the potato',
+      'Eat some caviar',
+      'Deep fry the Confit Potato',
+      'Plate up',
+      'Enjoy',
+    ]);
+    expect(confit.steps[0]).toMatchObject({
+      kind: 'step',
+      startSeconds: 0,
+      endSeconds: 8.5,
+      durationSeconds: null,
+      autoAdvance: false,
+      loopVideo: false,
+    });
+    expect(confit.steps[17]).toMatchObject({
+      startSeconds: 88.5,
+      endSeconds: 94,
+    });
+  });
+
   it('uses the Nicci Robinson HIIT circuit with seven repeats', async () => {
     const hiit = await firstValueFrom(service.getById('steps_demo_train_hiit'));
     expect(hiit.video.externalVideoId).toBe('7457632822598159658');

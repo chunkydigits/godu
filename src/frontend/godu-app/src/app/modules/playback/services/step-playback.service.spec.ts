@@ -280,6 +280,17 @@ describe('StepPlaybackService', () => {
     expect(player.pause).toHaveBeenCalled();
   });
 
+  it('still completes when voice cues are on', async () => {
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+    service.setVoiceCuesEnabled(true);
+    await service.start();
+    await service.selectStep(1);
+    await service.next();
+    expect(service.snapshot.phase).toBe('completed');
+  });
+
   it('records elapsed time when the session completes', async () => {
     const { player } = createMockPlayer();
     await service.attachPlayer(player);
