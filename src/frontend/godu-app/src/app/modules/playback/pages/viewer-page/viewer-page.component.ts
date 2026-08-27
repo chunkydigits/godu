@@ -1,4 +1,4 @@
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectorRef,
   Component,
@@ -35,7 +35,12 @@ import { InstructionCardComponent } from '../../components/instruction-card/inst
 import { SaveGoduButtonComponent } from '../../components/save-godu-button/save-godu-button.component';
 import { StepNavigatorComponent } from '../../components/step-navigator/step-navigator.component';
 import { VideoHostComponent } from '../../components/video-host/video-host.component';
-import { countdownUsesMinutes, formatCountdown } from '../../models/duration';
+import {
+  countdownProgress,
+  countdownUsesMinutes,
+  formatCompactDuration,
+  formatCountdown,
+} from '../../models/duration';
 import { StepDefinition } from '../../models/step-definition.model';
 import { StepsItem } from '../../models/steps-item.model';
 import {
@@ -86,6 +91,7 @@ interface ViewerLoadView {
     PageTemplateComponent,
     MaterialModule,
     AsyncPipe,
+    NgTemplateOutlet,
     VideoHostComponent,
     StepNavigatorComponent,
     CompletionPanelComponent,
@@ -116,16 +122,19 @@ export class ViewerPageComponent implements OnDestroy {
 
   @ViewChild('descriptionHost') private descriptionHost?: ElementRef<HTMLElement>;
   private readonly settingsDrawer = viewChild<MatSidenav>('settingsDrawer');
+  private readonly stepsListDrawer = viewChild<MatSidenav>('stepsListDrawer');
 
   private pendingItem: StepsItem | null = null;
 
   settingsOpen = false;
+  stepsListOpen = false;
   shareCopied = false;
   descriptionMarquee = false;
   descriptionMarqueeDuration = '14s';
   private shareCopiedTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly showVideo$ = this.preferences.showVideo$;
+  readonly leftHanded$ = this.preferences.leftHanded$;
   readonly clipAudio$ = this.preferences.clipAudio$;
   readonly voiceCues$ = this.userSettings.voiceCues$;
   readonly showIteration$ = this.preferences.showIteration$;
@@ -461,8 +470,8 @@ export class ViewerPageComponent implements OnDestroy {
 
   onLoopAllChange(enabled: boolean): void {
     this.playback.setLoopAll(enabled);
-    if (enabled && this.playback.snapshot.clipHoldActive) {
-      void this.playback.replayCurrentClip();
+    if (enabled) {
+      this.startLoopingClipIfPlaying();
     }
   }
 
@@ -480,13 +489,36 @@ export class ViewerPageComponent implements OnDestroy {
   toggleLoop(state: PlaybackState): void {
     const looping = this.clipLoops(state);
     this.playback.setLoopOverride(!looping);
-    if (!looping && this.playback.snapshot.clipHoldActive) {
-      void this.playback.replayCurrentClip();
+    if (!looping) {
+      this.startLoopingClipIfPlaying();
     }
+  }
+
+  private startLoopingClipIfPlaying(): void {
+    if (this.playback.snapshot.clipHoldActive) {
+      void this.playback.replayCurrentClip();
+      return;
+    }
+    this.playback.restartClipLoopFromUserGesture();
   }
 
   onShowIterationChange(enabled: boolean): void {
     this.preferences.setShowIteration(enabled);
+  }
+
+  onLeftHandedChange(enabled: boolean): void {
+    this.preferences.setLeftHanded(enabled);
+  }
+
+  transportBeside(item: StepsItem, state: PlaybackState): boolean {
+    return (
+      this.hasVideo(item) &&
+      this.preferences.showVideo &&
+      state.isTimedStep &&
+      !this.isGap(state) &&
+      !this.instructionCard(state) &&
+      !this.stillOverlay(state)
+    );
   }
 
   toggleMute(): void {
@@ -494,6 +526,7 @@ export class ViewerPageComponent implements OnDestroy {
   }
 
   toggleSettingsPanel(): void {
+    void this.stepsListDrawer()?.close();
     void this.settingsDrawer()?.toggle();
   }
 
@@ -501,7 +534,22 @@ export class ViewerPageComponent implements OnDestroy {
     this.settingsOpen = open;
   }
 
+  toggleStepsListPanel(): void {
+    void this.settingsDrawer()?.close();
+    void this.stepsListDrawer()?.toggle();
+  }
+
+  onStepsListOpenedChange(open: boolean): void {
+    this.stepsListOpen = open;
+  }
+
+  closeStepsListPanel(): void {
+    this.stepsListOpen = false;
+    void this.stepsListDrawer()?.close();
+  }
+
   start(): void {
+    this.closeStepsListPanel();
     const item = this.playback.snapshot.stepsItem;
     if (item) {
       this.analytics.trackOnce(
@@ -540,6 +588,11 @@ export class ViewerPageComponent implements OnDestroy {
       });
     }
     void this.playback.selectActivityStep(activityIndex);
+  }
+
+  goToListedStep(activityIndex: number): void {
+    this.selectActivityStep(activityIndex);
+    this.closeStepsListPanel();
   }
 
   togglePause(state: PlaybackState): void {
@@ -622,6 +675,18 @@ export class ViewerPageComponent implements OnDestroy {
 
   formatRemaining(seconds: number | null): string {
     return formatCountdown(seconds);
+  }
+
+  stepDurationLabel(step: StepDefinition): string {
+    return formatCompactDuration(step.durationSeconds);
+  }
+
+  timerProgress(state: PlaybackState): number {
+    return countdownProgress(state.remainingSeconds, state.selectedStep?.durationSeconds);
+  }
+
+  timerRingOffset(state: PlaybackState): number {
+    return this.timerProgress(state);
   }
 
   gapCountdown(seconds: number | null): string {

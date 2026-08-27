@@ -8,6 +8,7 @@ const VOICE_CUES_KEY = 'steps.viewer.voiceCues';
 const SHOW_ITERATION_KEY = 'steps.viewer.showIteration';
 const TIMING_BEEPS_KEY = 'steps.viewer.timingBeeps';
 const TIMING_BEEP_SECONDS_KEY = 'steps.viewer.timingBeepSeconds';
+const LEFT_HANDED_KEY = 'steps.viewer.leftHanded';
 
 /**
  * Viewer preferences. Video defaults on; mute defaults off.
@@ -21,6 +22,7 @@ export class ViewerPreferencesService {
   private readonly showIterationSubject: BehaviorSubject<boolean>;
   private readonly timingBeepsSubject: BehaviorSubject<boolean>;
   private readonly timingBeepSecondsSubject: BehaviorSubject<number | null>;
+  private readonly leftHandedSubject: BehaviorSubject<boolean>;
 
   readonly showVideo$: Observable<boolean>;
   readonly muted$: Observable<boolean>;
@@ -29,6 +31,7 @@ export class ViewerPreferencesService {
   readonly showIteration$: Observable<boolean>;
   readonly timingBeeps$: Observable<boolean>;
   readonly timingBeepSeconds$: Observable<number | null>;
+  readonly leftHanded$: Observable<boolean>;
 
   constructor() {
     this.showVideoSubject = new BehaviorSubject<boolean>(this.readFlag(VIDEO_KEY, true));
@@ -42,6 +45,7 @@ export class ViewerPreferencesService {
     this.timingBeepSecondsSubject = new BehaviorSubject<number | null>(
       this.readNumber(TIMING_BEEP_SECONDS_KEY),
     );
+    this.leftHandedSubject = new BehaviorSubject<boolean>(this.readFlag(LEFT_HANDED_KEY, false));
     this.showVideo$ = this.showVideoSubject.asObservable();
     this.muted$ = this.mutedSubject.asObservable();
     this.clipAudio$ = this.clipAudioSubject.asObservable();
@@ -49,6 +53,7 @@ export class ViewerPreferencesService {
     this.showIteration$ = this.showIterationSubject.asObservable();
     this.timingBeeps$ = this.timingBeepsSubject.asObservable();
     this.timingBeepSeconds$ = this.timingBeepSecondsSubject.asObservable();
+    this.leftHanded$ = this.leftHandedSubject.asObservable();
   }
 
   get showVideo(): boolean {
@@ -78,6 +83,10 @@ export class ViewerPreferencesService {
   /** Null means follow the Godu interval, then the 30 second default. */
   get timingBeepSeconds(): number | null {
     return this.timingBeepSecondsSubject.value;
+  }
+
+  get leftHanded(): boolean {
+    return this.leftHandedSubject.value;
   }
 
   setShowVideo(show: boolean): void {
@@ -113,6 +122,11 @@ export class ViewerPreferencesService {
   setTimingBeepSeconds(seconds: number | null): void {
     this.timingBeepSecondsSubject.next(seconds);
     this.writeNumber(TIMING_BEEP_SECONDS_KEY, seconds);
+  }
+
+  setLeftHanded(enabled: boolean): void {
+    this.leftHandedSubject.next(enabled);
+    this.writeFlag(LEFT_HANDED_KEY, enabled);
   }
 
   toggleShowVideo(): void {

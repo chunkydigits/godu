@@ -1367,6 +1367,70 @@ describe('StepPlaybackService', () => {
     expect(seek).not.toHaveBeenCalled();
   });
 
+  it('restarts a paused clip when loop is turned back on during a timed step', async () => {
+    const { player, pause, kickstartFromUserGesture } = createMockPlayer();
+    vi.mocked(player.getCurrentTime).mockResolvedValue(6);
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Grip',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 20,
+            autoAdvance: false,
+            loopVideo: true,
+          },
+        ],
+      }),
+    );
+    service.setLoopOverride(false);
+    await service.start();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(pause).toHaveBeenCalled();
+    expect(service.snapshot.phase).toBe('playing');
+
+    kickstartFromUserGesture.mockClear();
+    service.setLoopOverride(true);
+    service.restartClipLoopFromUserGesture();
+
+    expect(kickstartFromUserGesture).toHaveBeenCalledWith(0, { muted: false });
+    expect(service.snapshot.remainingSeconds).toBeGreaterThan(0);
+  });
+
+  it('does not restart the clip when loop is turned on while paused', async () => {
+    const { player, kickstartFromUserGesture } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Grip',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 20,
+            autoAdvance: false,
+            loopVideo: true,
+          },
+        ],
+      }),
+    );
+    await service.start();
+    await service.pause();
+    kickstartFromUserGesture.mockClear();
+
+    service.setLoopOverride(true);
+    service.restartClipLoopFromUserGesture();
+
+    expect(kickstartFromUserGesture).not.toHaveBeenCalled();
+    expect(service.snapshot.phase).toBe('paused');
+  });
+
   it('runs a colour card timer without a player', async () => {
     await service.load(
       createDemoItem({

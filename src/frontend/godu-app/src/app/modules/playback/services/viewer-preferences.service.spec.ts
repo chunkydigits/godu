@@ -19,6 +19,7 @@ describe('ViewerPreferencesService', () => {
     expect(service.showIteration).toBe(true);
     expect(service.timingBeeps).toBe(true);
     expect(service.timingBeepSeconds).toBeNull();
+    expect(service.leftHanded).toBe(false);
   });
 
   it('persists video off preference', () => {
@@ -76,6 +77,15 @@ describe('ViewerPreferencesService', () => {
     const again = new ViewerPreferencesService();
     expect(again.timingBeeps).toBe(false);
     expect(again.timingBeepSeconds).toBe(20);
+  });
+
+  it('persists left-handed preference', () => {
+    const service = new ViewerPreferencesService();
+    service.setLeftHanded(true);
+    expect(localStorage.getItem('steps.viewer.leftHanded')).toBe('1');
+
+    const again = new ViewerPreferencesService();
+    expect(again.leftHanded).toBe(true);
   });
 
   it('toggles show video', () => {

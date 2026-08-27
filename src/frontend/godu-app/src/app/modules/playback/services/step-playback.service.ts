@@ -235,6 +235,28 @@ export class StepPlaybackService implements OnDestroy {
     });
   }
 
+  /**
+   * User gesture: start the current clip looping from the beginning without
+   * resetting the activity timer. No-op if the Godu is paused or holding.
+   */
+  restartClipLoopFromUserGesture(): void {
+    const { selectedStep, phase, clipHoldActive, continuousSoundtrackActive } = this.snapshot;
+    if (phase !== 'playing' || clipHoldActive) {
+      return;
+    }
+    if (!selectedStep || !this.player || this.visualSuspended || !this.stepUsesClip(selectedStep)) {
+      return;
+    }
+
+    this.voiceCues.unlockFromUserGesture();
+    this.setLoopArmed(true);
+    this.loopSeekPending = false;
+    this.player.kickstartFromUserGesture(activityMediaSeconds(selectedStep), {
+      muted: continuousSoundtrackActive ? true : this.clipAudioMuted(),
+    });
+    this.applyAudioRouting();
+  }
+
   /** Replay the current step clip from the start (play-once hold, or mid-step). */
   async replayCurrentClip(): Promise<void> {
     const { stepsItem, selectedIndex, selectedStep, phase } = this.snapshot;
