@@ -65,6 +65,38 @@ describe('DemoStepsService related', () => {
     });
   });
 
+  it('uses the theellapatt knotless braid steps', async () => {
+    const plait = await firstValueFrom(service.getById('steps_demo_style_plait'));
+    expect(plait.video.externalVideoId).toBe('7601240724440616214');
+    expect(plait.title).toBe('Starting knotless braids from @theellapatt');
+    expect(plait.gapSeconds).toBeNull();
+    expect(plait.steps).toHaveLength(3);
+    expect(plait.steps.map((step) => step.title)).toEqual([
+      'Attaching the extension',
+      'Grip the hair and extensions',
+      'Start plaiting',
+    ]);
+    expect(plait.steps[0]).toMatchObject({
+      startSeconds: 0,
+      endSeconds: 8.6,
+      durationSeconds: null,
+      autoAdvance: false,
+      loopVideo: false,
+    });
+    expect(plait.steps[1]).toMatchObject({
+      startSeconds: 8.8,
+      endSeconds: 26.5,
+      autoAdvance: true,
+      loopVideo: true,
+    });
+    expect(plait.steps[2]).toMatchObject({
+      startSeconds: 26.5,
+      endSeconds: 37,
+      autoAdvance: false,
+      loopVideo: false,
+    });
+  });
+
   it('uses the Nicci Robinson HIIT circuit with seven repeats', async () => {
     const hiit = await firstValueFrom(service.getById('steps_demo_train_hiit'));
     expect(hiit.video.externalVideoId).toBe('7457632822598159658');
