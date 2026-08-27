@@ -452,7 +452,7 @@
             @if (state.phase === 'ready' || state.phase === 'idle') {
               <ng-container *ngTemplateOutlet="timerBlock" />
               <div class="viewer__start">
-                <div class="viewer__start-row">
+                <div class="viewer__start-row" role="group" aria-label="Start playback">
                   <button
                     mat-flat-button
                     color="primary"
@@ -465,7 +465,8 @@
                     Start Godu
                   </button>
                   <button
-                    mat-icon-button
+                    mat-flat-button
+                    color="primary"
                     type="button"
                     class="viewer__steps-list-btn"
                     [class.viewer__steps-list-btn--open]="stepsListOpen"

@@ -1,5 +1,6 @@
 @use '@angular/material' as mat;
 @use './styles/theme-colors' as theme;
+@use './app/modules/playback/pages/viewer-page/viewer-page-extras';
 
 :root {
   --steps-bg: #0b0d10;
