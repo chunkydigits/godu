@@ -156,14 +156,34 @@
   font-size: 0.95rem;
 }
 
-.viewer__settings-row--disabled {
+.viewer__settings-row--subdued > span {
   color: var(--steps-text-muted);
-  opacity: 0.55;
 }
 
 .viewer__settings-row mat-slide-toggle {
   margin: 0;
   flex: 0 0 auto;
+}
+
+.viewer__settings-audio {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.15rem;
+}
+
+.viewer__settings-audio-children {
+  margin: 0.1rem 0 0.35rem 0.35rem;
+  padding-left: 0.85rem;
+  border-left: 2px solid color-mix(in srgb, var(--steps-text-muted) 40%, transparent);
+}
+
+.viewer__settings-row--field {
+  align-items: center;
+}
+
+.viewer__settings-row--field mat-form-field {
+  width: 7.25rem;
+  margin: 0;
 }
 
 .viewer__video {

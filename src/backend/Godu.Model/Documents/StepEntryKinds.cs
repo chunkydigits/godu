@@ -24,6 +24,10 @@ public static class StepEntryKinds
 
     public const int GapMessageMaxLength = 256;
 
+    public const int TimingBeepSecondsMin = 5;
+
+    public const int TimingBeepSecondsMax = 600;
+
     public const string DefaultCardBackground = "#02c998";
 
     public const string DefaultCardText = "#002116";

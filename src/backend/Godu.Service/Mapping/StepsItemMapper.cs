@@ -31,6 +31,7 @@ public static class StepsItemMapper
             StartGapSeconds = document.StartGapSeconds,
             StartGapMessage = document.StartGapMessage,
             RepeatCount = document.RepeatCount,
+            TimingBeepSeconds = document.TimingBeepSeconds,
             UseVideoContent = UsesVideoContent(document),
             CreatedUtc = document.CreatedUtc,
             UpdatedUtc = document.UpdatedUtc,

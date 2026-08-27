@@ -20,6 +20,7 @@ describe('mapApiStepsItem', () => {
       continuousSoundtrack: false,
       gapSeconds: 15,
       gapMessage: 'Active recovery — keep moving',
+      timingBeepSeconds: 20,
       createdUtc: '2026-08-14T12:00:00Z',
       updatedUtc: '2026-08-14T12:00:00Z',
       publishedUtc: '2026-08-14T12:00:00Z',
@@ -61,6 +62,7 @@ describe('mapApiStepsItem', () => {
     expect(item.startGapSeconds).toBeNull();
     expect(item.startGapMessage).toBeNull();
     expect(item.repeatCount).toBeNull();
+    expect(item.timingBeepSeconds).toBe(20);
     expect(item.steps[0].loopVideo).toBe(true);
     expect(item.publicPath).toBe('/t/coach/mobility');
   });

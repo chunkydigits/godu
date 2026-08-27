@@ -49,6 +49,7 @@ export interface ApiStepsItem {
   startGapSeconds?: number | null;
   startGapMessage?: string | null;
   repeatCount?: number | null;
+  timingBeepSeconds?: number | null;
   video: ApiVideoReference;
   steps: ApiStepDefinition[];
   useVideoContent?: boolean;
@@ -97,6 +98,7 @@ export interface CreateStepsItemRequest {
   startGapSeconds?: number | null;
   startGapMessage?: string | null;
   repeatCount?: number | null;
+  timingBeepSeconds?: number | null;
   useVideoContent?: boolean;
   video: ApiVideoReferenceRequest;
   steps: ApiStepDefinitionRequest[];

@@ -75,10 +75,13 @@ export class PlaybackVoiceCues {
   private pendingEnded: (() => void) | null = null;
 
   unlockFromUserGesture(): void {
-    if (!this.enabled || typeof window === 'undefined') {
+    if (typeof window === 'undefined') {
       return;
     }
     this.primeAudioFromGesture();
+    if (!this.enabled) {
+      return;
+    }
     this.primeSpeechFromGesture();
     this.ensureVoicesListener();
   }
@@ -141,6 +144,11 @@ export class PlaybackVoiceCues {
       return;
     }
     this.speak(formatTimerStartAnnouncement(title, durationSeconds, fromGapSeconds));
+  }
+
+  /** Interval tick during a timed step. Independent of spoken cues. */
+  playBeep(): void {
+    this.beep();
   }
 
   /** Spoken once the last step is done, before the results screen. */

@@ -1,8 +1,13 @@
 import { environment } from '../../../../environments/environment';
 import { GAP_MESSAGE_MAX_LENGTH, GAP_SECONDS_MAX, GAP_SECONDS_MIN, CARD_SECONDS_MAX } from './step-entry';
+import {
+  DEFAULT_TIMING_BEEP_SECONDS,
+  TIMING_BEEP_SECONDS_MAX,
+  TIMING_BEEP_SECONDS_MIN,
+} from './timing-beep';
 
 /** Collapsible groups of fields on the Godu editor page. */
-export type EditorSectionId = 'video' | 'gaps' | 'repeat' | 'steps';
+export type EditorSectionId = 'video' | 'gaps' | 'repeat' | 'timing' | 'steps';
 
 export interface EditorSection {
   id: EditorSectionId;
@@ -66,6 +71,16 @@ export const EDITOR_SECTIONS = {
     tips: [
       'Tick this when the whole Godu is one round that should be done several times, such as a fitness set you repeat until the workout is complete. This is separate from looping a step clip for the set duration.',
       'How many times is the number of full passes, including the first. Playback shows which iteration you are on.',
+    ],
+  },
+  timing: {
+    id: 'timing',
+    label: 'Timing beeps',
+    controls: ['timingBeeps', 'timingBeepSeconds'],
+    tips: [
+      'Timing beeps mark elapsed time during a timed step so people can follow without watching the screen. A 60 second hold with a 30 second beep marks the halfway point.',
+      `The interval is ${TIMING_BEEP_SECONDS_MIN}–${TIMING_BEEP_SECONDS_MAX} seconds. ${DEFAULT_TIMING_BEEP_SECONDS} seconds is the usual default.`,
+      'Viewers can turn these off or pick a different interval in the playback settings drawer. Their choice always wins.',
     ],
   },
   steps: {

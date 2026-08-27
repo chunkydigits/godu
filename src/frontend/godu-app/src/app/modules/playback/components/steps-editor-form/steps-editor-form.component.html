@@ -196,6 +196,34 @@
 
   <section class="section">
     <ng-container
+      *ngTemplateOutlet="sectionHead; context: { $implicit: sections.timing }"
+    ></ng-container>
+
+    @if (isSectionOpen('timing')) {
+      <div class="section__body">
+        <div class="field-block">
+          <mat-checkbox formControlName="timingBeeps">Beep during timed steps</mat-checkbox>
+          <p class="field-hint">
+            Play a beep at a regular interval so people can follow a hold without watching the
+            screen. Viewers can turn this off or change the interval in settings.
+          </p>
+        </div>
+
+        @if (form.get('timingBeeps')?.value) {
+          <app-duration-input
+            formControlName="timingBeepSeconds"
+            label="Beep every"
+            [min]="timingBeepSecondsMin"
+            [max]="timingBeepSecondsMax"
+            hint="For a 60 second timer, 30 seconds marks halfway. 20 seconds beeps twice."
+          />
+        }
+      </div>
+    }
+  </section>
+
+  <section class="section">
+    <ng-container
       *ngTemplateOutlet="sectionHead; context: { $implicit: sections.steps }"
     ></ng-container>
 

@@ -56,6 +56,11 @@ public sealed class StepsItemDocument
     /// </summary>
     public int? RepeatCount { get; set; }
 
+    /// <summary>
+    /// Suggested beep interval during timed steps. Viewers can override or turn this off.
+    /// </summary>
+    public int? TimingBeepSeconds { get; set; }
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; set; }

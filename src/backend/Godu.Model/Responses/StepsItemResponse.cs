@@ -43,6 +43,8 @@ public sealed class StepsItemResponse
 
     public int? RepeatCount { get; init; }
 
+    public int? TimingBeepSeconds { get; init; }
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; init; }

@@ -102,6 +102,7 @@ public sealed class StepsItemService : IStepsItemService
                 ? TrimGapMessage(request.StartGapMessage)
                 : null,
             RepeatCount = NormalizeRepeatCount(request.RepeatCount),
+            TimingBeepSeconds = NormalizeTimingBeepSeconds(request.TimingBeepSeconds),
             UseVideoContent = useVideo,
             Video = video,
             Steps = StepsItemMapper.ToStepDocuments(request.Steps),
@@ -151,6 +152,7 @@ public sealed class StepsItemService : IStepsItemService
             ? TrimGapMessage(request.StartGapMessage)
             : null;
         existing.RepeatCount = NormalizeRepeatCount(request.RepeatCount);
+        existing.TimingBeepSeconds = NormalizeTimingBeepSeconds(request.TimingBeepSeconds);
         existing.UseVideoContent = useVideo;
         existing.Slug = slug;
         existing.Video = video;
@@ -629,6 +631,23 @@ public sealed class StepsItemService : IStepsItemService
         }
 
         return repeatCount;
+    }
+
+    private static int? NormalizeTimingBeepSeconds(int? seconds)
+    {
+        if (seconds is null or <= 0)
+        {
+            return null;
+        }
+
+        if (seconds < StepEntryKinds.TimingBeepSecondsMin
+            || seconds > StepEntryKinds.TimingBeepSecondsMax)
+        {
+            throw new ArgumentException(
+                $"Timing beep seconds must be between {StepEntryKinds.TimingBeepSecondsMin} and {StepEntryKinds.TimingBeepSecondsMax}.");
+        }
+
+        return seconds;
     }
 
     private static string? NormalizeGapMessage(string? message, int? gapSeconds)

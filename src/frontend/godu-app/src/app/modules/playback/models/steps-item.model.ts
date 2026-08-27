@@ -36,6 +36,11 @@ export interface StepsItem {
   startGapMessage?: string | null;
   /** How many times to run the full sequence. Null or omitted means a single pass. */
   repeatCount?: number | null;
+  /**
+   * Suggested beep interval during timed steps, in whole seconds.
+   * Viewers can turn ticks off or pick a different interval.
+   */
+  timingBeepSeconds?: number | null;
   createdUtc: string;
   updatedUtc?: string;
   publishedUtc?: string;

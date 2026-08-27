@@ -62,6 +62,13 @@ import { PublicStepsApiService } from '../../services/public-steps-api.service';
 import { PlaybackState, StepPlaybackService } from '../../services/step-playback.service';
 import { ViewerPreferencesService } from '../../services/viewer-preferences.service';
 import { UserSettingsService } from '../../../settings/services/user-settings.service';
+import {
+  DEFAULT_TIMING_BEEP_SECONDS,
+  TIMING_BEEP_SECONDS_MAX,
+  TIMING_BEEP_SECONDS_MIN,
+  normalizeTimingBeepSeconds,
+  resolveTimingBeepSeconds,
+} from '../../models/timing-beep';
 import { viewerBackPathFromUrl, shouldReplaceCanonicalPath } from '../../models/public-path';
 import { StepsVisibility } from '../../models/steps-visibility.enum';
 import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
@@ -119,8 +126,12 @@ export class ViewerPageComponent implements OnDestroy {
   private shareCopiedTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly showVideo$ = this.preferences.showVideo$;
+  readonly clipAudio$ = this.preferences.clipAudio$;
   readonly voiceCues$ = this.userSettings.voiceCues$;
   readonly showIteration$ = this.preferences.showIteration$;
+  readonly timingBeeps$ = this.preferences.timingBeeps$;
+  readonly timingBeepSecondsMin = TIMING_BEEP_SECONDS_MIN;
+  readonly timingBeepSecondsMax = TIMING_BEEP_SECONDS_MAX;
 
   readonly view$: Observable<ViewerLoadView> = this.route.paramMap.pipe(
     switchMap((params) =>
@@ -131,7 +142,9 @@ export class ViewerPageComponent implements OnDestroy {
           this.lastCompletedStep = null;
           this.shareCopied = false;
           this.playback.setUserMuted(this.preferences.muted);
+          this.playback.setClipAudioEnabled(this.preferences.clipAudio);
           this.syncVoiceCuesToPlayback();
+          this.syncTimingBeepsToPlayback();
           this.trackViewed(item);
           if (
             this.playback.snapshot.stepsItem?.id === item.id &&
@@ -171,10 +184,21 @@ export class ViewerPageComponent implements OnDestroy {
 
   constructor() {
     this.playback.setUserMuted(this.preferences.muted);
+    this.playback.setClipAudioEnabled(this.preferences.clipAudio);
     this.syncVoiceCuesToPlayback();
+    this.syncTimingBeepsToPlayback();
+    this.preferences.clipAudio$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((enabled) => this.playback.setClipAudioEnabled(enabled));
     this.preferences.voiceCues$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.syncVoiceCuesToPlayback());
+    this.preferences.timingBeeps$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.syncTimingBeepsToPlayback());
+    this.preferences.timingBeepSeconds$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.syncTimingBeepsToPlayback());
     this.userSettings.hydrate().pipe(takeUntil(this.destroy$)).subscribe();
 
     this.playback.state$
@@ -292,6 +316,40 @@ export class ViewerPageComponent implements OnDestroy {
     return usesVideoContent(item);
   }
 
+  startHint(item: StepsItem, state: PlaybackState): string {
+    if (state.userMuted) {
+      return 'Starts with all sound off.';
+    }
+    if (this.hasVideo(item) && this.preferences.showVideo) {
+      const extras = [
+        this.userSettings.voiceCues ? 'spoken step names' : null,
+        this.preferences.timingBeeps ? 'beeps' : null,
+      ].filter((part): part is string => part != null);
+      const extraPhrase =
+        extras.length === 0
+          ? ''
+          : extras.length === 1
+            ? extras[0]
+            : `${extras[0]} and ${extras[1]}`;
+      if (!this.preferences.clipAudio) {
+        return extraPhrase
+          ? `Starts the video muted, with ${extraPhrase}.`
+          : 'Starts the video muted.';
+      }
+      if (extraPhrase) {
+        return `Starts the video with ${extraPhrase}.`;
+      }
+      if (this.usesContinuousSoundtrack(item)) {
+        return 'Starts muted step clips with a continuous soundtrack.';
+      }
+      return 'Starts the video and step timer together.';
+    }
+    if (this.hasVideo(item)) {
+      return 'Starts the step timer (video is off).';
+    }
+    return 'Starts the card and step timers.';
+  }
+
   stepTitle(step: StepDefinition | null | undefined): string {
     return step ? activityDisplayTitle(step) : '—';
   }
@@ -346,10 +404,12 @@ export class ViewerPageComponent implements OnDestroy {
     setTimeout(() => this.measureDescriptionMarquee());
   }
 
+  onClipAudioChange(enabled: boolean): void {
+    this.preferences.setClipAudio(enabled);
+    this.playback.setClipAudioEnabled(enabled);
+  }
+
   onVoiceCuesChange(enabled: boolean): void {
-    if (this.playback.snapshot.userMuted) {
-      return;
-    }
     this.userSettings.setUseVoiceCuesByDefault(enabled);
     this.syncVoiceCuesToPlayback();
     if (enabled) {
@@ -357,8 +417,46 @@ export class ViewerPageComponent implements OnDestroy {
     }
   }
 
-  onSoundChange(enabled: boolean): void {
-    this.setMuted(!enabled);
+  onTimingBeepsChange(enabled: boolean): void {
+    this.preferences.setTimingBeeps(enabled);
+    this.syncTimingBeepsToPlayback();
+    if (enabled) {
+      this.playback.unlockVoiceCuesFromUserGesture();
+    }
+  }
+
+  onTimingBeepSecondsChange(event: Event): void {
+    const raw = (event.target as HTMLInputElement).value;
+    if (raw.trim() === '') {
+      this.preferences.setTimingBeepSeconds(null);
+      this.syncTimingBeepsToPlayback();
+      return;
+    }
+    const parsed = Number(raw);
+    const seconds = normalizeTimingBeepSeconds(parsed);
+    if (seconds == null) {
+      const clamped = Number.isFinite(parsed)
+        ? Math.min(TIMING_BEEP_SECONDS_MAX, Math.max(TIMING_BEEP_SECONDS_MIN, Math.floor(parsed)))
+        : DEFAULT_TIMING_BEEP_SECONDS;
+      this.preferences.setTimingBeepSeconds(clamped);
+    } else {
+      this.preferences.setTimingBeepSeconds(seconds);
+    }
+    this.syncTimingBeepsToPlayback();
+  }
+
+  timingBeepSecondsDisplay(item: StepsItem): number {
+    return (
+      resolveTimingBeepSeconds({
+        goduSeconds: item.timingBeepSeconds,
+        userEnabled: true,
+        userSeconds: this.preferences.timingBeepSeconds,
+      }) ?? DEFAULT_TIMING_BEEP_SECONDS
+    );
+  }
+
+  onMuteAllChange(muted: boolean): void {
+    this.setMuted(muted);
   }
 
   onLoopAllChange(enabled: boolean): void {
@@ -562,11 +660,23 @@ export class ViewerPageComponent implements OnDestroy {
     this.preferences.setMuted(muted);
     this.playback.setUserMuted(muted);
     this.syncVoiceCuesToPlayback();
+    this.syncTimingBeepsToPlayback();
   }
 
   private syncVoiceCuesToPlayback(): void {
     this.playback.setVoiceCuesEnabled(
       this.userSettings.voiceCues && !this.playback.snapshot.userMuted,
+    );
+  }
+
+  private syncTimingBeepsToPlayback(): void {
+    const item = this.playback.snapshot.stepsItem;
+    this.playback.setTimingBeepSeconds(
+      resolveTimingBeepSeconds({
+        goduSeconds: item?.timingBeepSeconds,
+        userEnabled: this.preferences.timingBeeps && !this.playback.snapshot.userMuted,
+        userSeconds: this.preferences.timingBeepSeconds,
+      }),
     );
   }
 

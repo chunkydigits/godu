@@ -14,8 +14,11 @@ describe('ViewerPreferencesService', () => {
     const service = new ViewerPreferencesService();
     expect(service.showVideo).toBe(true);
     expect(service.muted).toBe(false);
+    expect(service.clipAudio).toBe(true);
     expect(service.voiceCues).toBe(false);
     expect(service.showIteration).toBe(true);
+    expect(service.timingBeeps).toBe(true);
+    expect(service.timingBeepSeconds).toBeNull();
   });
 
   it('persists video off preference', () => {
@@ -36,6 +39,15 @@ describe('ViewerPreferencesService', () => {
     expect(again.muted).toBe(true);
   });
 
+  it('persists original sound preference', () => {
+    const service = new ViewerPreferencesService();
+    service.setClipAudio(false);
+    expect(localStorage.getItem('steps.viewer.clipAudio')).toBe('0');
+
+    const again = new ViewerPreferencesService();
+    expect(again.clipAudio).toBe(false);
+  });
+
   it('persists voice cues preference', () => {
     const service = new ViewerPreferencesService();
     service.setVoiceCues(true);
@@ -52,6 +64,18 @@ describe('ViewerPreferencesService', () => {
 
     const again = new ViewerPreferencesService();
     expect(again.showIteration).toBe(false);
+  });
+
+  it('persists timing beep preference', () => {
+    const service = new ViewerPreferencesService();
+    service.setTimingBeeps(false);
+    service.setTimingBeepSeconds(20);
+    expect(localStorage.getItem('steps.viewer.timingBeeps')).toBe('0');
+    expect(localStorage.getItem('steps.viewer.timingBeepSeconds')).toBe('20');
+
+    const again = new ViewerPreferencesService();
+    expect(again.timingBeeps).toBe(false);
+    expect(again.timingBeepSeconds).toBe(20);
   });
 
   it('toggles show video', () => {

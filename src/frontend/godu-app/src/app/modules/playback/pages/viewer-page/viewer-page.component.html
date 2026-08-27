@@ -42,13 +42,73 @@
 
             @if (state$ | async; as state) {
               <div class="viewer__settings-drawer-body">
-                <div class="viewer__settings-row">
-                  <span>Sound</span>
-                  <mat-slide-toggle
-                    [checked]="!state.userMuted"
-                    (change)="onSoundChange($event.checked)"
-                    aria-label="Sound"
-                  />
+                <div class="viewer__settings-audio">
+                  <div class="viewer__settings-row">
+                    <span>Mute all</span>
+                    <mat-slide-toggle
+                      [checked]="state.userMuted"
+                      (change)="onMuteAllChange($event.checked)"
+                      aria-label="Mute all"
+                    />
+                  </div>
+                  <div class="viewer__settings-audio-children">
+                    @if (hasVideo(item)) {
+                      <div
+                        class="viewer__settings-row"
+                        [class.viewer__settings-row--subdued]="state.userMuted"
+                      >
+                        <span>Original sound</span>
+                        <mat-slide-toggle
+                          [checked]="(clipAudio$ | async) ?? true"
+                          (change)="onClipAudioChange($event.checked)"
+                          aria-label="Original sound"
+                        />
+                      </div>
+                    }
+                    <div
+                      class="viewer__settings-row"
+                      [class.viewer__settings-row--subdued]="state.userMuted"
+                    >
+                      <span>Voice cues</span>
+                      <mat-slide-toggle
+                        [checked]="(voiceCues$ | async) ?? false"
+                        (change)="onVoiceCuesChange($event.checked)"
+                        aria-label="Voice cues"
+                      />
+                    </div>
+                    <div
+                      class="viewer__settings-row"
+                      [class.viewer__settings-row--subdued]="state.userMuted"
+                    >
+                      <span>Timing beeps</span>
+                      <mat-slide-toggle
+                        [checked]="(timingBeeps$ | async) ?? true"
+                        (change)="onTimingBeepsChange($event.checked)"
+                        aria-label="Timing beeps"
+                      />
+                    </div>
+                    @if (timingBeeps$ | async) {
+                      <div
+                        class="viewer__settings-row viewer__settings-row--field"
+                        [class.viewer__settings-row--subdued]="state.userMuted"
+                      >
+                        <span>Beep every</span>
+                        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                          <input
+                            matInput
+                            type="number"
+                            inputmode="numeric"
+                            [min]="timingBeepSecondsMin"
+                            [max]="timingBeepSecondsMax"
+                            [value]="timingBeepSecondsDisplay(item)"
+                            (change)="onTimingBeepSecondsChange($event)"
+                            aria-label="Beep every"
+                          />
+                          <span matSuffix>sec</span>
+                        </mat-form-field>
+                      </div>
+                    }
+                  </div>
                 </div>
                 @if (hasVideo(item)) {
                   <div class="viewer__settings-row">
@@ -60,18 +120,6 @@
                     />
                   </div>
                 }
-                <div
-                  class="viewer__settings-row"
-                  [class.viewer__settings-row--disabled]="state.userMuted"
-                >
-                  <span>Voice cues</span>
-                  <mat-slide-toggle
-                    [checked]="(voiceCues$ | async) ?? false"
-                    [disabled]="state.userMuted"
-                    (change)="onVoiceCuesChange($event.checked)"
-                    aria-label="Voice cues"
-                  />
-                </div>
                 <div class="viewer__settings-row">
                   <span>Loop all</span>
                   <mat-slide-toggle
@@ -119,17 +167,15 @@
 
           @if (state.phase !== 'completed') {
             <div class="viewer__chrome">
-              @if (hasVideo(item)) {
-                <button
-                  mat-icon-button
-                  type="button"
-                  class="viewer__mute"
-                  (click)="toggleMute()"
-                  [attr.aria-label]="state.userMuted ? 'Unmute' : 'Mute'"
-                >
-                  <mat-icon>{{ state.userMuted ? 'volume_off' : 'volume_up' }}</mat-icon>
-                </button>
-              }
+              <button
+                mat-icon-button
+                type="button"
+                class="viewer__mute"
+                (click)="toggleMute()"
+                [attr.aria-label]="state.userMuted ? 'Unmute all' : 'Mute all'"
+              >
+                <mat-icon>{{ state.userMuted ? 'volume_off' : 'volume_up' }}</mat-icon>
+              </button>
               <button
                 mat-icon-button
                 type="button"
@@ -325,21 +371,7 @@
                   <mat-icon>play_arrow</mat-icon>
                   Start Godu
                 </button>
-                <p class="viewer__start-hint">
-                  @if (hasVideo(item) && (showVideo$ | async)) {
-                    @if (state.voiceCuesEnabled) {
-                      Starts the video muted, with spoken step names and beeps.
-                    } @else if (usesContinuousSoundtrack(item)) {
-                      Starts muted step clips with a continuous soundtrack.
-                    } @else {
-                      Starts the video and step timer together.
-                    }
-                  } @else if (hasVideo(item)) {
-                    Starts the step timer (video is off).
-                  } @else {
-                    Starts the card and step timers.
-                  }
-                </p>
+                <p class="viewer__start-hint">{{ startHint(item, state) }}</p>
               </div>
             } @else if (state.clipHoldActive) {
               <div class="viewer__actions">

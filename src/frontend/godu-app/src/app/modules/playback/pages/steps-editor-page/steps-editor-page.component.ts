@@ -68,6 +68,12 @@ import {
   resolvedRepeatCount,
   stepEntryKind,
 } from '../../models/step-entry';
+import {
+  DEFAULT_TIMING_BEEP_SECONDS,
+  TIMING_BEEP_SECONDS_MAX,
+  TIMING_BEEP_SECONDS_MIN,
+  normalizeTimingBeepSeconds,
+} from '../../models/timing-beep';
 import { usesVideoContent } from '../../models/video-reference.model';
 import {
   buildTikTokSourceUrl,
@@ -179,6 +185,11 @@ export class StepsEditorPageComponent {
       { value: REPEAT_COUNT_MIN as number | null, disabled: true },
       [Validators.required, Validators.min(REPEAT_COUNT_MIN), Validators.max(REPEAT_COUNT_MAX)],
     ],
+    timingBeeps: [true],
+    timingBeepSeconds: [
+      DEFAULT_TIMING_BEEP_SECONDS as number | null,
+      [Validators.min(TIMING_BEEP_SECONDS_MIN), Validators.max(TIMING_BEEP_SECONDS_MAX)],
+    ],
     steps: this.fb.array<FormGroup>([this.createStepGroup(1)]),
   });
 
@@ -216,6 +227,13 @@ export class StepsEditorPageComponent {
       tap((enabled) => this.applyRepeatVideo(enabled)),
     ),
     { initialValue: false },
+  );
+
+  private readonly timingBeepLock = toSignal(
+    this.form.controls.timingBeeps.valueChanges.pipe(
+      tap((enabled) => this.applyTimingBeeps(enabled)),
+    ),
+    { initialValue: true },
   );
 
   private readonly videoInputValue = toSignal(
@@ -377,6 +395,8 @@ export class StepsEditorPageComponent {
                   resolvedRepeatCount(item) > 1
                     ? resolvedRepeatCount(item)
                     : REPEAT_COUNT_MIN,
+                timingBeeps: (item.timingBeepSeconds ?? 0) > 0,
+                timingBeepSeconds: item.timingBeepSeconds ?? DEFAULT_TIMING_BEEP_SECONDS,
               },
               { emitEvent: true },
             );
@@ -384,6 +404,7 @@ export class StepsEditorPageComponent {
             this.applyNoVideoContent(noVideo);
             this.applyPlayGapPriorToStart(!!item.playGapPriorToStart && !noVideo);
             this.applyRepeatVideo(resolvedRepeatCount(item) > 1);
+            this.applyTimingBeeps((item.timingBeepSeconds ?? 0) > 0);
             this.steps.clear();
             this.collapsedEntries.clear();
             for (const step of [...item.steps].sort((a, b) => a.order - b.order)) {
@@ -601,6 +622,18 @@ export class StepsEditorPageComponent {
       repeatCount.setValue(REPEAT_COUNT_MIN, { emitEvent: false });
     }
     repeatCount.enable({ emitEvent: false });
+  }
+
+  private applyTimingBeeps(enabled: boolean): void {
+    const { timingBeepSeconds } = this.form.controls;
+    if (!enabled) {
+      timingBeepSeconds.disable({ emitEvent: false });
+      return;
+    }
+    if (timingBeepSeconds.value == null) {
+      timingBeepSeconds.setValue(DEFAULT_TIMING_BEEP_SECONDS, { emitEvent: false });
+    }
+    timingBeepSeconds.enable({ emitEvent: false });
   }
 
   toggleSection(id: EditorSectionId): void {
@@ -995,6 +1028,11 @@ export class StepsEditorPageComponent {
       return null;
     }
 
+    const timingBeepSeconds = raw.timingBeeps
+      ? (normalizeTimingBeepSeconds(raw.timingBeepSeconds as number | null) ??
+        DEFAULT_TIMING_BEEP_SECONDS)
+      : null;
+
     return {
       title: raw.title.trim(),
       description: raw.description.trim() || null,
@@ -1007,6 +1045,7 @@ export class StepsEditorPageComponent {
       startGapSeconds,
       startGapMessage,
       repeatCount,
+      timingBeepSeconds,
       useVideoContent: useVideo,
       video: useVideo
         ? {

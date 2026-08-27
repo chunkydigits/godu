@@ -208,6 +208,7 @@ public sealed class InMemoryStepsItemRepository : IStepsItemRepository
             StartGapSeconds = item.StartGapSeconds,
             StartGapMessage = item.StartGapMessage,
             RepeatCount = item.RepeatCount,
+            TimingBeepSeconds = item.TimingBeepSeconds,
             UseVideoContent = item.UseVideoContent,
             CreatedUtc = item.CreatedUtc,
             UpdatedUtc = item.UpdatedUtc,

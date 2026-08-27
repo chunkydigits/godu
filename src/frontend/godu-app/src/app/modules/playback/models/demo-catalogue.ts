@@ -32,6 +32,7 @@ interface DemoCatalogueEntry {
   gapSeconds: number | null;
   gapMessage: string | null;
   repeatCount?: number | null;
+  timingBeepSeconds?: number | null;
   steps: DemoCatalogueStep[];
 }
 
@@ -1030,6 +1031,7 @@ function toDemoItem(entry: DemoCatalogueEntry): DemoStepsItem {
     gapSeconds: entry.gapSeconds,
     gapMessage: entry.gapMessage,
     repeatCount: entry.repeatCount ?? null,
+    timingBeepSeconds: entry.timingBeepSeconds ?? null,
     video: useVideo
       ? {
           provider: VideoProvider.TikTok,

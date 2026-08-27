@@ -36,6 +36,12 @@ public sealed class CreateStepsItemRequest
     [Range(2, 99)]
     public int? RepeatCount { get; set; }
 
+    /// <summary>
+    /// Suggested beep interval during timed steps. Null means no creator suggestion.
+    /// </summary>
+    [Range(5, 600)]
+    public int? TimingBeepSeconds { get; set; }
+
     /// <summary>False for a cards-only Godu with no TikTok. Defaults to true.</summary>
     public bool UseVideoContent { get; set; } = true;
 

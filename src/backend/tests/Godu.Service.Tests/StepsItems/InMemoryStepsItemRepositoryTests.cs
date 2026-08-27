@@ -17,6 +17,7 @@ public sealed class InMemoryStepsItemRepositoryTests
         var loaded = await repo.GetByIdAsync(created.Id, created.CreatedByUserId);
         loaded.Should().NotBeNull();
         loaded!.RepeatCount.Should().Be(4);
+        loaded.TimingBeepSeconds.Should().Be(20);
     }
 
     private static StepsItemDocument Document(int repeatCount) =>
@@ -28,6 +29,7 @@ public sealed class InMemoryStepsItemRepositoryTests
             Status = "published",
             Title = "Circuit",
             RepeatCount = repeatCount,
+            TimingBeepSeconds = 20,
             CreatedUtc = DateTime.UtcNow,
             UpdatedUtc = DateTime.UtcNow,
             Video = new VideoReferenceDocument

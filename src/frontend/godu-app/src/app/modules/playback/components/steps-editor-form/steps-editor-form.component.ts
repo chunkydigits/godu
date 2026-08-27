@@ -28,6 +28,10 @@ import {
   isGapEntry,
   shouldLoopVideo,
 } from '../../models/step-entry';
+import {
+  TIMING_BEEP_SECONDS_MAX,
+  TIMING_BEEP_SECONDS_MIN,
+} from '../../models/timing-beep';
 
 @Component({
   selector: 'app-steps-editor-form',
@@ -65,6 +69,8 @@ export class StepsEditorFormComponent {
   readonly gapMessageMaxLength = GAP_MESSAGE_MAX_LENGTH;
   readonly repeatCountMin = REPEAT_COUNT_MIN;
   readonly repeatCountMax = REPEAT_COUNT_MAX;
+  readonly timingBeepSecondsMin = TIMING_BEEP_SECONDS_MIN;
+  readonly timingBeepSecondsMax = TIMING_BEEP_SECONDS_MAX;
   readonly defaultCardBackground = DEFAULT_CARD_BACKGROUND;
 
   get useVideoContent(): boolean {

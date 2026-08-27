@@ -36,6 +36,7 @@ import { usesVideoContent } from '../models/video-reference.model';
 import { StepTransition, resolveStepTransition, resolveWrapTransition } from '../models/step-transition';
 import { isContinuousSoundtrackEnabled } from '../models/continuous-soundtrack.feature';
 import { ControllableVideoPlayer } from '../models/video-player.interface';
+import { timingBeepMarksDue } from '../models/timing-beep';
 import { PlaybackVoiceCues } from './playback-voice-cues';
 
 export type PlaybackPhase = 'idle' | 'ready' | 'playing' | 'paused' | 'gap' | 'completed';
@@ -134,6 +135,13 @@ export class StepPlaybackService implements OnDestroy {
   private sessionStartedAt: number | null = null;
   private completing = false;
   private readonly voiceCues = new PlaybackVoiceCues();
+  /** Original activity length, kept across pause so interval ticks stay aligned. */
+  private activityDurationSeconds: number | null = null;
+  private lastTimingBeepElapsed = 0;
+  /** Null means interval ticks are off. */
+  private timingBeepSeconds: number | null = null;
+  /** Original clip/soundtrack audio. Independent of voice cues and timing beeps. */
+  private clipAudioEnabled = true;
 
   constructor(@Optional() private readonly ngZone?: NgZone) {}
 
@@ -210,6 +218,11 @@ export class StepPlaybackService implements OnDestroy {
     this.applyAudioRouting();
   }
 
+  setClipAudioEnabled(enabled: boolean): void {
+    this.clipAudioEnabled = enabled;
+    this.applyAudioRouting();
+  }
+
   setLoopAll(enabled: boolean): void {
     this.setLoopOverride(enabled ? true : null);
   }
@@ -243,6 +256,10 @@ export class StepPlaybackService implements OnDestroy {
       this.voiceCues.cancel();
     }
     this.applyAudioRouting();
+  }
+
+  setTimingBeepSeconds(seconds: number | null): void {
+    this.timingBeepSeconds = seconds != null && seconds > 0 ? seconds : null;
   }
 
   unlockVoiceCuesFromUserGesture(): void {
@@ -368,6 +385,8 @@ export class StepPlaybackService implements OnDestroy {
     const generation = this.sessionGeneration;
     this.stopTimer();
     this.setLoopArmed(false);
+    this.activityDurationSeconds = null;
+    this.lastTimingBeepElapsed = 0;
 
     const step = stepsItem.steps[index];
     const isTimed = step.durationSeconds != null && step.durationSeconds > 0;
@@ -913,8 +932,7 @@ export class StepPlaybackService implements OnDestroy {
   }
 
   private clipAudioMuted(): boolean {
-    const { userMuted, voiceCuesEnabled } = this.snapshot;
-    return userMuted || voiceCuesEnabled;
+    return this.snapshot.userMuted || !this.clipAudioEnabled;
   }
 
   private applyAudioRouting(): void {
@@ -1062,6 +1080,16 @@ export class StepPlaybackService implements OnDestroy {
   private startTimer(totalSeconds: number, kind: 'activity' | 'gap'): void {
     this.stopTimer(false);
     this.timerKind = kind;
+    if (kind === 'activity') {
+      if (this.activityDurationSeconds == null) {
+        this.activityDurationSeconds =
+          this.snapshot.selectedStep?.durationSeconds ?? totalSeconds;
+        this.lastTimingBeepElapsed = 0;
+      }
+    } else {
+      this.activityDurationSeconds = null;
+      this.lastTimingBeepElapsed = 0;
+    }
     const endAt = Date.now() + totalSeconds * 1000;
 
     this.timerSub = timer(0, 250)
@@ -1070,7 +1098,8 @@ export class StepPlaybackService implements OnDestroy {
         distinctUntilChanged(),
         tap((remaining) => {
           this.patch({ remainingSeconds: remaining });
-          if (this.timerKind !== 'gap') {
+          if (this.timerKind === 'activity') {
+            this.maybePlayTimingBeep(remaining);
             return;
           }
           if (this.shouldPrerollGapMedia(remaining)) {
@@ -1096,6 +1125,23 @@ export class StepPlaybackService implements OnDestroy {
           void this.onTimerElapsed();
         }
       });
+  }
+
+  private maybePlayTimingBeep(remaining: number): void {
+    if (this.snapshot.userMuted) {
+      return;
+    }
+    const interval = this.timingBeepSeconds;
+    const total = this.activityDurationSeconds;
+    if (interval == null || total == null) {
+      return;
+    }
+    const due = timingBeepMarksDue(total, remaining, interval, this.lastTimingBeepElapsed);
+    if (due.length === 0) {
+      return;
+    }
+    this.lastTimingBeepElapsed = due[due.length - 1];
+    this.voiceCues.playBeep();
   }
 
   private stopTimer(clearRemaining = true): void {

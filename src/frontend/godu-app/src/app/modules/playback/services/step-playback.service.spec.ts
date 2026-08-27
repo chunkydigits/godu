@@ -10,6 +10,7 @@ import {
   VideoPlayerTimeUpdate,
 } from '../models/video-player.interface';
 import { StepPlaybackService } from './step-playback.service';
+import { PlaybackVoiceCues } from './playback-voice-cues';
 
 function createDemoItem(overrides: Partial<StepsItem> = {}): StepsItem {
   return {
@@ -196,16 +197,136 @@ describe('StepPlaybackService', () => {
     expect(soundtrack.kickstartFromUserGesture).not.toHaveBeenCalled();
   });
 
-  it('mutes clip audio when voice cues are enabled', async () => {
+  it('keeps clip audio on when voice cues are enabled', async () => {
     const { player, kickstartFromUserGesture, setMuted } = createMockPlayer();
     await service.attachPlayer(player);
     await service.load(createDemoItem());
     service.setVoiceCuesEnabled(true);
     await service.start();
 
+    expect(kickstartFromUserGesture).toHaveBeenCalledWith(0, { muted: false });
+    expect(setMuted).toHaveBeenCalledWith(false);
+    expect(service.snapshot.voiceCuesEnabled).toBe(true);
+  });
+
+  it('mutes clip audio when original sound is off', async () => {
+    const { player, kickstartFromUserGesture, setMuted } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+    service.setClipAudioEnabled(false);
+    service.setVoiceCuesEnabled(true);
+    await service.start();
+
     expect(kickstartFromUserGesture).toHaveBeenCalledWith(0, { muted: true });
     expect(setMuted).toHaveBeenCalledWith(true);
     expect(service.snapshot.voiceCuesEnabled).toBe(true);
+  });
+
+  it('mutes clip audio when mute all is on even if original sound is enabled', async () => {
+    const { player, kickstartFromUserGesture, setMuted } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(createDemoItem());
+    service.setClipAudioEnabled(true);
+    service.setVoiceCuesEnabled(true);
+    service.setUserMuted(true);
+    await service.start();
+
+    expect(kickstartFromUserGesture).toHaveBeenCalledWith(0, { muted: true });
+    expect(setMuted).toHaveBeenCalledWith(true);
+  });
+
+  it('beeps at the configured interval during a timed step', async () => {
+    const playBeep = vi
+      .spyOn(PlaybackVoiceCues.prototype, 'playBeep')
+      .mockImplementation(() => undefined);
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Hold',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 4,
+            autoAdvance: false,
+          },
+        ],
+      }),
+    );
+    service.setTimingBeepSeconds(2);
+    await service.start();
+    playBeep.mockClear();
+
+    await vi.advanceTimersByTimeAsync(2100);
+
+    expect(playBeep).toHaveBeenCalledTimes(1);
+    playBeep.mockRestore();
+  });
+
+  it('does not interval-beep when the viewer turned ticks off', async () => {
+    const playBeep = vi
+      .spyOn(PlaybackVoiceCues.prototype, 'playBeep')
+      .mockImplementation(() => undefined);
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Hold',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 4,
+            autoAdvance: false,
+          },
+        ],
+      }),
+    );
+    service.setTimingBeepSeconds(null);
+    await service.start();
+    playBeep.mockClear();
+
+    await vi.advanceTimersByTimeAsync(2100);
+
+    expect(playBeep).not.toHaveBeenCalled();
+    playBeep.mockRestore();
+  });
+
+  it('does not interval-beep when mute all is on', async () => {
+    const playBeep = vi
+      .spyOn(PlaybackVoiceCues.prototype, 'playBeep')
+      .mockImplementation(() => undefined);
+    const { player } = createMockPlayer();
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Hold',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 4,
+            autoAdvance: false,
+          },
+        ],
+      }),
+    );
+    service.setTimingBeepSeconds(2);
+    service.setUserMuted(true);
+    await service.start();
+    playBeep.mockClear();
+
+    await vi.advanceTimersByTimeAsync(2100);
+
+    expect(playBeep).not.toHaveBeenCalled();
+    playBeep.mockRestore();
   });
 
   it('selectStep while ready only previews without playing', async () => {
