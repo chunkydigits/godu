@@ -158,6 +158,8 @@ describe('step entries', () => {
     expect(shouldLoopVideo({ durationSeconds: null })).toBe(true);
     expect(shouldLoopVideo({ durationSeconds: null, loopVideo: false })).toBe(false);
     expect(shouldLoopVideo({ durationSeconds: null, loopVideo: false }, true)).toBe(true);
+    expect(shouldLoopVideo({ durationSeconds: 10 }, false, false)).toBe(false);
+    expect(shouldLoopVideo({ durationSeconds: 10, loopVideo: false }, false, true)).toBe(true);
   });
 
   it('treats repeat counts below 2 as a single pass', () => {

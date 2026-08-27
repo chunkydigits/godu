@@ -49,6 +49,7 @@ import {
   resolvedRepeatCount,
   stillCardOverlay,
   visibleInstructionCard,
+  shouldLoopVideo,
 } from '../../models/step-entry';
 import { usesVideoContent } from '../../models/video-reference.model';
 import { TikTokCreatorLink, creatorLabel, tiktokCreatorLink } from '../../models/creator-link';
@@ -363,6 +364,25 @@ export class ViewerPageComponent implements OnDestroy {
   onLoopAllChange(enabled: boolean): void {
     this.playback.setLoopAll(enabled);
     if (enabled && this.playback.snapshot.clipHoldActive) {
+      void this.playback.replayCurrentClip();
+    }
+  }
+
+  clipLoops(state: PlaybackState): boolean {
+    if (!state.selectedStep) {
+      return false;
+    }
+    return shouldLoopVideo(state.selectedStep, state.loopAll, state.loopOverride);
+  }
+
+  showLoopToggle(item: StepsItem, state: PlaybackState): boolean {
+    return this.hasVideo(item) && !this.isGap(state) && !this.instructionCard(state);
+  }
+
+  toggleLoop(state: PlaybackState): void {
+    const looping = this.clipLoops(state);
+    this.playback.setLoopOverride(!looping);
+    if (!looping && this.playback.snapshot.clipHoldActive) {
       void this.playback.replayCurrentClip();
     }
   }

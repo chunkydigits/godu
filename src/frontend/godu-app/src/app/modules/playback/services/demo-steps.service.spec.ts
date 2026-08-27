@@ -97,6 +97,42 @@ describe('DemoStepsService related', () => {
     });
   });
 
+  it('uses the itsbabykelz baddie makeup steps', async () => {
+    const makeup = await firstValueFrom(service.getById('steps_demo_makeup_baddie'));
+    expect(makeup.video.externalVideoId).toBe('7582736145491004686');
+    expect(makeup.title).toBe('Baddie makeup tutorial from @itsbabykelz');
+    expect(makeup.gapSeconds).toBeNull();
+    expect(makeup.steps).toHaveLength(15);
+    expect(makeup.steps.map((step) => step.title)).toEqual([
+      'Introduction',
+      'Prep your skin',
+      'Apply your foundation',
+      'Concealer',
+      'Bronzer',
+      'Blush',
+      'Set your face',
+      'Bronzer',
+      'Blush',
+      'Eye Shadow',
+      'Eyeliner',
+      'Highlighter',
+      'Setting Spray',
+      'Lips',
+      'The Result',
+    ]);
+    expect(makeup.steps[0]).toMatchObject({
+      startSeconds: 0,
+      endSeconds: 10,
+      durationSeconds: null,
+      autoAdvance: false,
+      loopVideo: false,
+    });
+    expect(makeup.steps[14]).toMatchObject({
+      startSeconds: 147,
+      endSeconds: 153,
+    });
+  });
+
   it('uses the Nicci Robinson HIIT circuit with seven repeats', async () => {
     const hiit = await firstValueFrom(service.getById('steps_demo_train_hiit'));
     expect(hiit.video.externalVideoId).toBe('7457632822598159658');

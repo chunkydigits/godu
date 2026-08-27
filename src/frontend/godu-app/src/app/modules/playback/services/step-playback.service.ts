@@ -65,6 +65,11 @@ export interface PlaybackState {
   clipHoldActive: boolean;
   /** Session-only: loop every step clip, including untimed play-once steps. */
   loopAll: boolean;
+  /**
+   * Session override for clip looping. `true` loops every clip, `false` plays
+   * once, `null` follows each step's loopVideo (and loopAll).
+   */
+  loopOverride: boolean | null;
   /** 1-based pass through the Godu when repeatCount is set. */
   iteration: number;
   /** Total passes. 1 means a single run. */
@@ -90,6 +95,7 @@ const initialState: PlaybackState = {
   gapMessage: null,
   clipHoldActive: false,
   loopAll: false,
+  loopOverride: null,
   iteration: 1,
   iterationCount: 1,
   elapsedSeconds: null,
@@ -155,8 +161,9 @@ export class StepPlaybackService implements OnDestroy {
     this.sessionStartedAt = null;
     this.completing = false;
     this.voiceCues.cancel();
-    const loopAll =
-      this.snapshot.stepsItem?.id === stepsItem.id ? this.snapshot.loopAll : false;
+    const sameItem = this.snapshot.stepsItem?.id === stepsItem.id;
+    const loopOverride = sameItem ? this.snapshot.loopOverride : null;
+    const loopAll = loopOverride === true;
     const iterationCount = resolvedRepeatCount(stepsItem);
     this.patch({
       stepsItem,
@@ -171,6 +178,7 @@ export class StepPlaybackService implements OnDestroy {
       gapMessage: null,
       clipHoldActive: false,
       loopAll,
+      loopOverride,
       iteration: 1,
       iterationCount,
       elapsedSeconds: null,
@@ -188,7 +196,15 @@ export class StepPlaybackService implements OnDestroy {
   }
 
   setLoopAll(enabled: boolean): void {
-    this.patch({ loopAll: enabled });
+    this.setLoopOverride(enabled ? true : null);
+  }
+
+  /** `true` loops every clip, `false` plays once, `null` follows each step. */
+  setLoopOverride(override: boolean | null): void {
+    this.patch({
+      loopOverride: override,
+      loopAll: override === true,
+    });
   }
 
   /** Replay the current step clip from the start (play-once hold, or mid-step). */
@@ -948,7 +964,7 @@ export class StepPlaybackService implements OnDestroy {
     }
 
     if (currentTime >= selectedStep.endSeconds) {
-      if (!shouldLoopVideo(selectedStep, this.snapshot.loopAll)) {
+      if (!shouldLoopVideo(selectedStep, this.snapshot.loopAll, this.snapshot.loopOverride)) {
         const timed = selectedStep.durationSeconds != null && selectedStep.durationSeconds > 0;
         if (timed) {
           void this.player.pause();

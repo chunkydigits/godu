@@ -42,13 +42,18 @@ import {
   UpdateStepsItemRequest,
 } from '../../models/api-steps-item.model';
 import { EDITOR_SECTIONS, EditorSectionId } from '../../models/editor-sections';
-import { mapEditorEntryToApiStep, EditorEntryValue } from '../../models/editor-entry-request';
+import {
+  EditorEntryValue,
+  mapEditorEntryToApiStep,
+  nextStepClipWindow,
+} from '../../models/editor-entry-request';
 import { buildEditorCardPreview } from '../../models/editor-card-preview';
 import {
   DEFAULT_CARD_BACKGROUND,
   DEFAULT_CARD_SECONDS,
   DEFAULT_CARD_TEXT,
   DEFAULT_GAP_SECONDS,
+  DEFAULT_STEP_CLIP_SECONDS,
   DEFAULT_STEP_ENTRY_KIND,
   GAP_MESSAGE_MAX_LENGTH,
   GAP_SECONDS_MAX,
@@ -500,7 +505,8 @@ export class StepsEditorPageComponent {
     const order = this.steps.length + 1;
     const resolved =
       !this.form.controls.noVideoContent.value || kind !== 'step' ? kind : 'card';
-    this.steps.push(this.createEntryGroup(resolved, order));
+    const clip = resolved === 'step' ? nextStepClipWindow(this.steps.getRawValue()) : undefined;
+    this.steps.push(this.createEntryGroup(resolved, order, clip));
     this.focusedEntryIndex.set(this.steps.length - 1);
     if (resolved === 'step' || resolved === 'card') {
       this.analytics.track(AnalyticsEvent.StepAdded, { stepNumber: this.activityStepCount });
@@ -808,14 +814,18 @@ export class StepsEditorPageComponent {
     }
   }
 
-  private createEntryGroup(kind: StepEntryKind, order: number) {
+  private createEntryGroup(
+    kind: StepEntryKind,
+    order: number,
+    clip?: { startSeconds: number; endSeconds: number },
+  ) {
     if (kind === 'gap') {
       return this.createGapGroup(order);
     }
     if (kind === 'card') {
       return this.createCardGroup(order);
     }
-    return this.createStepGroup(order);
+    return this.createStepGroup(order, clip);
   }
 
   private createStepGroup(
@@ -838,7 +848,10 @@ export class StepsEditorPageComponent {
       title: [values?.title ?? '', [Validators.required]],
       description: [values?.description ?? ''],
       startSeconds: [values?.startSeconds ?? 0, [Validators.required, Validators.min(0)]],
-      endSeconds: [values?.endSeconds ?? 5, [Validators.required, Validators.min(0)]],
+      endSeconds: [
+        values?.endSeconds ?? DEFAULT_STEP_CLIP_SECONDS,
+        [Validators.required, Validators.min(0)],
+      ],
       durationSeconds: [values?.durationSeconds ?? (null as number | null)],
       autoAdvance: [values?.autoAdvance ?? true],
       loopVideo: [values?.loopVideo ?? true],

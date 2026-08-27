@@ -352,6 +352,19 @@
                   <mat-icon>replay</mat-icon>
                   Replay step
                 </button>
+                @if (showLoopToggle(item, state)) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="viewer__loop"
+                    [class.viewer__loop--on]="clipLoops(state)"
+                    [attr.aria-pressed]="clipLoops(state)"
+                    [attr.aria-label]="clipLoops(state) ? 'Stop looping video' : 'Loop video'"
+                    (click)="toggleLoop(state)"
+                  >
+                    <mat-icon>loop</mat-icon>
+                  </button>
+                }
                 <button mat-flat-button color="primary" type="button" (click)="onHoldAdvance(state)">
                   {{ isFinalStep(state) ? 'End' : 'Next' }}
                 </button>
@@ -369,6 +382,19 @@
                   </mat-icon>
                   {{ state.phase === 'paused' ? 'Resume' : 'Pause' }}
                 </button>
+                @if (showLoopToggle(item, state)) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="viewer__loop"
+                    [class.viewer__loop--on]="clipLoops(state)"
+                    [attr.aria-pressed]="clipLoops(state)"
+                    [attr.aria-label]="clipLoops(state) ? 'Stop looping video' : 'Loop video'"
+                    (click)="toggleLoop(state)"
+                  >
+                    <mat-icon>loop</mat-icon>
+                  </button>
+                }
               </div>
             }
           </section>

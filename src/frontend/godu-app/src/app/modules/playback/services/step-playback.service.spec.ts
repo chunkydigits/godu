@@ -1166,9 +1166,41 @@ describe('StepPlaybackService', () => {
     service.setLoopAll(true);
     await service.load(item);
     expect(service.snapshot.loopAll).toBe(true);
+    expect(service.snapshot.loopOverride).toBe(true);
 
     await service.load(createDemoItem({ id: 'steps_other' }));
     expect(service.snapshot.loopAll).toBe(false);
+    expect(service.snapshot.loopOverride).toBeNull();
+  });
+
+  it('plays a looping clip once when loop override is off', async () => {
+    const { player, pause, seek } = createMockPlayer();
+    vi.mocked(player.getCurrentTime).mockResolvedValue(6);
+    await service.attachPlayer(player);
+    await service.load(
+      createDemoItem({
+        steps: [
+          {
+            id: 's1',
+            order: 1,
+            title: 'Grip',
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: null,
+            autoAdvance: false,
+            loopVideo: true,
+          },
+        ],
+      }),
+    );
+    service.setLoopOverride(false);
+    await service.start();
+    seek.mockClear();
+
+    await vi.advanceTimersByTimeAsync(500);
+    expect(service.snapshot.clipHoldActive).toBe(true);
+    expect(pause).toHaveBeenCalled();
+    expect(seek).not.toHaveBeenCalled();
   });
 
   it('runs a colour card timer without a player', async () => {

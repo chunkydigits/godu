@@ -341,7 +341,7 @@
 }
 
 .viewer--video-off .viewer__start-button,
-.viewer--video-off .viewer__actions button {
+.viewer--video-off .viewer__actions button:not(.viewer__loop) {
   min-height: 3.75rem;
   font-size: 1.15rem;
 }
@@ -518,8 +518,16 @@
   margin: 0.15rem 0 0.3rem;
 }
 
-.viewer__actions button {
+.viewer__actions button:not(.viewer__loop) {
   min-height: 3rem;
+}
+
+.viewer__loop {
+  color: var(--steps-text-muted);
+}
+
+.viewer__loop--on {
+  color: var(--steps-accent);
 }
 
 .viewer-error {

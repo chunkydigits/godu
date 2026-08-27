@@ -49,6 +49,8 @@ export const REPEAT_COUNT_MIN = 2;
 export const REPEAT_COUNT_MAX = 99;
 export const DEFAULT_GAP_SECONDS = 15;
 export const DEFAULT_CARD_SECONDS = 15;
+/** Default clip window for a new video step when no previous end time exists. */
+export const DEFAULT_STEP_CLIP_SECONDS = 5;
 export const DEFAULT_CARD_BACKGROUND = '#02c998';
 export const DEFAULT_CARD_TEXT = '#002116';
 export const CARD_COLOUR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
@@ -247,7 +249,10 @@ export function resolveStartGapMessage(item: {
   return normaliseGapMessage(item.startGapMessage) ?? normaliseGapMessage(item.gapMessage);
 }
 
-/** Clip loops unless loopVideo is false. Timed or untimed does not override that. */
+/**
+ * Clip loops unless loopVideo is false. Timed or untimed does not override that.
+ * `loopAll` forces every clip to loop. `force` (when non-null) overrides both.
+ */
 export function shouldLoopVideo(
   step: {
     kind?: string | null;
@@ -255,9 +260,13 @@ export function shouldLoopVideo(
     loopVideo?: boolean;
   },
   loopAll = false,
+  force: boolean | null = null,
 ): boolean {
   if (isCardEntry(step)) {
     return false;
+  }
+  if (force != null) {
+    return force;
   }
   if (loopAll) {
     return true;

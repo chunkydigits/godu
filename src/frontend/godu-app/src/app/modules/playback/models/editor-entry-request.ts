@@ -2,6 +2,7 @@ import { ApiStepDefinitionRequest } from './api-steps-item.model';
 import {
   DEFAULT_CARD_BACKGROUND,
   DEFAULT_CARD_TEXT,
+  DEFAULT_STEP_CLIP_SECONDS,
   normaliseCardColour,
   normaliseCardSeconds,
   normaliseGapMessage,
@@ -100,4 +101,25 @@ export function mapEditorEntryToApiStep(
     loopVideo: entry.loopVideo !== false,
     message: null,
   };
+}
+
+/** Clip window for a newly added video step: starts at the previous step's end. */
+export function nextStepClipWindow(
+  entries: readonly EditorEntryValue[],
+): { startSeconds: number; endSeconds: number } {
+  for (let i = entries.length - 1; i >= 0; i -= 1) {
+    const entry = entries[i];
+    if (stepEntryKind(entry) !== 'step') {
+      continue;
+    }
+    const end = Number(entry.endSeconds);
+    if (Number.isFinite(end) && end >= 0) {
+      return {
+        startSeconds: end,
+        endSeconds: end + DEFAULT_STEP_CLIP_SECONDS,
+      };
+    }
+  }
+
+  return { startSeconds: 0, endSeconds: DEFAULT_STEP_CLIP_SECONDS };
 }
