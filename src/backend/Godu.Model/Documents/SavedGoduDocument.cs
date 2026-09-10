@@ -1,5 +1,7 @@
 namespace Godu.Model.Documents;
 
+using Godu.Model.Playback;
+
 public sealed class SavedGoduDocument
 {
     public required string Id { get; init; }
@@ -15,6 +17,8 @@ public sealed class SavedGoduDocument
     public required string PlayPath { get; set; }
 
     public string? Category { get; set; }
+
+    public GoduPlaybackSettings? UserSettings { get; set; }
 
     public DateTime SavedUtc { get; init; }
 }

@@ -28,6 +28,7 @@ export function mapApiStepsItem(api: ApiStepsItem): StepsItem {
     startGapMessage: api.startGapMessage ?? null,
     repeatCount: api.repeatCount ?? null,
     timingBeepSeconds: api.timingBeepSeconds ?? null,
+    recommendedPlaybackSettings: api.recommendedPlaybackSettings ?? null,
     useVideoContent: usesVideoContent(api),
     createdUtc: api.createdUtc,
     updatedUtc: api.updatedUtc,

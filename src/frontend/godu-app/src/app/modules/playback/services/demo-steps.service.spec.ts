@@ -15,7 +15,7 @@ describe('DemoStepsService related', () => {
       'steps_demo_style_plait',
       'steps_demo_dance_pop',
       'steps_demo_makeup_baddie',
-      'steps_demo_fix_hinge',
+      'steps_01M24WV7RBZD9ES3DZ1ZSBYAMN',
       'steps_demo_make_granny',
       'steps_demo_play_restless',
       'steps_demo_care_skincare',

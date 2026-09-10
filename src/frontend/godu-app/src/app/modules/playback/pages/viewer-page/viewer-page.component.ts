@@ -21,6 +21,7 @@ import {
   shareReplay,
   startWith,
   switchMap,
+  take,
   takeUntil,
   tap,
   throwError,
@@ -78,6 +79,7 @@ import { viewerBackPathFromUrl, shouldReplaceCanonicalPath } from '../../models/
 import { StepsVisibility } from '../../models/steps-visibility.enum';
 import { AnalyticsEvent } from '../../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../../core/analytics/analytics.service';
+import { SavedGodusService } from '../../services/saved-godus.service';
 
 interface ViewerLoadView {
   loading: boolean;
@@ -114,6 +116,7 @@ export class ViewerPageComponent implements OnDestroy {
   private readonly userSettings = inject(UserSettingsService);
   private readonly wakeLock = inject(ScreenWakeLockService);
   private readonly analytics = inject(AnalyticsService);
+  private readonly savedGodus = inject(SavedGodusService);
   private readonly shareGodu = inject(ShareGoduService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
@@ -208,8 +211,6 @@ export class ViewerPageComponent implements OnDestroy {
     this.preferences.timingBeepSeconds$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.syncTimingBeepsToPlayback());
-    this.userSettings.hydrate().pipe(takeUntil(this.destroy$)).subscribe();
-
     this.playback.state$
       .pipe(
         map((s) => s.phase === 'playing' || s.phase === 'gap'),
@@ -416,11 +417,13 @@ export class ViewerPageComponent implements OnDestroy {
   onClipAudioChange(enabled: boolean): void {
     this.preferences.setClipAudio(enabled);
     this.playback.setClipAudioEnabled(enabled);
+    this.saveCurrentGoduSettings();
   }
 
   onVoiceCuesChange(enabled: boolean): void {
-    this.userSettings.setUseVoiceCuesByDefault(enabled);
+    this.preferences.setVoiceCues(enabled);
     this.syncVoiceCuesToPlayback();
+    this.saveCurrentGoduSettings();
     if (enabled) {
       this.playback.unlockVoiceCuesFromUserGesture();
     }
@@ -429,6 +432,7 @@ export class ViewerPageComponent implements OnDestroy {
   onTimingBeepsChange(enabled: boolean): void {
     this.preferences.setTimingBeeps(enabled);
     this.syncTimingBeepsToPlayback();
+    this.saveCurrentGoduSettings();
     if (enabled) {
       this.playback.unlockVoiceCuesFromUserGesture();
     }
@@ -439,6 +443,7 @@ export class ViewerPageComponent implements OnDestroy {
     if (raw.trim() === '') {
       this.preferences.setTimingBeepSeconds(null);
       this.syncTimingBeepsToPlayback();
+      this.saveCurrentGoduSettings();
       return;
     }
     const parsed = Number(raw);
@@ -452,6 +457,7 @@ export class ViewerPageComponent implements OnDestroy {
       this.preferences.setTimingBeepSeconds(seconds);
     }
     this.syncTimingBeepsToPlayback();
+    this.saveCurrentGoduSettings();
   }
 
   timingBeepSecondsDisplay(item: StepsItem): number {
@@ -761,7 +767,7 @@ export class ViewerPageComponent implements OnDestroy {
             }),
           ),
         ),
-      );
+      ).pipe(switchMap((item) => this.applySettings(item)));
     }
 
     const username = params.get('username');
@@ -772,10 +778,47 @@ export class ViewerPageComponent implements OnDestroy {
         catchError(() => {
           throw new Error('This public Godu was not found.');
         }),
-      );
+      ).pipe(switchMap((item) => this.applySettings(item)));
     }
 
     return throwError(() => new Error('This Godu was not found.'));
+  }
+
+  private applySettings(item: StepsItem): Observable<StepsItem> {
+    return this.userSettings.hydrate().pipe(
+      take(1),
+      switchMap(() => this.savedGodus.item$(item.id)),
+      takeUntil(this.destroy$),
+      take(1),
+      tap((saved) => {
+        const recommendation = item.recommendedPlaybackSettings ?? {};
+        const override = saved?.userSettings ?? {};
+        this.preferences.setClipAudio(override.clipAudio ?? recommendation.clipAudio ?? true);
+        this.preferences.setVoiceCues(override.voiceCues ?? recommendation.voiceCues ?? this.preferences.voiceCues);
+        this.preferences.setTimingBeeps(override.timingBeeps ?? recommendation.timingBeeps ?? true);
+        this.preferences.setTimingBeepSeconds(
+          override.timingBeepSeconds ?? recommendation.timingBeepSeconds ?? this.preferences.timingBeepSeconds,
+        );
+      }),
+      map(() => item),
+    );
+  }
+
+  private saveCurrentGoduSettings(): void {
+    const item = this.playback.snapshot.stepsItem;
+    if (!item) {
+      return;
+    }
+    this.savedGodus.item$(item.id).pipe(take(1)).subscribe((saved) => {
+      if (saved) {
+        this.savedGodus.updateSettings(item.id, {
+          clipAudio: this.preferences.clipAudio,
+          voiceCues: this.preferences.voiceCues,
+          timingBeeps: this.preferences.timingBeeps,
+          timingBeepSeconds: this.preferences.timingBeepSeconds,
+        }).subscribe();
+      }
+    });
   }
 
   private resolveRelated(item: StepsItem): Observable<StepsItem[]> {

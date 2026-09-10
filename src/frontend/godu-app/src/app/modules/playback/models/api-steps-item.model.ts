@@ -1,3 +1,5 @@
+import { GoduPlaybackSettings } from './godu-playback-settings';
+
 export interface ApiStepDefinition {
   id: string;
   order: number;
@@ -50,6 +52,7 @@ export interface ApiStepsItem {
   startGapMessage?: string | null;
   repeatCount?: number | null;
   timingBeepSeconds?: number | null;
+  recommendedPlaybackSettings?: GoduPlaybackSettings | null;
   video: ApiVideoReference;
   steps: ApiStepDefinition[];
   useVideoContent?: boolean;
@@ -99,6 +102,7 @@ export interface CreateStepsItemRequest {
   startGapMessage?: string | null;
   repeatCount?: number | null;
   timingBeepSeconds?: number | null;
+  recommendedPlaybackSettings?: GoduPlaybackSettings | null;
   useVideoContent?: boolean;
   video: ApiVideoReferenceRequest;
   steps: ApiStepDefinitionRequest[];

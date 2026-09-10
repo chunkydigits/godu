@@ -1,5 +1,7 @@
 namespace Godu.Model.Documents;
 
+using Godu.Model.Playback;
+
 public sealed class StepsItemDocument
 {
     public required string Id { get; init; }
@@ -60,6 +62,8 @@ public sealed class StepsItemDocument
     /// Suggested beep interval during timed steps. Viewers can override or turn this off.
     /// </summary>
     public int? TimingBeepSeconds { get; set; }
+
+    public GoduPlaybackSettings? RecommendedPlaybackSettings { get; set; }
 
     public DateTime CreatedUtc { get; init; }
 

@@ -1,6 +1,7 @@
 import { playHistoryPath } from './play-history.model';
 import { StepsItem } from './steps-item.model';
 import { StepsVisibility } from './steps-visibility.enum';
+import { GoduPlaybackSettings } from './godu-playback-settings';
 
 export interface SavedGoduItem {
   goduId: string;
@@ -9,6 +10,7 @@ export interface SavedGoduItem {
   playPath: string;
   category?: string | null;
   savedUtc: string;
+  userSettings?: GoduPlaybackSettings | null;
 }
 
 export interface SaveGoduRequest {

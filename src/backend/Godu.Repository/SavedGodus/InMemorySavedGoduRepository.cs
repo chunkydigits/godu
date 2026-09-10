@@ -61,5 +61,12 @@ public sealed class InMemorySavedGoduRepository : ISavedGoduRepository
             PlayPath = document.PlayPath,
             Category = document.Category,
             SavedUtc = document.SavedUtc,
+            UserSettings = document.UserSettings is null ? null : new()
+            {
+                ClipAudio = document.UserSettings.ClipAudio,
+                VoiceCues = document.UserSettings.VoiceCues,
+                TimingBeeps = document.UserSettings.TimingBeeps,
+                TimingBeepSeconds = document.UserSettings.TimingBeepSeconds,
+            },
         };
 }

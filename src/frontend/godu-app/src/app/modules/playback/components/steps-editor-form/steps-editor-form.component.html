@@ -7,6 +7,18 @@
     @if (isSectionOpen('video')) {
       <div class="section__body">
         <div class="field-block">
+          <mat-checkbox formControlName="recommendedClipAudio">
+            Recommend original video sound
+          </mat-checkbox>
+          <mat-checkbox formControlName="recommendedVoiceCues">
+            Recommend voice cues
+          </mat-checkbox>
+          <p class="field-hint">
+            These are starting recommendations for viewers. They can override them and their
+            choice is remembered for this Godu when it is saved.
+          </p>
+        </div>
+        <div class="field-block">
           <mat-checkbox formControlName="noVideoContent">Don’t use video content</mat-checkbox>
           <p class="field-hint">
             Build this Godu from cards and gaps only. A TikTok URL is not required, and you

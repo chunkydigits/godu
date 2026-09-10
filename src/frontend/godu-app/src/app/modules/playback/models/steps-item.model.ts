@@ -3,6 +3,7 @@ import { StepsVisibility } from './steps-visibility.enum';
 import { StepDefinition } from './step-definition.model';
 import { VideoReference } from './video-reference.model';
 import { CreatorSocial } from './creator-link';
+import { GoduPlaybackSettings } from './godu-playback-settings';
 
 export interface StepsItem {
   id: string;
@@ -41,6 +42,7 @@ export interface StepsItem {
    * Viewers can turn ticks off or pick a different interval.
    */
   timingBeepSeconds?: number | null;
+  recommendedPlaybackSettings?: GoduPlaybackSettings | null;
   createdUtc: string;
   updatedUtc?: string;
   publishedUtc?: string;

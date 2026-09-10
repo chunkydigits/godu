@@ -13,5 +13,10 @@ public interface ISavedGoduService
         int take = 50,
         CancellationToken cancellationToken = default);
 
+    Task<SavedGoduResponse> UpdateSettingsAsync(
+        string goduId,
+        UpdateSavedGoduSettingsRequest request,
+        CancellationToken cancellationToken = default);
+
     Task RemoveAsync(string goduId, CancellationToken cancellationToken = default);
 }

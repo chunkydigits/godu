@@ -5,6 +5,7 @@ import { VideoProvider } from './video-provider.enum';
 import { StepDefinition } from './step-definition.model';
 
 interface DemoCatalogueStep {
+  id?: string;
   order: number;
   kind: 'step' | 'gap' | 'card';
   title: string;
@@ -33,6 +34,12 @@ interface DemoCatalogueEntry {
   gapMessage: string | null;
   repeatCount?: number | null;
   timingBeepSeconds?: number | null;
+  recommendedPlaybackSettings?: {
+    clipAudio: boolean;
+    voiceCues: boolean;
+    timingBeeps: boolean;
+    timingBeepSeconds: number | null;
+  } | null;
   steps: DemoCatalogueStep[];
 }
 
@@ -514,7 +521,8 @@ const CATALOGUE: DemoCatalogueEntry[] = [
         order: 4,
         kind: 'step',
         title: 'Concealer',
-        description: 'Hourglass concealer using either powder it in using a concealer brush of use a sponge',
+        description:
+          'Hourglass concealer using either powder it in using a concealer brush of use a sponge',
         startSeconds: 38,
         endSeconds: 48.8,
         durationSeconds: null,
@@ -536,7 +544,8 @@ const CATALOGUE: DemoCatalogueEntry[] = [
         order: 6,
         kind: 'step',
         title: 'Blush',
-        description: "Rare Beauty's Matte Bouncy Blush (Hope) apply on top of liquids or powder, using a sponge.",
+        description:
+          "Rare Beauty's Matte Bouncy Blush (Hope) apply on top of liquids or powder, using a sponge.",
         startSeconds: 55.5,
         endSeconds: 73.3,
         durationSeconds: null,
@@ -648,65 +657,95 @@ const CATALOGUE: DemoCatalogueEntry[] = [
     ],
   },
   {
-    id: 'steps_demo_fix_hinge',
+    id: 'steps_01M24WV7RBZD9ES3DZ1ZSBYAMN',
     category: 'Fix',
-    title: 'Repair a Cabinet Door Hinge from @mercurystardust',
+    title: 'Repairing a cabinet door hinge with @mercurystardust',
+    description: 'Repairing a cabinet door hinge #DIY #renters #landlord #homeowner #lgbtqia',
     creatorDisplayName: '@mercurystardust',
     sourceUrl: 'https://www.tiktok.com/@mercurystardust/video/7293688491815439662',
     externalVideoId: '7293688491815439662',
+    useVideoContent: true,
     continuousSoundtrack: false,
-    gapSeconds: 5,
-    gapMessage: 'Next repair step...',
+    gapSeconds: null,
+    gapMessage: null,
+    recommendedPlaybackSettings: {
+      clipAudio: true,
+      voiceCues: false,
+      timingBeeps: false,
+      timingBeepSeconds: null,
+    },
     steps: [
       {
+        id: 'step_01M24WV7RDA53TDXP3CEM35NHT',
         order: 1,
         kind: 'step',
-        title: 'Inspect the Hinge',
-        description: 'Identify the loose or damaged fixing.',
-        startSeconds: 4,
-        endSeconds: 10,
-        durationSeconds: 30,
+        title: 'Introduction',
+        description: null,
+        startSeconds: 0,
+        endSeconds: 7.6,
+        durationSeconds: null,
         autoAdvance: false,
+        loopVideo: false,
       },
       {
+        id: 'step_01M24WV7RDYJWNAMFWJK3GEXN2',
         order: 2,
         kind: 'step',
-        title: 'Remove the Hinge',
-        description: 'Unscrew the hinge from the damaged fixing point.',
-        startSeconds: 10,
-        endSeconds: 18,
-        durationSeconds: 120,
+        title: 'Cabinet repair hinge plate',
+        description: null,
+        startSeconds: 7.6,
+        endSeconds: 15.3,
+        durationSeconds: null,
         autoAdvance: false,
+        loopVideo: false,
       },
       {
+        id: 'step_01M24WV7RDN28GMC8QF0CYN505',
         order: 3,
         kind: 'step',
-        title: 'Repair the Screw Hole',
-        description: 'Restore the damaged fixing so it can grip a screw again.',
-        startSeconds: 18,
-        endSeconds: 30,
-        durationSeconds: 300,
+        title: 'Position the plate',
+        description: null,
+        startSeconds: 15.7,
+        endSeconds: 20.7,
+        durationSeconds: null,
         autoAdvance: false,
+        loopVideo: false,
       },
       {
+        id: 'step_01M24WV7RDT1SHV72J37C7Q2RC',
         order: 4,
         kind: 'step',
-        title: 'Refit the Hinge',
-        description: 'Position the hinge and reinstall the screws.',
-        startSeconds: 30,
-        endSeconds: 40,
-        durationSeconds: 180,
+        title: 'Screw in the 4 corner screws',
+        description: null,
+        startSeconds: 20.7,
+        endSeconds: 27.3,
+        durationSeconds: null,
         autoAdvance: false,
+        loopVideo: false,
       },
       {
+        id: 'step_01M24WV7RDTJEAZWSPW49MJX60',
         order: 5,
         kind: 'step',
-        title: 'Align the Door',
-        description: 'Adjust the hinge until the cabinet door sits correctly.',
-        startSeconds: 40,
-        endSeconds: 50,
-        durationSeconds: 120,
+        title: 'Reattach the cabinet door',
+        description: null,
+        startSeconds: 27.8,
+        endSeconds: 39,
+        durationSeconds: null,
         autoAdvance: false,
+        loopVideo: false,
+      },
+      {
+        id: 'step_01M24WV7RDQM1X794AE79CBBZC',
+        order: 6,
+        kind: 'step',
+        title: 'Outtro',
+        description: null,
+        startSeconds: 39.5,
+        endSeconds: 55,
+        durationSeconds: null,
+        autoAdvance: false,
+        loopVideo: false,
       },
     ],
   },
@@ -1032,6 +1071,7 @@ function toDemoItem(entry: DemoCatalogueEntry): DemoStepsItem {
     gapMessage: entry.gapMessage,
     repeatCount: entry.repeatCount ?? null,
     timingBeepSeconds: entry.timingBeepSeconds ?? null,
+    recommendedPlaybackSettings: entry.recommendedPlaybackSettings ?? null,
     video: useVideo
       ? {
           provider: VideoProvider.TikTok,
@@ -1053,7 +1093,7 @@ function toDemoItem(entry: DemoCatalogueEntry): DemoStepsItem {
 
 function toStep(demoId: string, step: DemoCatalogueStep): StepDefinition {
   const mapped: StepDefinition = {
-    id: `${demoId}_step_${step.order}`,
+    id: step.id ?? `${demoId}_step_${step.order}`,
     order: step.order,
     kind: step.kind,
     title: step.title,

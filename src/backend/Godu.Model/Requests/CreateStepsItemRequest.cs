@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Godu.Model.Requests;
 
+using Godu.Model.Playback;
+
 public sealed class CreateStepsItemRequest
 {
     [Required]
@@ -41,6 +43,8 @@ public sealed class CreateStepsItemRequest
     /// </summary>
     [Range(5, 600)]
     public int? TimingBeepSeconds { get; set; }
+
+    public GoduPlaybackSettings? RecommendedPlaybackSettings { get; set; }
 
     /// <summary>False for a cards-only Godu with no TikTok. Defaults to true.</summary>
     public bool UseVideoContent { get; set; } = true;

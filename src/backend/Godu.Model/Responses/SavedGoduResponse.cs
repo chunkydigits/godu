@@ -1,5 +1,7 @@
 namespace Godu.Model.Responses;
 
+using Godu.Model.Playback;
+
 public sealed class SavedGoduResponse
 {
     public required string GoduId { get; init; }
@@ -13,4 +15,6 @@ public sealed class SavedGoduResponse
     public string? Category { get; init; }
 
     public DateTime SavedUtc { get; init; }
+
+    public GoduPlaybackSettings? UserSettings { get; init; }
 }

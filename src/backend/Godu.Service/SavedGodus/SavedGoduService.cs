@@ -59,6 +59,24 @@ public sealed class SavedGoduService : ISavedGoduService
         return items.Select(ToResponse).ToList();
     }
 
+    public async Task<SavedGoduResponse> UpdateSettingsAsync(
+        string goduId,
+        UpdateSavedGoduSettingsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = RequireUserId();
+        var id = RequireToken(goduId, "Godu id is required.");
+        var existing = await _saved.GetAsync(userId, id, cancellationToken).ConfigureAwait(false);
+        if (existing is null)
+        {
+            throw new KeyNotFoundException("Saved Godu was not found.");
+        }
+
+        existing.UserSettings = request.UserSettings;
+        var saved = await _saved.UpsertAsync(existing, cancellationToken).ConfigureAwait(false);
+        return ToResponse(saved);
+    }
+
     public async Task RemoveAsync(string goduId, CancellationToken cancellationToken = default)
     {
         var userId = RequireUserId();
@@ -91,6 +109,7 @@ public sealed class SavedGoduService : ISavedGoduService
             PlayPath = document.PlayPath,
             Category = document.Category,
             SavedUtc = document.SavedUtc,
+            UserSettings = document.UserSettings,
         };
 
     private static string RequireToken(string? value, string message)

@@ -103,6 +103,7 @@ public sealed class StepsItemService : IStepsItemService
                 : null,
             RepeatCount = NormalizeRepeatCount(request.RepeatCount),
             TimingBeepSeconds = NormalizeTimingBeepSeconds(request.TimingBeepSeconds),
+            RecommendedPlaybackSettings = request.RecommendedPlaybackSettings,
             UseVideoContent = useVideo,
             Video = video,
             Steps = StepsItemMapper.ToStepDocuments(request.Steps),
@@ -153,6 +154,7 @@ public sealed class StepsItemService : IStepsItemService
             : null;
         existing.RepeatCount = NormalizeRepeatCount(request.RepeatCount);
         existing.TimingBeepSeconds = NormalizeTimingBeepSeconds(request.TimingBeepSeconds);
+        existing.RecommendedPlaybackSettings = request.RecommendedPlaybackSettings;
         existing.UseVideoContent = useVideo;
         existing.Slug = slug;
         existing.Video = video;

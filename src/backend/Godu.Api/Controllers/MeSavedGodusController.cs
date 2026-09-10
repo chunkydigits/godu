@@ -94,4 +94,24 @@ public sealed class MeSavedGodusController : ControllerBase
             return Problem(detail: "Unexpected error.", statusCode: StatusCodes.Status500InternalServerError);
         }
     }
+
+    [HttpPut("{goduId}/settings")]
+    public async Task<IActionResult> UpdateSettingsAsync(
+        string goduId,
+        [FromBody] UpdateSavedGoduSettingsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return Ok(await _saved.UpdateSettingsAsync(goduId, request, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Problem(detail: ex.Message, statusCode: StatusCodes.Status401Unauthorized);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound);
+        }
+    }
 }

@@ -8,6 +8,7 @@ import {
   concatMap,
   distinctUntilChanged,
   forkJoin,
+  filter,
   from,
   map,
   of,
@@ -27,6 +28,7 @@ import { AnalyticsEvent } from '../../../core/analytics/analytics-event';
 import { AnalyticsService } from '../../../core/analytics/analytics.service';
 import { PRESET_GODU_CATEGORIES, mergeGoduCategories } from '../models/godu-categories';
 import { SaveGoduRequest, SavedGoduItem } from '../models/saved-godu.model';
+import { GoduPlaybackSettings } from '../models/godu-playback-settings';
 import { DemoStepsService } from './demo-steps.service';
 import { SavedGodusApiService } from './saved-godus-api.service';
 
@@ -76,6 +78,30 @@ export class SavedGodusService {
 
   isSaved$(goduId: string): Observable<boolean> {
     return this.items$.pipe(map((items) => items.some((item) => item.goduId === goduId)));
+  }
+
+  settings$(goduId: string): Observable<GoduPlaybackSettings | null> {
+    return combineLatest([this.hydrated$, this.items$]).pipe(
+      filter(([hydrated]) => hydrated),
+      map(([, items]) => items.find((item) => item.goduId === goduId)?.userSettings ?? null),
+      distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+    );
+  }
+
+  item$(goduId: string): Observable<SavedGoduItem | null> {
+    return combineLatest([this.hydrated$, this.items$]).pipe(
+      filter(([hydrated]) => hydrated),
+      map(([, items]) => items.find((item) => item.goduId === goduId) ?? null),
+      distinctUntilChanged((a, b) => a?.goduId === b?.goduId && JSON.stringify(a?.userSettings) === JSON.stringify(b?.userSettings)),
+    );
+  }
+
+  updateSettings(goduId: string, settings: GoduPlaybackSettings): Observable<SavedGoduItem> {
+    return this.api.updateSettings(goduId, settings).pipe(
+      tap((saved) => this.itemsSubject.next(
+        this.itemsSubject.value.map((item) => item.goduId === goduId ? saved : item),
+      )),
+    );
   }
 
   save(request: SaveGoduRequest): Observable<SavedGoduItem> {

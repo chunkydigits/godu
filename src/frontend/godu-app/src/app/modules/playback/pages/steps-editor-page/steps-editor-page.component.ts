@@ -186,6 +186,8 @@ export class StepsEditorPageComponent {
       [Validators.required, Validators.min(REPEAT_COUNT_MIN), Validators.max(REPEAT_COUNT_MAX)],
     ],
     timingBeeps: [true],
+    recommendedClipAudio: [true],
+    recommendedVoiceCues: [false],
     timingBeepSeconds: [
       DEFAULT_TIMING_BEEP_SECONDS as number | null,
       [Validators.min(TIMING_BEEP_SECONDS_MIN), Validators.max(TIMING_BEEP_SECONDS_MAX)],
@@ -397,6 +399,8 @@ export class StepsEditorPageComponent {
                     : REPEAT_COUNT_MIN,
                 timingBeeps: (item.timingBeepSeconds ?? 0) > 0,
                 timingBeepSeconds: item.timingBeepSeconds ?? DEFAULT_TIMING_BEEP_SECONDS,
+                recommendedClipAudio: item.recommendedPlaybackSettings?.clipAudio ?? true,
+                recommendedVoiceCues: item.recommendedPlaybackSettings?.voiceCues ?? false,
               },
               { emitEvent: true },
             );
@@ -1046,6 +1050,12 @@ export class StepsEditorPageComponent {
       startGapMessage,
       repeatCount,
       timingBeepSeconds,
+      recommendedPlaybackSettings: {
+        clipAudio: !!raw.recommendedClipAudio,
+        voiceCues: !!raw.recommendedVoiceCues,
+        timingBeeps: !!raw.timingBeeps,
+        timingBeepSeconds,
+      },
       useVideoContent: useVideo,
       video: useVideo
         ? {

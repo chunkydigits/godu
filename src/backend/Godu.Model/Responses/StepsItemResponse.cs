@@ -1,5 +1,7 @@
 namespace Godu.Model.Responses;
 
+using Godu.Model.Playback;
+
 public sealed class StepsItemResponse
 {
     public required string Id { get; init; }
@@ -44,6 +46,8 @@ public sealed class StepsItemResponse
     public int? RepeatCount { get; init; }
 
     public int? TimingBeepSeconds { get; init; }
+
+    public GoduPlaybackSettings? RecommendedPlaybackSettings { get; init; }
 
     public DateTime CreatedUtc { get; init; }
 
