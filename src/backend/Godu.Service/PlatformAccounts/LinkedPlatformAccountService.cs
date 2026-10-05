@@ -93,6 +93,13 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
         string? error,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation(
+            "TikTok OAuth callback received. Provider={Provider}, HasCode={HasCode}, HasState={HasState}, Error={Error}.",
+            provider,
+            !string.IsNullOrWhiteSpace(code),
+            !string.IsNullOrWhiteSpace(state),
+            string.IsNullOrWhiteSpace(error) ? null : error);
+
         if (!ProviderUtilities.TryCanonicalise(provider, out var canonical) || canonical != "tiktok")
         {
             return FrontendReturn("error=invalid");
@@ -110,15 +117,34 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
             return FrontendReturn("error=invalid");
         }
 
+        var stage = "token_exchange";
         try
         {
+            _logger.LogInformation(
+                "TikTok OAuth callback state accepted. Starting token exchange. RedirectUri={RedirectUri}.",
+                _tikTok.RedirectUri);
+
             var tokens = await _tikTokOAuth
                 .ExchangeCodeAsync(code, _tikTok.RedirectUri, cancellationToken)
                 .ConfigureAwait(false);
 
+            _logger.LogInformation(
+                "TikTok token exchange succeeded. GrantedScopes={GrantedScopes}, AccessTokenExpiresInSeconds={ExpiresInSeconds}, HasRefreshToken={HasRefreshToken}.",
+                tokens.Scope,
+                tokens.ExpiresInSeconds,
+                !string.IsNullOrWhiteSpace(tokens.RefreshToken));
+
+            stage = "user_info";
             var profile = await _tikTokOAuth
                 .GetUserInfoAsync(tokens.AccessToken, cancellationToken)
                 .ConfigureAwait(false);
+
+            _logger.LogInformation(
+                "TikTok user-info request succeeded. HasUsername={HasUsername}, HasDisplayName={HasDisplayName}, HasAvatar={HasAvatar}, HasBio={HasBio}.",
+                !string.IsNullOrWhiteSpace(profile.Username),
+                !string.IsNullOrWhiteSpace(profile.DisplayName),
+                !string.IsNullOrWhiteSpace(profile.AvatarUrl),
+                !string.IsNullOrWhiteSpace(profile.Bio));
 
             if (string.IsNullOrWhiteSpace(profile.Username))
             {
@@ -127,18 +153,25 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
             }
 
             var openId = string.IsNullOrWhiteSpace(profile.OpenId) ? tokens.OpenId : profile.OpenId;
+            stage = "account_persistence";
             await UpsertVerifiedTikTokAsync(userId, openId, profile, tokens, cancellationToken)
                 .ConfigureAwait(false);
 
+            _logger.LogInformation("TikTok linked account persisted successfully.");
             return FrontendReturn("linked=tiktok");
         }
         catch (PlatformAccountAlreadyLinkedException)
         {
+            _logger.LogWarning("TikTok account is already linked to another Godu user.");
             return FrontendReturn("error=conflict");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "TikTok platform connect failed for user {UserId}.", userId);
+            _logger.LogError(
+                ex,
+                "TikTok platform connect failed for user {UserId} during stage {Stage}.",
+                userId,
+                stage);
             return FrontendReturn("error=failed");
         }
     }

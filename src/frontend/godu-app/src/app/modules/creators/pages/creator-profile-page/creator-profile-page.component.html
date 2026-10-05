@@ -30,7 +30,9 @@
           </div>
         </div>
 
-        <p class="profile__copy">Find them on these platforms.</p>
+        @if (profile.socials.length) {
+          <h3 class="profile__section-title">Platforms</h3>
+        }
         <ul class="socials">
           @for (social of profile.socials; track social.provider + social.username) {
             <li>
@@ -49,6 +51,14 @@
             </li>
           }
         </ul>
+        @if (profile.externalLinks?.length) {
+          <h3 class="profile__section-title">Links</h3>
+          <ul class="external-links">
+            @for (link of profile.externalLinks; track link.id) {
+              <li><a class="external-link" [href]="link.url" target="_blank" rel="noopener noreferrer">{{ link.title }}</a></li>
+            }
+          </ul>
+        }
       </section>
 
       @if (profile.publishedSteps?.length) {

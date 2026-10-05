@@ -55,11 +55,41 @@
   line-height: 1.45;
 }
 
+.profile__section-title {
+  margin: 1.25rem 0 0.75rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--steps-text-muted);
+}
+
 .profile__copy {
   margin: 0.85rem 0 0;
   color: var(--steps-text-muted);
   font-size: 0.95rem;
 }
+
+.external-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.external-link {
+  display: block;
+  padding: 0.95rem 1.05rem;
+  border: 1px solid var(--steps-border);
+  border-radius: 12px;
+  background: var(--steps-surface);
+  color: inherit;
+  text-align: center;
+  text-decoration: none;
+}
+
+.external-link:hover,
+.external-link:focus-visible { border-color: var(--steps-accent); }
 
 .socials {
   list-style: none;

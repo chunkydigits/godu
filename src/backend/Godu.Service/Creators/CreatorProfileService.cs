@@ -1,5 +1,7 @@
 using Godu.Model.Requests;
 using Godu.Model.Responses;
+using Godu.Model.Documents;
+using Godu.Model.Configuration;
 using Godu.Repository.Creators;
 using Godu.Repository.LinkedPlatformAccounts;
 using Godu.Repository.StepsItems;
@@ -8,6 +10,7 @@ using Godu.Service.Identity;
 using Godu.Service.Mapping;
 using Godu.Service.PlatformAccounts;
 using Godu.Utility;
+using Microsoft.Extensions.Options;
 
 namespace Godu.Service.Creators;
 
@@ -21,6 +24,7 @@ public sealed class CreatorProfileService : ICreatorProfileService
     private readonly ILinkedPlatformAccountService _platformAccounts;
     private readonly ICreatorEntitlementService _entitlement;
     private readonly ICurrentUser _currentUser;
+    private readonly ProfileOptions _profileOptions;
 
     public CreatorProfileService(
         IUserRepository users,
@@ -30,7 +34,8 @@ public sealed class CreatorProfileService : ICreatorProfileService
         ICreatorService creatorService,
         ILinkedPlatformAccountService platformAccounts,
         ICreatorEntitlementService entitlement,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        IOptions<ProfileOptions> profileOptions)
     {
         _users = users;
         _accounts = accounts;
@@ -40,6 +45,7 @@ public sealed class CreatorProfileService : ICreatorProfileService
         _platformAccounts = platformAccounts;
         _entitlement = entitlement;
         _currentUser = currentUser;
+        _profileOptions = profileOptions.Value;
     }
 
     public async Task<CreatorProfileResponse> GetPublicAsync(
@@ -168,8 +174,92 @@ public sealed class CreatorProfileService : ICreatorProfileService
             Bio = bio,
             ProfileImageUrl = image,
             Socials = socials,
+            ExternalLinks = (creator?.ExternalLinks ?? [])
+                .OrderBy(link => link.Order)
+                .Select(link => new ProfileLinkResponse { Id = link.Id, Title = link.Title, Url = link.Url })
+                .ToList(),
             PublishedSteps = published.Select(StepsItemMapper.ToPublicSummary).ToList(),
         };
+    }
+
+    public async Task<ProfileLinkResponse> AddLinkAsync(CreateProfileLinkRequest request, CancellationToken cancellationToken = default)
+    {
+        var creator = await GetOwnedCreatorAsync(cancellationToken).ConfigureAwait(false);
+        var links = creator.ExternalLinks ??= [];
+        if (links.Count >= Math.Max(0, _profileOptions.MaxExternalLinks))
+        {
+            throw new InvalidOperationException($"You can have at most {_profileOptions.MaxExternalLinks} external links.");
+        }
+        var link = CreateLink(request, links.Count);
+        links.Add(link);
+        await SaveCreatorAsync(creator, cancellationToken).ConfigureAwait(false);
+        return ToLinkResponse(link);
+    }
+
+    public async Task<ProfileLinkResponse> UpdateLinkAsync(string linkId, CreateProfileLinkRequest request, CancellationToken cancellationToken = default)
+    {
+        var creator = await GetOwnedCreatorAsync(cancellationToken).ConfigureAwait(false);
+        var link = (creator.ExternalLinks ?? []).FirstOrDefault(x => x.Id == linkId)
+            ?? throw new KeyNotFoundException("Profile link not found.");
+        var replacement = CreateLink(request, link.Order, link.Id);
+        link.Title = replacement.Title; link.Url = replacement.Url;
+        await SaveCreatorAsync(creator, cancellationToken).ConfigureAwait(false);
+        return ToLinkResponse(link);
+    }
+
+    public async Task DeleteLinkAsync(string linkId, CancellationToken cancellationToken = default)
+    {
+        var creator = await GetOwnedCreatorAsync(cancellationToken).ConfigureAwait(false);
+        if (!(creator.ExternalLinks ??= []).RemoveAll(x => x.Id == linkId).Equals(0))
+        {
+            NormalizeOrder(creator.ExternalLinks);
+            await SaveCreatorAsync(creator, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public async Task ReorderLinksAsync(UpdateProfileLinkOrderRequest request, CancellationToken cancellationToken = default)
+    {
+        var creator = await GetOwnedCreatorAsync(cancellationToken).ConfigureAwait(false);
+        var links = creator.ExternalLinks ??= [];
+        var ids = request.LinkIds ?? [];
+        if (ids.Count != links.Count || ids.Distinct(StringComparer.Ordinal).Count() != ids.Count || ids.Any(id => links.All(x => x.Id != id)))
+            throw new ArgumentException("The order must include every profile link exactly once.");
+        for (var i = 0; i < ids.Count; i++) links.First(x => x.Id == ids[i]).Order = i;
+        await SaveCreatorAsync(creator, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<CreatorDocument> GetOwnedCreatorAsync(CancellationToken cancellationToken)
+    {
+        var userId = RequireUserId();
+        var creator = await _creators.GetByUserIdAsync(userId, cancellationToken).ConfigureAwait(false);
+        return creator ?? throw new KeyNotFoundException("Creator profile not found.");
+    }
+
+    private async Task SaveCreatorAsync(CreatorDocument creator, CancellationToken cancellationToken)
+    {
+        creator.UpdatedUtc = DateTime.UtcNow;
+        await _creators.UpdateAsync(creator, cancellationToken).ConfigureAwait(false);
+    }
+
+    private ProfileLinkDocument CreateLink(CreateProfileLinkRequest request, int order, string? id = null)
+    {
+        var title = request.Title?.Trim();
+        var url = request.Url?.Trim();
+        if (string.IsNullOrWhiteSpace(title) || title.Length > _profileOptions.ExternalLinkTitleMaxLength)
+            throw new ArgumentException("A valid link title is required.");
+        if (string.IsNullOrWhiteSpace(url) || url.Length > _profileOptions.ExternalLinkUrlMaxLength
+            || !Uri.TryCreate(url, UriKind.Absolute, out var parsed)
+            || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
+            throw new ArgumentException("Link URL must be an absolute http(s) URL.");
+        return new ProfileLinkDocument { Id = id ?? IdGenerator.NewProfileLinkId(), Title = title, Url = url, Order = order };
+    }
+
+    private static ProfileLinkResponse ToLinkResponse(ProfileLinkDocument link) =>
+        new() { Id = link.Id, Title = link.Title, Url = link.Url };
+
+    private static void NormalizeOrder(List<ProfileLinkDocument> links)
+    {
+        foreach (var pair in links.OrderBy(x => x.Order).Select((link, index) => (link, index))) pair.link.Order = pair.index;
     }
 
     private string RequireUserId()

@@ -87,6 +87,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'p/:userId',
+    loadComponent: () =>
+      import('./modules/creators/pages/creator-profile-page/creator-profile-page.component').then(
+        (m) => m.CreatorProfilePageComponent,
+      ),
+  },
+  {
     path: 'u/:userId',
     loadComponent: () =>
       import('./modules/creators/pages/creator-profile-page/creator-profile-page.component').then(

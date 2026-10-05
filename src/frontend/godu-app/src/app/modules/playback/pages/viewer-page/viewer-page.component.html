@@ -213,13 +213,11 @@
             <mat-icon>arrow_back</mat-icon>
           </button>
           <div class="viewer__heading">
-            @if (creatorLink(item); as creator) {
+            @if (goduCreatorPath(item); as profilePath) {
               <a
                 class="viewer__creator viewer__creator--link"
-                [href]="creator.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                [attr.aria-label]="'Open ' + creatorLabel(item) + ' on TikTok'"
+                [routerLink]="profilePath"
+                [attr.aria-label]="'Open ' + creatorLabel(item) + ' on GODU'"
               >{{ creatorLabel(item) }}</a>
             } @else if (item.creatorDisplayName) {
               <p class="viewer__creator">{{ item.creatorDisplayName }}</p>

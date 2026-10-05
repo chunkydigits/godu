@@ -12,6 +12,7 @@ export interface TikTokCreatorLink {
 }
 
 export interface CreatorLinkSource {
+  createdByUserId?: string | null;
   creatorDisplayName?: string | null;
   creatorSocials?: CreatorSocial[] | null;
   video: { creatorUsername?: string | null; sourceUrl?: string | null };
@@ -82,6 +83,11 @@ export function tiktokCreatorLink(item: CreatorLinkSource): TikTokCreatorLink | 
     return null;
   }
   return { handle, url: `https://www.tiktok.com/@${handle}` };
+}
+
+export function goduCreatorPath(item: CreatorLinkSource): string | null {
+  const userId = item.createdByUserId?.trim();
+  return userId ? `/p/${encodeURIComponent(userId)}` : null;
 }
 
 export function tiktokHomepageUrl(item: CreatorLinkSource): string | null {

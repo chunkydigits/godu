@@ -7,6 +7,7 @@ using Godu.Service.PlatformAccounts;
 using Godu.Service.SavedGodus;
 using Godu.Service.StepsItems;
 using Godu.Service.TikTok;
+using Godu.Model.Configuration;
 
 namespace Godu.Api.Configuration;
 

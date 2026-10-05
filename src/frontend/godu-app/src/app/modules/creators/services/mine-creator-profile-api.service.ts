@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { CreatorProfile, UpdateCreatorProfileRequest } from '../models/creator-profile.model';
+import { CreatorProfile, ProfileLink, UpdateCreatorProfileRequest } from '../models/creator-profile.model';
 
 @Injectable({ providedIn: 'root' })
 export class MineCreatorProfileApiService {
@@ -19,5 +19,21 @@ export class MineCreatorProfileApiService {
 
   importFromSocial(): Observable<CreatorProfile> {
     return this.http.post<CreatorProfile>(`${this.baseUrl}/from-social`, {});
+  }
+
+  addLink(title: string, url: string): Observable<ProfileLink> {
+    return this.http.post<ProfileLink>(`${this.baseUrl}/links`, { title, url });
+  }
+
+  updateLink(id: string, title: string, url: string): Observable<ProfileLink> {
+    return this.http.put<ProfileLink>(`${this.baseUrl}/links/${encodeURIComponent(id)}`, { title, url });
+  }
+
+  deleteLink(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/links/${encodeURIComponent(id)}`);
+  }
+
+  reorderLinks(linkIds: string[]): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/links/order`, { linkIds });
   }
 }

@@ -24,7 +24,6 @@ import {
 } from '../../../creators/models/creator-profile.model';
 import { MineCreatorProfileApiService } from '../../../creators/services/mine-creator-profile-api.service';
 import { CurrentUserService } from '../../../../core/auth/current-user.service';
-import { publicCreatorPath } from '../../../playback/models/public-path';
 import {
   creatorTrialPanel,
   CreatorTrialPanel,
@@ -191,6 +190,12 @@ export class SettingsPageComponent {
     this.connect$.next();
   }
 
+  hasVerifiedTikTok(accounts: LinkedPlatformAccount[]): boolean {
+    return accounts.some(
+      (account) => account.provider.trim().toLowerCase() === 'tiktok' && account.isVerified,
+    );
+  }
+
   onVoiceCuesDefaultChange(enabled: boolean): void {
     this.userSettings.setUseVoiceCuesByDefault(enabled);
   }
@@ -239,8 +244,7 @@ export class SettingsPageComponent {
   }
 
   publicPagePath(profile: CreatorProfile): string | null {
-    const social = profile.socials[0];
-    return social ? publicCreatorPath(social.provider, social.username) : null;
+    return profile.userId ? `/p/${encodeURIComponent(profile.userId)}` : null;
   }
 
   formatAliases(aliases: string[]): string {

@@ -12,5 +12,7 @@ public sealed class CreatorProfileResponse
 
     public required IReadOnlyList<CreatorSocialResponse> Socials { get; init; }
 
+    public IReadOnlyList<ProfileLinkResponse> ExternalLinks { get; init; } = [];
+
     public IReadOnlyList<PublicStepsSummaryResponse> PublishedSteps { get; init; } = [];
 }

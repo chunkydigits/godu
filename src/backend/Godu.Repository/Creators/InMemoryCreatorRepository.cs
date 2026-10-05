@@ -50,6 +50,10 @@ public sealed class InMemoryCreatorRepository : ICreatorRepository
             DisplayName = creator.DisplayName,
             Bio = creator.Bio,
             ProfileImageUrl = creator.ProfileImageUrl,
+            ExternalLinks = creator.ExternalLinks.Select(link => new ProfileLinkDocument
+            {
+                Id = link.Id, Title = link.Title, Url = link.Url, Order = link.Order,
+            }).ToList(),
             CreatedUtc = creator.CreatedUtc,
             UpdatedUtc = creator.UpdatedUtc,
         };

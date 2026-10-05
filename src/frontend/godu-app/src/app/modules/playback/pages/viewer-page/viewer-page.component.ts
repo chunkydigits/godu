@@ -10,7 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { MatSidenav } from '@angular/material/sidenav';
-import { ActivatedRoute, ParamMap, Router } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import {
   Observable,
   Subject,
@@ -58,7 +58,7 @@ import {
   shouldLoopVideo,
 } from '../../models/step-entry';
 import { usesVideoContent } from '../../models/video-reference.model';
-import { TikTokCreatorLink, creatorLabel, tiktokCreatorLink } from '../../models/creator-link';
+import { TikTokCreatorLink, creatorLabel, goduCreatorPath as buildGoduCreatorPath, tiktokCreatorLink } from '../../models/creator-link';
 import { isContinuousSoundtrackEnabled } from '../../models/continuous-soundtrack.feature';
 import { ControllableVideoPlayer } from '../../models/video-player.interface';
 import { DemoStepsService } from '../../services/demo-steps.service';
@@ -99,6 +99,7 @@ interface ViewerLoadView {
     CompletionPanelComponent,
     InstructionCardComponent,
     SaveGoduButtonComponent,
+    RouterLink,
   ],
   providers: [StepPlaybackService],
   templateUrl: './viewer-page.component.html',
@@ -385,6 +386,10 @@ export class ViewerPageComponent implements OnDestroy {
 
   creatorLink(item: StepsItem): TikTokCreatorLink | null {
     return tiktokCreatorLink(item);
+  }
+
+  goduCreatorPath(item: StepsItem): string | null {
+    return buildGoduCreatorPath(item);
   }
 
   creatorLabel(item: StepsItem): string {

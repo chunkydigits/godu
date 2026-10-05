@@ -5,6 +5,12 @@ export interface CreatorSocial {
   displayName?: string | null;
 }
 
+export interface ProfileLink {
+  id: string;
+  title: string;
+  url: string;
+}
+
 export interface PublicStepsSummary {
   id: string;
   title: string;
@@ -22,6 +28,7 @@ export interface CreatorProfile {
   bio?: string | null;
   profileImageUrl?: string | null;
   socials: CreatorSocial[];
+  externalLinks?: ProfileLink[];
   publishedSteps?: PublicStepsSummary[];
 }
 

@@ -33,6 +33,7 @@ builder.Services.Configure<AnalyticsOptions>(builder.Configuration.GetSection(An
 builder.Services.Configure<CreatorMonetisationOptions>(
     builder.Configuration.GetSection(CreatorMonetisationOptions.SectionName));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.Configure<ProfileOptions>(builder.Configuration.GetSection(ProfileOptions.SectionName));
 var auth0 = builder.Configuration.GetSection(Auth0Options.SectionName).Get<Auth0Options>()
     ?? throw new InvalidOperationException("Auth0 configuration is required.");
 

@@ -199,7 +199,7 @@
         <p class="error">{{ importError }}</p>
       }
 
-      @if (!view.loading) {
+      @if (!view.loading && !hasVerifiedTikTok(view.accounts)) {
         <div class="action-bar">
           <button
             mat-flat-button

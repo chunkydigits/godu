@@ -12,6 +12,8 @@ public sealed class CreatorDocument
 
     public string? ProfileImageUrl { get; set; }
 
+    public List<ProfileLinkDocument> ExternalLinks { get; set; } = [];
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; set; }
