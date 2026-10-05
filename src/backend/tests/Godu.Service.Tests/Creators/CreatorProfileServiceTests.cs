@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Godu.Model.Configuration;
 using Godu.Model.Documents;
 using Godu.Model.Requests;
 using Godu.Model.Responses;
@@ -9,6 +10,7 @@ using Godu.Repository.Users;
 using Godu.Service.Creators;
 using Godu.Service.Identity;
 using Godu.Service.PlatformAccounts;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Godu.Service.Tests.Creators;
@@ -44,7 +46,8 @@ public sealed class CreatorProfileServiceTests
             _creatorService.Object,
             _platformAccounts.Object,
             _entitlement.Object,
-            _currentUser.Object);
+            _currentUser.Object,
+            Options.Create(new ProfileOptions()));
     }
 
     [Fact]
