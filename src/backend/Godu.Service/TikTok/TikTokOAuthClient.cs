@@ -29,15 +29,21 @@ public sealed class TikTokOAuthClient : ITikTokOAuthClient
     {
         using var content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["client_key"] = _options.ClientKey,
-            ["client_secret"] = _options.ClientSecret,
-            ["code"] = code,
+            ["client_key"] = _options.ClientKey.Trim(),
+            ["client_secret"] = _options.ClientSecret.Trim(),
+            ["code"] = code.Trim(),
             ["grant_type"] = "authorization_code",
-            ["redirect_uri"] = redirectUri,
+            ["redirect_uri"] = redirectUri.Trim(),
         });
 
+        using var request = new HttpRequestMessage(HttpMethod.Post, "v2/oauth/token/")
+        {
+            Content = content,
+        };
+        request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
+
         using var response = await _httpClient
-            .PostAsync("v2/oauth/token/", content, cancellationToken)
+            .SendAsync(request, cancellationToken)
             .ConfigureAwait(false);
 
         await using var stream = await response.Content
@@ -50,17 +56,19 @@ public sealed class TikTokOAuthClient : ITikTokOAuthClient
 
         if (!response.IsSuccessStatusCode
             || payload is null
-            || string.IsNullOrWhiteSpace(payload.AccessToken)
-            || string.IsNullOrWhiteSpace(payload.OpenId))
+            || string.IsNullOrWhiteSpace(payload.AccessToken))
         {
-            var detail = payload?.ErrorDescription ?? payload?.Error ?? response.StatusCode.ToString();
-            throw new InvalidOperationException($"TikTok token exchange failed ({detail}).");
+            var detail = payload?.ErrorDescription
+                ?? payload?.Error
+                ?? response.StatusCode.ToString();
+            var logId = string.IsNullOrWhiteSpace(payload?.LogId) ? null : $" log_id={payload.LogId}";
+            throw new InvalidOperationException($"TikTok token exchange failed ({detail}).{logId}");
         }
 
         return new TikTokTokenResult
         {
             AccessToken = payload.AccessToken,
-            OpenId = payload.OpenId,
+            OpenId = payload.OpenId ?? string.Empty,
             RefreshToken = string.IsNullOrWhiteSpace(payload.RefreshToken) ? null : payload.RefreshToken,
             ExpiresInSeconds = payload.ExpiresIn,
             RefreshExpiresInSeconds = payload.RefreshExpiresIn,
@@ -250,6 +258,9 @@ public sealed class TikTokOAuthClient : ITikTokOAuthClient
 
         [JsonPropertyName("error_description")]
         public string? ErrorDescription { get; set; }
+
+        [JsonPropertyName("log_id")]
+        public string? LogId { get; set; }
     }
 
     private sealed class UserInfoPayload

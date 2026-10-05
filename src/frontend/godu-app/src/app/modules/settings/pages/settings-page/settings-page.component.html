@@ -175,9 +175,11 @@
     <h2>Creator accounts</h2>
     <p class="panel__copy">
       Connect TikTok to prove you own that account. You will need a verified link before
-      publishing public Godus. If you rename on TikTok, use Refresh handle so Godu URLs follow
-      the new @name. Old links still reach your Godus. Import Godus adds public Godus for this
-      account — including matching demos — to Saved.
+      publishing public Godus. Use a regular browser tab with an address bar — TikTok’s
+      email/phone verification on this page often fails with “Session expired.” If you rename
+      on TikTok, use Refresh handle so Godu URLs follow the new @name. Old links still reach
+      your Godus. Import Godus adds public Godus for this account — including matching demos —
+      to Saved.
     </p>
 
     @if (view$ | async; as view) {
@@ -201,15 +203,22 @@
 
       @if (!view.loading && !hasVerifiedTikTok(view.accounts)) {
         <div class="action-bar">
-          <button
-            mat-flat-button
-            color="primary"
-            type="button"
-            [disabled]="view.connecting || view.refreshing"
-            (click)="connectTikTok()"
-          >
-            Connect TikTok
-          </button>
+          @if (tikTokConnectBlockReason) {
+            <p class="error">{{ tikTokConnectBlockReason }}</p>
+          } @else if (view.tikTokConnectUrl) {
+            <a
+              mat-flat-button
+              color="primary"
+              [href]="view.tikTokConnectUrl"
+              [attr.aria-disabled]="view.refreshing ? true : null"
+            >
+              Connect TikTok
+            </a>
+          } @else {
+            <button mat-flat-button color="primary" type="button" disabled>
+              Connect TikTok
+            </button>
+          }
         </div>
       }
 

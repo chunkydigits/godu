@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\Godu.Service\Godu.Service.csproj" />
     <ProjectReference Include="..\..\Godu.Model\Godu.Model.csproj" />
     <ProjectReference Include="..\..\Godu.Repository\Godu.Repository.csproj" />
+    <ProjectReference Include="..\..\Godu.Utility\Godu.Utility.csproj" />
   </ItemGroup>
 
 </Project>

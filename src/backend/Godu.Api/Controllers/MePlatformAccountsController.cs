@@ -1,4 +1,5 @@
 using Godu.Service.PlatformAccounts;
+using Godu.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -79,9 +80,11 @@ public sealed class MePlatformAccountsController : ControllerBase
         [FromQuery] string? error,
         CancellationToken cancellationToken = default)
     {
+        var oauthCode = QueryStringUtilities.GetUnescapedValue(Request.QueryString.Value, "code")
+            ?? code;
         var returnUrl = await _platformAccounts.CompleteConnectFromCallbackAsync(
             provider,
-            code,
+            oauthCode,
             state,
             error,
             cancellationToken);

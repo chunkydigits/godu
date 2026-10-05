@@ -298,7 +298,7 @@ public sealed class LinkedPlatformAccountServiceTests
 
         var url = await _sut.CompleteConnectFromCallbackAsync("tiktok", "auth-code", state, null);
 
-        url.Should().Be("http://localhost:4200/settings?error=failed");
+        url.Should().Be("http://localhost:4200/settings?error=profile");
         _repository.Verify(
             r => r.CreateAsync(It.IsAny<LinkedPlatformAccountDocument>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -309,6 +309,52 @@ public sealed class LinkedPlatformAccountServiceTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CompleteConnectFromCallbackAsync_WhenTokenExchangeFails_ThenReturnsTokenError()
+    {
+        Authenticate("usr_owner");
+        var started = await _sut.StartConnectAsync("tiktok");
+        var state = ExtractState(started.AuthorizationUrl);
+
+        _tikTok
+            .Setup(c => c.ExchangeCodeAsync("auth-code", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("TikTok token exchange failed (invalid_grant)."));
+
+        var url = await _sut.CompleteConnectFromCallbackAsync("tiktok", "auth-code", state, null);
+
+        url.Should().Be("http://localhost:4200/settings?error=token");
+        _repository.Verify(
+            r => r.CreateAsync(It.IsAny<LinkedPlatformAccountDocument>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CompleteConnectFromCallbackAsync_WhenUsernameMissing_ThenReturnsUsernameError()
+    {
+        Authenticate("usr_owner");
+        var started = await _sut.StartConnectAsync("tiktok");
+        var state = ExtractState(started.AuthorizationUrl);
+
+        _tikTok
+            .Setup(c => c.ExchangeCodeAsync("auth-code", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ValidTokens());
+        _tikTok
+            .Setup(c => c.GetUserInfoAsync("access-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TikTokUserInfo
+            {
+                OpenId = "open-1",
+                Username = null,
+                DisplayName = "Joe Fitness",
+            });
+
+        var url = await _sut.CompleteConnectFromCallbackAsync("tiktok", "auth-code", state, null);
+
+        url.Should().Be("http://localhost:4200/settings?error=username");
+        _repository.Verify(
+            r => r.CreateAsync(It.IsAny<LinkedPlatformAccountDocument>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 

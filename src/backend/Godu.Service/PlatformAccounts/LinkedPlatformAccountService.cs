@@ -148,8 +148,11 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
 
             if (string.IsNullOrWhiteSpace(profile.Username))
             {
-                throw new InvalidOperationException(
-                    "TikTok did not return a username. Ensure user.info.profile is approved.");
+                _logger.LogWarning(
+                    "TikTok user-info omitted username for user {UserId}. GrantedScopes={GrantedScopes}.",
+                    userId,
+                    tokens.Scope);
+                return FrontendReturn("error=username");
             }
 
             var openId = string.IsNullOrWhiteSpace(profile.OpenId) ? tokens.OpenId : profile.OpenId;
@@ -172,7 +175,13 @@ public sealed class LinkedPlatformAccountService : ILinkedPlatformAccountService
                 "TikTok platform connect failed for user {UserId} during stage {Stage}.",
                 userId,
                 stage);
-            return FrontendReturn("error=failed");
+            var errorCode = stage switch
+            {
+                "token_exchange" => "token",
+                "user_info" => "profile",
+                _ => "failed",
+            };
+            return FrontendReturn($"error={errorCode}");
         }
     }
 

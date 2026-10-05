@@ -43,6 +43,7 @@ interface SettingsView {
   accounts: LinkedPlatformAccount[];
   error: string | null;
   actionMessage: string | null;
+  tikTokConnectUrl: string | null;
 }
 
 interface ProfileEditorView {
@@ -69,7 +70,6 @@ export class SettingsPageComponent {
   private readonly savedGodus = inject(SavedGodusService);
   private readonly changeDetector = inject(ChangeDetectorRef);
 
-  private readonly connect$ = new Subject<void>();
   private readonly disconnectId$ = new Subject<string>();
   private readonly refreshId$ = new Subject<string>();
   private readonly saveProfile$ = new Subject<void>();
@@ -105,36 +105,10 @@ export class SettingsPageComponent {
     this.currentUser.refresh();
   }
 
+  readonly tikTokConnectBlockReason = resolveTikTokConnectBlockReason();
+
   readonly view$: Observable<SettingsView> = merge(
     this.loadView(),
-    this.connect$.pipe(
-      switchMap(() =>
-        this.platformAccounts.startConnect('tiktok').pipe(
-          tap((started) => {
-            window.location.assign(started.authorizationUrl);
-          }),
-          map(
-            (): SettingsView => ({
-              loading: false,
-              connecting: true,
-              refreshing: false,
-              accounts: [],
-              error: null,
-              actionMessage: 'Redirecting to TikTok…',
-            }),
-          ),
-          startWith({
-            loading: false,
-            connecting: true,
-            refreshing: false,
-            accounts: [],
-            error: null,
-            actionMessage: null,
-          }),
-          catchError((err: unknown) => of(toErrorView(err, 'Could not start TikTok connect.'))),
-        ),
-      ),
-    ),
     this.disconnectId$.pipe(
       switchMap((id) =>
         this.platformAccounts.disconnect(id).pipe(
@@ -148,6 +122,7 @@ export class SettingsPageComponent {
             accounts: [] as LinkedPlatformAccount[],
             error: null,
             actionMessage: null,
+            tikTokConnectUrl: null,
           }),
           catchError((err: unknown) => of(toErrorView(err, 'Could not disconnect account.'))),
         ),
@@ -172,6 +147,7 @@ export class SettingsPageComponent {
             accounts: [] as LinkedPlatformAccount[],
             error: null,
             actionMessage: 'Checking TikTok for your current handle…',
+            tikTokConnectUrl: null,
           }),
           catchError((err: unknown) => of(toErrorView(err, 'Could not refresh handle.'))),
         ),
@@ -185,10 +161,6 @@ export class SettingsPageComponent {
     this.saveProfile$.pipe(switchMap(() => this.saveProfile())),
     this.importProfile$.pipe(switchMap(() => this.importProfile())),
   );
-
-  connectTikTok(): void {
-    this.connect$.next();
-  }
 
   hasVerifiedTikTok(accounts: LinkedPlatformAccount[]): boolean {
     return accounts.some(
@@ -263,16 +235,35 @@ export class SettingsPageComponent {
 
   private loadView(actionMessage: string | null = null): Observable<SettingsView> {
     return this.platformAccounts.list().pipe(
-      map(
-        (accounts): SettingsView => ({
+      switchMap((accounts) => {
+        const view: SettingsView = {
           loading: false,
           connecting: false,
           refreshing: false,
           accounts,
           error: null,
           actionMessage,
-        }),
-      ),
+          tikTokConnectUrl: null,
+        };
+        if (this.hasVerifiedTikTok(accounts) || this.tikTokConnectBlockReason) {
+          return of(view);
+        }
+
+        return this.platformAccounts.startConnect('tiktok').pipe(
+          map(
+            (started): SettingsView => ({
+              ...view,
+              tikTokConnectUrl: started.authorizationUrl,
+            }),
+          ),
+          catchError((err: unknown) =>
+            of({
+              ...view,
+              error: problemDetail(err, 'Could not start TikTok connect.'),
+            }),
+          ),
+        );
+      }),
       startWith({
         loading: true,
         connecting: false,
@@ -280,6 +271,7 @@ export class SettingsPageComponent {
         accounts: [] as LinkedPlatformAccount[],
         error: null,
         actionMessage: null,
+        tikTokConnectUrl: null,
       }),
       catchError((err: unknown) => of(toErrorView(err, 'Could not load creator accounts.'))),
     );
@@ -397,6 +389,24 @@ export class SettingsPageComponent {
   }
 }
 
+function resolveTikTokConnectBlockReason(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const ua = window.navigator.userAgent;
+  if (/TikTok|BytedanceWebview|Instagram|FBAN|FBAV/i.test(ua)) {
+    return 'Open this page in Safari or Chrome to connect TikTok. In-app browsers cannot complete TikTok verification.';
+  }
+
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  if (window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true) {
+    return 'Open Godu in a regular browser tab (with an address bar) to connect TikTok. The home-screen app cannot complete TikTok verification.';
+  }
+
+  return null;
+}
+
 function mapConnectError(code: string | null): string | null {
   switch (code) {
     case 'denied':
@@ -405,6 +415,12 @@ function mapConnectError(code: string | null): string | null {
       return 'That TikTok account is already linked to another Godu user.';
     case 'invalid':
       return 'TikTok connect expired or was invalid. Try again.';
+    case 'token':
+      return 'TikTok accepted login but refused the token exchange. Check that the client key, secret, and redirect URI match this environment.';
+    case 'profile':
+      return 'TikTok login succeeded but the profile request failed. Try connecting again.';
+    case 'username':
+      return 'TikTok did not return a username. Confirm user.info.profile is approved and granted.';
     case 'failed':
       return 'TikTok connect failed. Check Login Kit credentials and try again.';
     default:
@@ -425,6 +441,7 @@ function toErrorView(err: unknown, fallback: string): SettingsView {
     accounts: [],
     error: detail,
     actionMessage: null,
+    tikTokConnectUrl: null,
   };
 }
 
