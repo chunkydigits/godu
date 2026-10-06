@@ -248,6 +248,7 @@ export class StepsEditorPageComponent {
   private readonly resolvedVideoId = signal<string | null>(null);
   private videoLookupEpoch = 0;
   readonly videoLookupPending = signal(false);
+  readonly videoDurationSeconds = signal<number | null>(null);
 
   readonly previewVideoId = computed(() => {
     if (this.noVideoLock()) {

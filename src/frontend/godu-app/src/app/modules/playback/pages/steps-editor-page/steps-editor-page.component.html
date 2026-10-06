@@ -51,6 +51,7 @@
                 [lookupPending]="videoLookupPending()"
                 [cardsOnly]="form.controls.noVideoContent.value"
                 [cardPreview]="editorCardPreview()"
+                (durationChange)="videoDurationSeconds.set($event)"
               />
             </div>
           </aside>
@@ -64,6 +65,7 @@
               [openSection]="openSection()"
               [videoLookupPending]="videoLookupPending()"
               [creatorLocked]="creatorLocked()"
+              [videoDurationSeconds]="videoDurationSeconds()"
               (addEntry)="addEntry($event)"
               (removeEntry)="removeEntry($event)"
               (toggleEntry)="toggleEntry($event)"

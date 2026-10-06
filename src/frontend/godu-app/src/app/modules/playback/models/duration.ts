@@ -46,6 +46,21 @@ export function countdownUsesMinutes(totalSeconds: number | null | undefined): b
   return totalSeconds != null && Number.isFinite(totalSeconds) && totalSeconds > 60;
 }
 
+/** Clip timestamp with milliseconds, e.g. 103.113 → "1:43.113". */
+export function formatPreciseTimestamp(totalSeconds: number | null | undefined): string {
+  if (totalSeconds == null || !Number.isFinite(totalSeconds) || totalSeconds < 0) {
+    return '0:00.000';
+  }
+  let minutes = Math.floor(totalSeconds / 60);
+  let seconds = totalSeconds - minutes * 60;
+  if (Number(seconds.toFixed(3)) >= 60) {
+    minutes += 1;
+    seconds = 0;
+  }
+  const [whole, fraction] = seconds.toFixed(3).split('.');
+  return `${minutes}:${whole.padStart(2, '0')}.${fraction}`;
+}
+
 /**
  * Compact length for collapsed editor titles: seconds below a minute, then m and s.
  * 45 → "45s", 60 → "1m", 90 → "1m 30s", 900 → "15m".

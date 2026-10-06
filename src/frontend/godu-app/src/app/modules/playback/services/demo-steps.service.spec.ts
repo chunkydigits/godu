@@ -11,15 +11,11 @@ describe('DemoStepsService related', () => {
       'steps_demo_fitness',
       'steps_demo_recipe',
       'steps_demo_cook_confit',
+      'steps_01M47S5JFAZKDYWC1W5PXHS352',
       'steps_demo_train_hiit',
       'steps_demo_style_plait',
-      'steps_demo_dance_pop',
       'steps_demo_makeup_baddie',
       'steps_01M24WV7RBZD9ES3DZ1ZSBYAMN',
-      'steps_demo_make_granny',
-      'steps_demo_play_restless',
-      'steps_demo_care_skincare',
-      'steps_demo_learn_study',
       'steps_demo_learn_writing',
     ]);
     expect(listed.every((item) => item.listed && item.category)).toBe(true);
@@ -133,6 +129,43 @@ describe('DemoStepsService related', () => {
     });
   });
 
+  it('uses the s.z.movement beginner yoga routine', async () => {
+    const yoga = await firstValueFrom(service.getById('steps_01M47S5JFAZKDYWC1W5PXHS352'));
+    expect(yoga.category).toBe('Fitness');
+    expect(yoga.video.externalVideoId).toBe('7427369189087726855');
+    expect(yoga.creatorDisplayName).toBe('@s.z.movement');
+    expect(yoga.gapSeconds).toBe(5);
+    expect(yoga.recommendedPlaybackSettings).toEqual({
+      clipAudio: false,
+      voiceCues: false,
+      timingBeeps: false,
+      timingBeepSeconds: null,
+    });
+    expect(yoga.steps).toHaveLength(6);
+    expect(yoga.steps.map((step) => step.title)).toEqual([
+      "Child's Pose",
+      'Downward Facing Dog',
+      'Spine Rotation',
+      'Low Lunges',
+      'Arm Swings',
+      'Squats',
+    ]);
+    expect(yoga.steps[0]).toMatchObject({
+      startSeconds: 0,
+      endSeconds: 1.9,
+      durationSeconds: 60,
+      autoAdvance: true,
+      loopVideo: true,
+    });
+    expect(yoga.steps[2]).toMatchObject({
+      startSeconds: 4.5,
+      endSeconds: 9.5,
+      durationSeconds: null,
+      autoAdvance: false,
+      loopVideo: true,
+    });
+  });
+
   it('uses the Nicci Robinson HIIT circuit with seven repeats', async () => {
     const hiit = await firstValueFrom(service.getById('steps_demo_train_hiit'));
     expect(hiit.video.externalVideoId).toBe('7457632822598159658');
@@ -152,15 +185,6 @@ describe('DemoStepsService related', () => {
       durationSeconds: 60,
       loopVideo: false,
     });
-  });
-
-  it('maps catalogue demos including gap entries', async () => {
-    const study = await firstValueFrom(service.getById('steps_demo_learn_study'));
-    expect(study.category).toBe('Learn');
-    expect(study.video.externalVideoId).toBe('6708742129562160389');
-    expect(study.steps.some((step) => step.kind === 'gap' && step.message === 'Take a five-minute break')).toBe(
-      true,
-    );
   });
 
   it('maps a cards-only writing timer with no TikTok', async () => {

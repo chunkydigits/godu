@@ -339,6 +339,10 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.step__nums--clip .field-hint {
+  grid-column: 1 / -1;
+}
+
 .step__num {
   display: flex;
   align-items: flex-start;
@@ -383,6 +387,10 @@
   color: var(--steps-text-muted);
   font-size: 0.8rem;
   line-height: 1.35;
+}
+
+.field-hint--warning {
+  color: var(--steps-danger);
 }
 
 .clip-mode {

@@ -444,6 +444,9 @@
                         -1s
                       </button>
                     </div>
+                    @if (endAdjustedMessage(i); as endWarning) {
+                      <p class="field-hint field-hint--warning">{{ endWarning }}</p>
+                    }
                   </div>
 
                   <app-duration-input

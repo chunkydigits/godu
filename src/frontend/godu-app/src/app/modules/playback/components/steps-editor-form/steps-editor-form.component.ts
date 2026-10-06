@@ -1,6 +1,18 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  OnInit,
+  Output,
+  SimpleChanges,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MaterialModule } from '../../../../core/material.module';
 import { DurationInputComponent } from '../duration-input/duration-input.component';
@@ -11,6 +23,7 @@ import {
   EditorSectionId,
 } from '../../models/editor-sections';
 import { formatCompactDuration } from '../../models/duration';
+import { clampEndSecondsToVideo, videoEndAdjustedMessage } from '../../models/editor-clip-end';
 import {
   DEFAULT_CARD_BACKGROUND,
   GAP_MESSAGE_MAX_LENGTH,
@@ -27,6 +40,7 @@ import {
   isCardEntry,
   isGapEntry,
   shouldLoopVideo,
+  stepEntryKind,
 } from '../../models/step-entry';
 import {
   TIMING_BEEP_SECONDS_MAX,
@@ -39,8 +53,13 @@ import {
   templateUrl: './steps-editor-form.component.html',
   styleUrl: './steps-editor-form.component.scss',
 })
-export class StepsEditorFormComponent {
+export class StepsEditorFormComponent implements OnInit, OnChanges {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly adjustedEnds = signal(new Set<AbstractControl>());
+
   @Input({ required: true }) form!: FormGroup;
+  /** Known TikTok length in seconds. Null until the preview player reports it. */
+  @Input() videoDurationSeconds: number | null = null;
   @Input() continuousSoundtrackEnabled = false;
   /** Whether the last remaining activity step is protected from removal. */
   @Input() activityStepCount = 0;
@@ -94,6 +113,27 @@ export class StepsEditorFormComponent {
 
   get steps(): FormArray {
     return this.form.get('steps') as FormArray;
+  }
+
+  ngOnInit(): void {
+    this.steps.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.clampOvershootingEnds());
+    this.clampOvershootingEnds();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['videoDurationSeconds']) {
+      this.clampOvershootingEnds();
+    }
+  }
+
+  endAdjustedMessage(index: number): string | null {
+    const control = this.steps.at(index)?.get('endSeconds');
+    if (!control || !this.adjustedEnds().has(control) || this.videoDurationSeconds == null) {
+      return null;
+    }
+    return videoEndAdjustedMessage(this.videoDurationSeconds);
   }
 
   isSectionOpen(id: EditorSectionId): boolean {
@@ -203,6 +243,40 @@ export class StepsEditorFormComponent {
 
   cardBackground(index: number): string {
     return this.entryAt(index)?.backgroundColor?.trim() || this.defaultCardBackground;
+  }
+
+  private clampOvershootingEnds(): void {
+    const duration = this.videoDurationSeconds;
+    if (duration == null || duration <= 0) {
+      return;
+    }
+
+    let changed = false;
+    const adjusted = new Set(this.adjustedEnds());
+    for (const group of this.steps.controls) {
+      if (stepEntryKind(group.getRawValue()) !== 'step') {
+        continue;
+      }
+      const control = group.get('endSeconds');
+      if (!control) {
+        continue;
+      }
+      const end = toNumber(control.value);
+      if (end == null) {
+        continue;
+      }
+      const next = clampEndSecondsToVideo(end, duration);
+      if (next.clamped) {
+        control.setValue(next.endSeconds, { emitEvent: false });
+        adjusted.add(control);
+        changed = true;
+      } else if (end < duration) {
+        changed = adjusted.delete(control) || changed;
+      }
+    }
+    if (changed) {
+      this.adjustedEnds.set(adjusted);
+    }
   }
 
   private get entries(): StepEntrySummary[] {

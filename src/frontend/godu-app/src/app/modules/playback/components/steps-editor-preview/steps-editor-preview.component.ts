@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, Input, NgZone, OnDestroy, inject } from '@angular/core';
+import { Component, EventEmitter, Input, NgZone, OnDestroy, Output, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, takeUntil } from 'rxjs';
 import { MaterialModule } from '../../../../core/material.module';
 import { countdownUsesMinutes, formatCountdown } from '../../models/duration';
@@ -38,9 +38,12 @@ export class StepsEditorPreviewComponent implements OnDestroy {
   @Input() lookupPending = false;
   @Input() cardsOnly = false;
   @Input() cardPreview: EditorCardPreview | null = null;
+  @Output() readonly durationChange = new EventEmitter<number | null>();
 
   @Input() set externalVideoId(value: string | null) {
     this.videoId = value?.trim() || null;
+    this.lastUpdate = { currentTime: 0, duration: 0 };
+    this.durationChange.emit(null);
   }
 
   readonly clock$: Observable<{ current: string; duration: string }> =
@@ -60,8 +63,14 @@ export class StepsEditorPreviewComponent implements OnDestroy {
     this.player = player;
     await player.initialise();
     player.timeUpdates.pipe(takeUntil(this.destroy$)).subscribe((update) => {
+      const previousDuration = this.lastUpdate.duration;
       this.lastUpdate = update;
-      this.ngZone.run(() => this.publishClock(update));
+      this.ngZone.run(() => {
+        if (update.duration !== previousDuration) {
+          this.durationChange.emit(update.duration > 0 ? update.duration : null);
+        }
+        this.publishClock(update);
+      });
       this.maybeStopAtEnd(update.currentTime);
     });
   }

@@ -5,6 +5,7 @@ import {
   countdownUsesMinutes,
   formatCompactDuration,
   formatCountdown,
+  formatPreciseTimestamp,
   formatSpokenDuration,
   parseSeconds,
   splitSeconds,
@@ -38,6 +39,13 @@ describe('duration helpers', () => {
     expect(formatCountdown(600)).toBe('10:00');
     expect(countdownUsesMinutes(60)).toBe(false);
     expect(countdownUsesMinutes(61)).toBe(true);
+  });
+
+  it('formats a clip timestamp with milliseconds', () => {
+    expect(formatPreciseTimestamp(103.113)).toBe('1:43.113');
+    expect(formatPreciseTimestamp(43.1)).toBe('0:43.100');
+    expect(formatPreciseTimestamp(60)).toBe('1:00.000');
+    expect(formatPreciseTimestamp(null)).toBe('0:00.000');
   });
 
   it('formats a compact title duration in m and s from a minute', () => {
